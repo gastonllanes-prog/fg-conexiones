@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v26</title>
+<title>FG Conexiones v27</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#111;min-height:100vh}
@@ -142,7 +142,7 @@ tr:last-child td{border-bottom:none}
 
 <!-- TÉCNICO -->
 <div id="s-tec" class="screen">
-  <div class="topbar"><h2 id="t-nombre"></h2><span style="font-size:10px;color:#aaa;margin:0 6px">v26</span><button class="btn btn-sm" onclick="logout()">Salir</button></div>
+  <div class="topbar"><h2 id="t-nombre"></h2><span style="font-size:10px;color:#aaa;margin:0 6px">v27</span><button class="btn btn-sm" onclick="logout()">Salir</button></div>
   <div class="nav">
     <div class="ntab active" onclick="tecTab('semana',this)">Semana</div>
     <div class="ntab" onclick="tecTab('cobros',this)">Mis cobros</div>
@@ -195,7 +195,7 @@ tr:last-child td{border-bottom:none}
 
 <!-- ADMIN/JEFE -->
 <div id="s-adm" class="screen">
-  <div class="topbar"><h2 id="a-nombre"></h2><span style="font-size:10px;color:#aaa;margin:0 6px">v26</span><button class="btn btn-sm" onclick="logout()">Salir</button></div>
+  <div class="topbar"><h2 id="a-nombre"></h2><span style="font-size:10px;color:#aaa;margin:0 6px">v27</span><button class="btn btn-sm" onclick="logout()">Salir</button></div>
   <div class="nav">
     <div class="ntab active" onclick="admTab('cargar',this)">Cargar</div>
     <div class="ntab" onclick="admTab('resumen',this)">Resumen</div>
@@ -1526,6 +1526,19 @@ async function renderConfig(){
       <div class="fg"><label>¿Solo registra?</label><select id="cfg-tr"><option value="0">No, suma</option><option value="1">Sí, solo registra</option></select></div>
       <button class="btn btn-dark btn-sm" onclick="agregarTipo()">Agregar</button>
       <p class="ok-msg" id="cfg-tareas-ok"></p>
+    </div>
+    <div class="card">
+      <div class="card-title">🗓 Rotación sábados</div>
+      <p style="font-size:13px;color:#666;margin-bottom:.9rem">Definí qué grupo libra el sábado de una semana. Las siguientes rotan automáticamente.</p>
+      <div class="fg"><label>Semana</label><input type="date" id="cfg-rot-fecha"/></div>
+      <div class="fg"><label>¿Qué grupo libra ese sábado?</label>
+        <select id="cfg-rot-grupo">
+          <option value="1">Grupo 1 libra (Enzo-Fernando, Daniel-Pablo, Maxi-Mauricio, Ricardo-Gustavo)</option>
+          <option value="2">Grupo 2 libra (Carlos-Oscar, Jorge-Gaspar, Pablo-Gerardo)</option>
+        </select>
+      </div>
+      <button class="btn btn-dark btn-sm" onclick="guardarRotacion()">Guardar rotación</button>
+      <p class="ok-msg" id="cfg-rot-ok"></p>
     </div>`;
   }else{
     el.innerHTML=`<div class="card"><div class="msg msg-info" style="margin-bottom:.9rem">La configuración solo puede modificarla el jefe (Gastón Llanes).</div>
