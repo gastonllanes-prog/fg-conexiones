@@ -451,6 +451,13 @@ async function sbUpsert(table,body){
   const t=await r.text();if(!r.ok)throw new Error(t);
   const p=t?JSON.parse(t):[];return Array.isArray(p)?p:[p];
 }
+async function sbDelete(table,query){
+  const r=await fetch(`${SB_URL}/rest/v1/${table}${query}`,{
+    method:'DELETE',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'}
+  });
+  const t=await r.text();if(!r.ok)throw new Error(t);
+}
 
 let CU=null,wkOff=0,admWkOff=0,modo='par';
 let TIPOS=[],CONFIG={},CUADRILLAS=[],diasEsp={},feriadosAR={};
