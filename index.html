@@ -6,8 +6,8 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v35</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<title>FG Conexiones v36</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#111;min-height:100vh}
@@ -104,51 +104,40 @@ tr:last-child td{border-bottom:none}
 .reg-item-header{display:flex;justify-content:space-between;align-items:flex-start}
 .reg-item-btns{display:flex;gap:6px;margin-top:8px}
 /* DASHBOARD */
-#dash-content{font-family:'Courier New',monospace;background:#0a0a0a;min-height:100vh;padding:1.5rem;color:#e8e8e8;border-radius:12px}
-.dash-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid #222}
-.dash-title{font-size:28px;font-weight:900;color:#fff;letter-spacing:-1px;text-transform:uppercase}
-.dash-subtitle{font-size:12px;color:#555;letter-spacing:2px;text-transform:uppercase;margin-top:4px}
-.dash-fecha{text-align:right;font-size:12px;color:#555;letter-spacing:1px}
-.dash-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem}
-.dash-grid-2{display:grid;grid-template-columns:2fr 1fr;gap:1rem;margin-bottom:1.5rem}
-.dash-grid-full{margin-bottom:1.5rem}
-.dash-card{background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:1.2rem}
-.dash-card-title{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#444;margin-bottom:1rem;font-weight:700}
-.dash-stat-val{font-size:36px;font-weight:900;color:#fff;letter-spacing:-2px;line-height:1}
-.dash-stat-label{font-size:11px;color:#555;margin-top:6px;letter-spacing:1px;text-transform:uppercase}
-.dash-cuad-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #1a1a1a}
-.dash-cuad-row:last-child{border-bottom:none}
-.dash-cuad-name{font-size:13px;font-weight:700;color:#ccc;width:160px;flex-shrink:0}
-.dash-cuad-bar-wrap{flex:1;height:8px;background:#1a1a1a;border-radius:4px;overflow:hidden}
-.dash-cuad-bar{height:100%;border-radius:4px;transition:width .8s ease}
-.dash-cuad-bar.green{background:#22c55e}
-.dash-cuad-bar.amber{background:#f59e0b}
-.dash-cuad-bar.red{background:#ef4444}
-.dash-cuad-val{font-size:13px;font-weight:700;width:50px;text-align:right;color:#888}
-.dash-cuad-badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;letter-spacing:.5px}
-.dash-cuad-badge.libre{background:#052e16;color:#22c55e;border:1px solid #166534}
-.dash-cuad-badge.trabaja{background:#1c1917;color:#78716c;border:1px solid #292524}
-.dash-rank-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #1a1a1a}
-.dash-rank-item:last-child{border-bottom:none}
-.dash-rank-num{font-size:22px;font-weight:900;color:#222;width:32px;text-align:center}
-.dash-rank-num.top1{color:#f59e0b}
-.dash-rank-num.top2{color:#6b7280}
-.dash-rank-num.top3{color:#92400e}
-.dash-rank-name{flex:1;font-size:13px;font-weight:700;color:#ccc}
-.dash-rank-cuad{font-size:10px;color:#555}
-.dash-rank-val{font-size:14px;font-weight:900;color:#22c55e}
-.dash-pagos-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1a1a1a}
-.dash-pagos-item:last-child{border-bottom:none}
-.dash-pagos-name{font-size:13px;font-weight:700;color:#ccc}
-.dash-pagos-monto{font-size:14px;font-weight:900}
-.dash-pagos-monto.pos{color:#22c55e}
-.dash-pagos-monto.neg{color:#ef4444}
-.dash-leader{background:linear-gradient(135deg,#052e16,#0f0f0f);border:1px solid #166534;border-radius:10px;padding:1.5rem;text-align:center;margin-bottom:1.5rem}
-.dash-leader-label{font-size:10px;letter-spacing:3px;color:#166534;text-transform:uppercase;margin-bottom:.5rem}
-.dash-leader-name{font-size:32px;font-weight:900;color:#22c55e;letter-spacing:-1px}
-.dash-leader-val{font-size:14px;color:#4ade80;margin-top:4px}
-.dash-refresh{background:none;border:1px solid #222;color:#555;font-size:11px;padding:6px 14px;border-radius:6px;cursor:pointer;letter-spacing:1px;text-transform:uppercase}
-.dash-refresh:hover{border-color:#444;color:#888}
+.dash-wrap{background:#0d0d0d;border-radius:12px;padding:1.5rem;color:#e0e0e0;font-family:'Courier New',monospace}
+.dash-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #1e1e1e}
+.dash-title{font-size:22px;font-weight:900;color:#fff;letter-spacing:-1px;text-transform:uppercase}
+.dash-sub{font-size:10px;color:#444;letter-spacing:2px;text-transform:uppercase;margin-top:3px}
+.dash-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.dash-grid2{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;margin-bottom:12px}
+.dash-box{background:#111;border:1px solid #1e1e1e;border-radius:8px;padding:1rem}
+.dash-box-title{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#3a3a3a;margin-bottom:.8rem;font-weight:700}
+.dash-kpi-val{font-size:32px;font-weight:900;color:#fff;letter-spacing:-2px;line-height:1}
+.dash-kpi-label{font-size:10px;color:#444;margin-top:5px;letter-spacing:1px;text-transform:uppercase}
+.dash-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #161616}
+.dash-row:last-child{border-bottom:none}
+.dash-row-name{font-size:12px;font-weight:700;color:#aaa;width:140px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-bar-wrap{flex:1;height:6px;background:#1a1a1a;border-radius:3px;overflow:hidden}
+.dash-bar{height:100%;border-radius:3px;transition:width 1s ease}
+.dash-bar.g{background:#22c55e}.dash-bar.a{background:#f59e0b}.dash-bar.r{background:#ef4444}
+.dash-val{font-size:12px;font-weight:700;width:40px;text-align:right;color:#666}
+.dash-badge{font-size:9px;padding:2px 6px;border-radius:20px;font-weight:700}
+.dash-badge.li{background:#052e16;color:#22c55e;border:1px solid #14532d}
+.dash-badge.tr{background:#1c1917;color:#44403c;border:1px solid #292524}
+.dash-leader-box{background:linear-gradient(135deg,#052e16 0%,#0d0d0d 100%);border:1px solid #14532d;border-radius:8px;padding:1rem;text-align:center;margin-bottom:12px}
+.dash-leader-label{font-size:9px;letter-spacing:3px;color:#166534;text-transform:uppercase;margin-bottom:4px}
+.dash-leader-name{font-size:24px;font-weight:900;color:#22c55e;letter-spacing:-1px}
+.dash-leader-val{font-size:12px;color:#4ade80;margin-top:3px}
+.dash-pago-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #161616}
+.dash-pago-row:last-child{border-bottom:none}
+.dash-pago-name{font-size:12px;font-weight:700;color:#aaa}
+.dash-pago-sub{font-size:10px;color:#333}
+.dash-pago-monto{font-size:13px;font-weight:900}
+.dash-rank-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #161616}
+.dash-rank-row:last-child{border-bottom:none}
+.dash-rank-n{font-size:18px;font-weight:900;width:28px;text-align:center}
+.dash-refresh{background:none;border:1px solid #222;color:#444;font-size:10px;padding:5px 12px;border-radius:5px;cursor:pointer;letter-spacing:1px;text-transform:uppercase;margin-top:6px}
+.dash-refresh:hover{border-color:#555;color:#888}
 .det-tec-block{background:#f8f8f5;border-radius:12px;padding:1rem;margin-bottom:.7rem}
 .det-tec-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem}
 .det-tec-name{font-size:15px;font-weight:700}
@@ -437,9 +426,7 @@ tr:last-child td{border-bottom:none}
     </div>
     <div class="card"><div class="card-title">Historial de accesos</div><div id="log-lista"><div class="loading"><span class="spinner"></span></div></div></div>
   </div>
-  <div id="at-dashboard" style="display:none">
-    <div id="dash-content"><div class="loading"><span class="spinner"></span>Cargando panel...</div></div>
-  </div>
+  <div id="at-dashboard" style="display:none"><div id="dash-content"></div></div>
   <div id="at-ranking" style="display:none">
     <div class="card"><div class="card-title">Ranking por cuadrilla</div><div id="adm-rank-cuad"><div class="loading"><span class="spinner"></span></div></div></div>
     <div class="card"><div class="card-title">Ranking individual</div><div id="adm-rank-ind"><div class="loading"><span class="spinner"></span></div></div></div>
@@ -1279,8 +1266,11 @@ async function renderAdmResumen(){
         <span>Total: <strong style="color:#111">${tcs.toFixed(2)}</strong>${saldoCuad?` · Saldo: <strong style="color:${saldoCuad<0?'#c0392b':'#1a7a3c'}">${saldoCuad>=0?'+':''}${saldoCuad.toFixed(2)}</strong>`:''}</span>
         <span>${resumenVista==='semana'?(falta>0?'Faltan: '+falta.toFixed(2):'<span style="color:#1a7a3c">+'+extras.toFixed(2)+' extras sem.</span>'):(tcs>0?'Total: '+tcs.toFixed(2)+' equiv.':'')}</span>
       </div>
-      ${resumenVista==='semana'&&CU&&CU.rol==='jefe'?`<button onclick="event.stopPropagation();cerrarSemana('${desde}','${cuad.id}')" style="margin-top:8px;width:100%;background:#222;color:#fff;border:none;padding:8px 0;border-radius:8px;font-size:13px;cursor:pointer">🔒 Cerrar semana</button>`:''}
+      
     </div>`;
+    if(resumenVista==='semana'&&CU&&CU.rol==='jefe'){
+      html+='<div style="margin-top:8px"><button onclick="event.stopPropagation();cerrarSemana(\''+desde+'\',\''+cuad.id+'\')" style="width:100%;background:#222;color:#fff;border:none;padding:8px 0;border-radius:10px;font-size:13px;cursor:pointer">🔒 Cerrar semana</button></div>';
+    }
   }
   el.innerHTML=html;
 }
@@ -1767,203 +1757,154 @@ async function guardarCuadrilla(){
 }
 function cerrarCuadModal(){document.getElementById('cuad-modal').classList.add('hidden');editCuadId=null;}
 
+
 // DASHBOARD
-let dashChart=null;
+let _dashChart=null;
 async function renderDashboard(){
   const el=document.getElementById('dash-content');
   if(!el)return;
   el.innerHTML='<div class="loading"><span class="spinner"></span>Cargando panel...</div>';
+  try{
+    const meta=parseInt(CONFIG.meta_semanal||30);
+    const precio=parseInt(CONFIG.precio_instalacion||7000);
+    const precioUnit=precio/2;
+    const lunes=getLunes(0);
+    const domDate=new Date(lunes+'T12:00:00');domDate.setDate(domDate.getDate()+6);
+    const hasta=fmtD(domDate);
+    const hoy=new Date();
+    const semConf=await getSemConf(lunes);
+    const gl=semConf?semConf.grupo_libra:null;
 
-  const meta=parseInt(CONFIG.meta_semanal||30);
-  const precio=parseInt(CONFIG.precio_instalacion||7000);
-  const precioUnit=precio/2;
-  const lunes=getLunes(0);
-  const dom=new Date(lunes+'T12:00:00');dom.setDate(dom.getDate()+6);
-  const hasta=fmtD(dom);
-  const lunesAnt=getLunes(-1);
-  const domAnt=new Date(lunesAnt+'T12:00:00');domAnt.setDate(domAnt.getDate()+6);
-  const hastaAnt=fmtD(domAnt);
+    const regs=await sbGet('registros','?fecha=gte.'+lunes+'&fecha=lte.'+hasta+'&select=*,registro_tareas(*)');
 
-  const [regs, semConf, saldosAll, pagosAll, diasEspAll] = await Promise.all([
-    sbGet('registros',`?fecha=gte.${lunes}&fecha=lte.${hasta}&select=*,registro_tareas(*)`),
-    getSemConf(lunes),
-    sbGet('saldos','?select=*&order=semana_inicio.desc'),
-    sbGet('pagos','?select=*'),
-    sbGet('dias_especiales','?select=*')
-  ]);
+    // Per cuadrilla stats
+    const cuadData=CUADRILLAS.map(cuad=>{
+      let total=0;
+      regs.filter(r=>r.cuadrilla_id===cuad.id).forEach(r=>{(r.registro_tareas||[]).forEach(rt=>total+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));});
+      const libreS=gl?cuad.grupo===gl:false;
+      const pct=Math.min(100,Math.round((total/meta)*100));
+      const bc=pct>=100?'g':pct>=60?'a':'r';
+      return{cuad,total,libreS,pct,bc};
+    }).sort((a,b)=>b.total-a.total);
 
-  const gl=semConf?semConf.grupo_libra:null;
-  const hoy=new Date();
-  const diasTranscurridos=[0,1,2,3,4,5].filter(i=>{const d=new Date(lunes+'T12:00:00');d.setDate(d.getDate()+i);return d<=hoy;}).length;
+    const totalGeneral=cuadData.reduce((s,c)=>s+c.total,0);
+    const cuadLider=cuadData[0];
 
-  // Per cuadrilla data
-  const cuadData=CUADRILLAS.map(cuad=>{
-    let total=0;
-    const regsCuad=regs.filter(r=>r.cuadrilla_id===cuad.id);
-    regsCuad.forEach(r=>{(r.registro_tareas||[]).forEach(rt=>total+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));});
-    const libreS=gl?cuad.grupo===gl:false;
-    const diasTotales=libreS?5:6;
-    const promedio=diasTranscurridos>0?(total/diasTranscurridos).toFixed(1):0;
-    const pct=Math.min(100,Math.round((total/meta)*100));
-    return{cuad,total,libreS,pct,promedio,diasTotales};
-  }).sort((a,b)=>b.total-a.total);
-
-  // Saldos por técnico (pagos pendientes)
-  const saldosTec=[];
-  for(const cuad of CUADRILLAS){
-    for(const tec of getTecs(cuad.id)){
-      const info=await calcSaldoTecnico(cuad.id,tec);
-      if(Math.abs(info.saldo)>0)saldosTec.push({tec,cuad:cuad.nombre,saldo:info.saldo});
-    }
-  }
-  saldosTec.sort((a,b)=>b.saldo-a.saldo);
-
-  // Ranking individual (histórico)
-  const {rankInd}=await buildRankings();
-  const top5=rankInd.slice(0,5);
-
-  // Total semana
-  const totalGeneral=cuadData.reduce((s,c)=>s+c.total,0);
-  const cuadLider=cuadData[0];
-  const cuadAtras=cuadData[cuadData.length-1];
-  const totalPendiente=saldosTec.filter(s=>s.saldo>0).reduce((s,t)=>s+t.saldo,0);
-
-  // Weekly history for chart (last 4 weeks per cuadrilla)
-  const semanas4=[getLunes(-3),getLunes(-2),getLunes(-1),lunes];
-  const chartData={};
-  CUADRILLAS.forEach(c=>{chartData[c.id]=[];});
-  for(const sem of semanas4){
-    const d=new Date(sem+'T12:00:00');d.setDate(d.getDate()+6);
-    const h=fmtD(d);
-    const r=await sbGet('registros',`?fecha=gte.${sem}&fecha=lte.${h}&select=cuadrilla_id,registro_tareas(tipo_tarea_id,cantidad)`);
-    CUADRILLAS.forEach(c=>{
-      let t=0;r.filter(x=>x.cuadrilla_id===c.id).forEach(x=>{(x.registro_tareas||[]).forEach(rt=>t+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));});
-      chartData[c.id].push(parseFloat(t.toFixed(2)));
-    });
-  }
-
-  const semLabels=semanas4.map(s=>fmtL(s));
-  const chartColors=['#22c55e','#3b82f6','#f59e0b','#a855f7','#ef4444','#06b6d4','#ec4899'];
-
-  el.innerHTML=`
-  <div class="dash-header">
-    <div>
-      <div class="dash-title">FG Conexiones</div>
-      <div class="dash-subtitle">Panel de control · Semana ${fmtL(lunes)} – ${fmtL(hasta)}</div>
-    </div>
-    <div class="dash-fecha">
-      <div style="font-size:14px;color:#666">${hoy.toLocaleDateString('es-AR',{weekday:'long',day:'2-digit',month:'long'})}</div>
-      <button class="dash-refresh" onclick="renderDashboard()" style="margin-top:8px">↻ Actualizar</button>
-    </div>
-  </div>
-
-  <!-- KPIs -->
-  <div class="dash-grid">
-    <div class="dash-card">
-      <div class="dash-card-title">Total general esta semana</div>
-      <div class="dash-stat-val">${totalGeneral.toFixed(1)}</div>
-      <div class="dash-stat-label">equiv. de 7 cuadrillas</div>
-    </div>
-    <div class="dash-card">
-      <div class="dash-card-title">Promedio por cuadrilla</div>
-      <div class="dash-stat-val">${(totalGeneral/7).toFixed(1)}</div>
-      <div class="dash-stat-label">equiv. / cuadrilla</div>
-    </div>
-    <div class="dash-card">
-      <div class="dash-card-title">Pagos pendientes</div>
-      <div class="dash-stat-val" style="color:${totalPendiente>0?'#22c55e':'#555'}">${fmtPesos(totalPendiente)}</div>
-      <div class="dash-stat-label">${saldosTec.filter(s=>s.saldo>0).length} técnicos con saldo</div>
-    </div>
-  </div>
-
-  <!-- Líder + chart -->
-  <div class="dash-grid-2">
-    <div>
-      <!-- Progreso cuadrillas -->
-      <div class="dash-card">
-        <div class="dash-card-title">Progreso semanal por cuadrilla</div>
-        ${cuadData.map((c,i)=>{
-          const bc=c.pct>=100?'green':c.pct>=60?'amber':'red';
-          return`<div class="dash-cuad-row">
-            <div class="dash-cuad-name">${i===0?'🥇 ':''}${c.cuad.nombre}</div>
-            <div class="dash-cuad-bar-wrap"><div class="dash-cuad-bar ${bc}" style="width:${c.pct}%"></div></div>
-            <div class="dash-cuad-val">${c.total.toFixed(1)}</div>
-            <span class="dash-cuad-badge ${c.libreS?'libre':'trabaja'}">${c.libreS?'LIBRE':'TRABAJA'}</span>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>
-    <div>
-      <!-- Líder -->
-      <div class="dash-leader">
-        <div class="dash-leader-label">📊 Cuadrilla líder esta semana</div>
-        <div class="dash-leader-name">${cuadLider.cuad.nombre}</div>
-        <div class="dash-leader-val">${cuadLider.total.toFixed(2)} equiv · ${cuadLider.pct}% de la meta</div>
-      </div>
-      <!-- Pagos pendientes top -->
-      <div class="dash-card">
-        <div class="dash-card-title">Saldos pendientes</div>
-        ${saldosTec.slice(0,6).map(s=>`
-          <div class="dash-pagos-item">
-            <div><div class="dash-pagos-name">${s.tec}</div><div class="dash-rank-cuad">${s.cuad}</div></div>
-            <div class="dash-pagos-monto ${s.saldo>0?'pos':'neg'}">${s.saldo>=0?'+':''}${fmtPesos(s.saldo)}</div>
-          </div>`).join('')}
-        ${saldosTec.length===0?'<p style="font-size:12px;color:#444;text-align:center;padding:1rem">Todos al día ✓</p>':''}
-      </div>
-    </div>
-  </div>
-
-  <!-- Chart + Ranking -->
-  <div class="dash-grid-2">
-    <div class="dash-card">
-      <div class="dash-card-title">Últimas 4 semanas por cuadrilla</div>
-      <canvas id="dash-chart" height="200"></canvas>
-    </div>
-    <div class="dash-card">
-      <div class="dash-card-title">🏆 Ranking individual (histórico)</div>
-      ${top5.map((t,i)=>`
-        <div class="dash-rank-item">
-          <div class="dash-rank-num ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i+1}</div>
-          <div><div class="dash-rank-name">${t.nombre}</div><div class="dash-rank-cuad">${t.cuad}</div></div>
-          <div class="dash-rank-val">${t.total.toFixed(1)}</div>
-        </div>`).join('')}
-    </div>
-  </div>`;
-
-  // Render chart
-  setTimeout(()=>{
-    const ctx=document.getElementById('dash-chart');
-    if(!ctx)return;
-    if(dashChart)dashChart.destroy();
-    dashChart=new Chart(ctx,{
-      type:'bar',
-      data:{
-        labels:semLabels,
-        datasets:CUADRILLAS.map((c,i)=>({
-          label:c.nombre,
-          data:chartData[c.id],
-          backgroundColor:chartColors[i]+'33',
-          borderColor:chartColors[i],
-          borderWidth:2,
-          borderRadius:4
-        }))
-      },
-      options:{
-        responsive:true,
-        plugins:{
-          legend:{labels:{color:'#555',font:{size:11}}},
-          tooltip:{backgroundColor:'#111',titleColor:'#fff',bodyColor:'#aaa',borderColor:'#333',borderWidth:1}
-        },
-        scales:{
-          x:{grid:{color:'#1a1a1a'},ticks:{color:'#555'}},
-          y:{grid:{color:'#1a1a1a'},ticks:{color:'#555'},
-            annotation:{annotations:{meta:{type:'line',yMin:${meta},yMax:${meta},borderColor:'#333',borderWidth:1,borderDash:[4,4]}}}}
-        }
+    // Saldos pendientes
+    const saldosTec=[];
+    for(const cuad of CUADRILLAS){
+      for(const tec of getTecs(cuad.id)){
+        const info=await calcSaldoTecnico(cuad.id,tec);
+        if(Math.abs(info.saldo)>0)saldosTec.push({tec,cuadNombre:cuad.nombre,saldo:info.saldo});
       }
-    });
-  },100);
-}
+    }
+    saldosTec.sort((a,b)=>b.saldo-a.saldo);
+    const totalPendiente=saldosTec.filter(s=>s.saldo>0).reduce((s,t)=>s+t.saldo,0);
 
+    // Ranking
+    const rankResult=await buildRankings();
+    const top5=rankResult.rankInd.slice(0,5);
+
+    // Chart data - last 4 weeks
+    const semanas=[getLunes(-3),getLunes(-2),getLunes(-1),lunes];
+    const labels=semanas.map(s=>fmtL(s));
+    const chartColors=['#22c55e','#3b82f6','#f59e0b','#a855f7','#ef4444','#06b6d4','#ec4899'];
+    const datasets=[];
+    for(let ci=0;ci<CUADRILLAS.length;ci++){
+      const cuad=CUADRILLAS[ci];
+      const data=[];
+      for(const sem of semanas){
+        const d=new Date(sem+'T12:00:00');d.setDate(d.getDate()+6);
+        const h=fmtD(d);
+        const r=await sbGet('registros','?fecha=gte.'+sem+'&fecha=lte.'+h+'&cuadrilla_id=eq.'+cuad.id+'&select=registro_tareas(tipo_tarea_id,cantidad)');
+        let t=0;r.forEach(x=>{(x.registro_tareas||[]).forEach(rt=>t+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));});
+        data.push(parseFloat(t.toFixed(2)));
+      }
+      datasets.push({label:cuad.nombre,data,backgroundColor:chartColors[ci]+'25',borderColor:chartColors[ci],borderWidth:2,borderRadius:3});
+    }
+
+    const medalEmoji=['🥇','🥈','🥉','4','5'];
+
+    let html='<div class="dash-wrap">';
+    html+='<div class="dash-header">';
+    html+='<div><div class="dash-title">FG Conexiones</div>';
+    html+='<div class="dash-sub">Semana '+fmtL(lunes)+' — '+fmtL(hasta)+'</div></div>';
+    html+='<div style="text-align:right"><div style="font-size:12px;color:#444">'+hoy.toLocaleDateString('es-AR',{weekday:'long',day:'2-digit',month:'long'})+'</div>';
+    html+='<button class="dash-refresh" onclick="renderDashboard()">↻ Actualizar</button></div></div>';
+
+    // KPIs
+    html+='<div class="dash-grid3">';
+    html+='<div class="dash-box"><div class="dash-box-title">Total general</div><div class="dash-kpi-val">'+totalGeneral.toFixed(1)+'</div><div class="dash-kpi-label">equiv. 7 cuadrillas</div></div>';
+    html+='<div class="dash-box"><div class="dash-box-title">Promedio</div><div class="dash-kpi-val">'+(totalGeneral/7).toFixed(1)+'</div><div class="dash-kpi-label">equiv. / cuadrilla</div></div>';
+    html+='<div class="dash-box"><div class="dash-box-title">Pagos pendientes</div><div class="dash-kpi-val" style="color:'+(totalPendiente>0?'#22c55e':'#444')+'">'+fmtPesos(totalPendiente)+'</div><div class="dash-kpi-label">'+saldosTec.filter(s=>s.saldo>0).length+' técnicos</div></div>';
+    html+='</div>';
+
+    // Cuadrillas + lider/pagos
+    html+='<div class="dash-grid2">';
+    html+='<div class="dash-box"><div class="dash-box-title">Progreso por cuadrilla esta semana</div>';
+    cuadData.forEach((c,i)=>{
+      html+='<div class="dash-row">';
+      html+='<div class="dash-row-name">'+(i===0?'🥇 ':'')+c.cuad.nombre+'</div>';
+      html+='<div class="dash-bar-wrap"><div class="dash-bar '+c.bc+'" style="width:'+c.pct+'%"></div></div>';
+      html+='<div class="dash-val">'+c.total.toFixed(1)+'</div>';
+      html+='<span class="dash-badge '+(c.libreS?'li':'tr')+'">'+(c.libreS?'LIBRE':'TRABAJA')+'</span>';
+      html+='</div>';
+    });
+    html+='</div>';
+
+    html+='<div>';
+    html+='<div class="dash-leader-box"><div class="dash-leader-label">Cuadrilla líder</div>';
+    html+='<div class="dash-leader-name">'+cuadLider.cuad.nombre+'</div>';
+    html+='<div class="dash-leader-val">'+cuadLider.total.toFixed(2)+' equiv · '+cuadLider.pct+'%</div></div>';
+
+    html+='<div class="dash-box"><div class="dash-box-title">Saldos pendientes</div>';
+    if(!saldosTec.length){html+='<p style="font-size:11px;color:#333;text-align:center;padding:1rem">Todos al día ✓</p>';}
+    else{saldosTec.slice(0,5).forEach(s=>{
+      html+='<div class="dash-pago-row"><div><div class="dash-pago-name">'+s.tec+'</div><div class="dash-pago-sub">'+s.cuadNombre+'</div></div>';
+      html+='<div class="dash-pago-monto" style="color:'+(s.saldo>0?'#22c55e':'#ef4444')+'">'+fmtPesos(s.saldo)+'</div></div>';
+    });}
+    html+='</div></div></div>';
+
+    // Chart + ranking
+    html+='<div class="dash-grid2">';
+    html+='<div class="dash-box"><div class="dash-box-title">Últimas 4 semanas</div><canvas id="dash-chart-canvas" height="180"></canvas></div>';
+    html+='<div class="dash-box"><div class="dash-box-title">🏆 Ranking individual</div>';
+    top5.forEach((t,i)=>{
+      html+='<div class="dash-rank-row"><div class="dash-rank-n" style="color:'+(i===0?'#f59e0b':i===1?'#9ca3af':i===2?'#b45309':'#333')+'">'+medalEmoji[i]+'</div>';
+      html+='<div style="flex:1"><div style="font-size:12px;font-weight:700;color:#aaa">'+t.nombre+'</div><div style="font-size:10px;color:#333">'+t.cuad+'</div></div>';
+      html+='<div style="font-size:13px;font-weight:900;color:#22c55e">'+t.total.toFixed(1)+'</div></div>';
+    });
+    html+='</div></div>';
+    html+='</div>';
+
+    el.innerHTML=html;
+
+    // Render chart
+    setTimeout(function(){
+      const ctx=document.getElementById('dash-chart-canvas');
+      if(!ctx)return;
+      if(_dashChart){_dashChart.destroy();_dashChart=null;}
+      _dashChart=new Chart(ctx,{
+        type:'bar',
+        data:{labels:labels,datasets:datasets},
+        options:{
+          responsive:true,
+          plugins:{
+            legend:{labels:{color:'#444',font:{size:10},boxWidth:10}},
+            tooltip:{backgroundColor:'#111',titleColor:'#fff',bodyColor:'#888',borderColor:'#222',borderWidth:1}
+          },
+          scales:{
+            x:{grid:{color:'#161616'},ticks:{color:'#333',font:{size:10}}},
+            y:{grid:{color:'#161616'},ticks:{color:'#333',font:{size:10}}}
+          }
+        }
+      });
+    },200);
+
+  }catch(e){
+    el.innerHTML='<div class="card"><p style="color:#c0392b;font-size:13px">Error: '+e.message+'</p></div>';
+  }
+}
 // RANKING ADMIN
 async function renderAdmRanking(){
   document.getElementById('adm-rank-cuad').innerHTML='<div class="loading"><span class="spinner"></span></div>';
