@@ -127,59 +127,90 @@ tr:last-child td{border-bottom:none}
 .cuad-config-tecs{font-size:13px;color:#666}
 
 /* === DASHBOARD DESKTOP === */
-#dash-content{background:#080808;min-height:90vh;padding:2rem;border-radius:16px;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif}
-.dh{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #161616;padding-bottom:1.5rem;margin-bottom:2rem}
-.dh-left{}
-.dh-title{font-size:32px;font-weight:900;color:#fff;letter-spacing:-2px;line-height:1}
-.dh-sub{font-size:12px;color:#333;letter-spacing:3px;text-transform:uppercase;margin-top:6px}
-.dh-right{text-align:right}
-.dh-date{font-size:13px;color:#333;margin-bottom:8px}
-.d-refresh{background:none;border:1px solid #1e1e1e;color:#333;font-size:11px;padding:6px 14px;border-radius:6px;cursor:pointer;text-transform:uppercase;letter-spacing:2px;transition:all .2s}
-.d-refresh:hover{border-color:#22c55e;color:#22c55e}
+#dash-content{
+  background:linear-gradient(160deg,#060d1f 0%,#08111f 50%,#060d1f 100%);
+  min-height:90vh;padding:2rem 2.5rem;border-radius:16px;
+  color:#cbd5e1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  border:1px solid #0f2035;
+}
+/* Header */
+.dh{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid #0f2035}
+.dh-logo{display:flex;align-items:center;gap:14px}
+.dh-logo-mark{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff;letter-spacing:-1px;flex-shrink:0}
+.dh-title{font-size:26px;font-weight:900;color:#f1f5f9;letter-spacing:-1px;line-height:1}
+.dh-sub{font-size:11px;color:#1e4060;letter-spacing:2.5px;text-transform:uppercase;margin-top:5px}
+.dh-right{display:flex;align-items:center;gap:16px}
+.dh-date{font-size:13px;color:#334155;font-weight:500}
+.dh-week{font-size:12px;color:#1e4060;letter-spacing:1px;text-transform:uppercase;margin-top:3px;text-align:right}
+.d-refresh{background:none;border:1px solid #0f2035;color:#1e4060;font-size:11px;padding:8px 16px;border-radius:8px;cursor:pointer;text-transform:uppercase;letter-spacing:2px;transition:all .25s;font-family:inherit}
+.d-refresh:hover{border-color:#0ea5e9;color:#0ea5e9;background:rgba(14,165,233,.05)}
+/* KPI Row */
 .dk{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem}
-.dk-card{background:#0f0f0f;border:1px solid #161616;border-radius:12px;padding:1.5rem;position:relative;overflow:hidden}
-.dk-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#22c55e,transparent)}
-.dk-val{font-size:36px;font-weight:900;letter-spacing:-2px;line-height:1;color:#fff}
-.dk-label{font-size:10px;color:#333;letter-spacing:3px;text-transform:uppercase;margin-top:8px}
-.dk-sub{font-size:11px;color:#1a7a3c;margin-top:4px}
-.dg3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem}
-.dg2{display:grid;grid-template-columns:3fr 2fr;gap:1rem;margin-bottom:1.5rem}
-.d-card{background:#0f0f0f;border:1px solid #161616;border-radius:12px;padding:1.5rem}
-.d-card-t{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#2a2a2a;margin-bottom:1.2rem;font-weight:700}
-.d-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #111}
+.dk-card{background:#080f1e;border:1px solid #0f2035;border-radius:14px;padding:1.5rem 1.75rem;position:relative;overflow:hidden;transition:border-color .2s}
+.dk-card:hover{border-color:#1e4060}
+.dk-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.dk-card.c1::before{background:linear-gradient(90deg,#0ea5e9,#06b6d4,transparent)}
+.dk-card.c2::before{background:linear-gradient(90deg,#10b981,#34d399,transparent)}
+.dk-card.c3::before{background:linear-gradient(90deg,#8b5cf6,#a78bfa,transparent)}
+.dk-card.c4::before{background:linear-gradient(90deg,#f43f5e,#fb7185,transparent)}
+.dk-card.c4ok::before{background:linear-gradient(90deg,#10b981,#34d399,transparent)}
+.dk-icon{font-size:22px;margin-bottom:.75rem;opacity:.8}
+.dk-val{font-size:40px;font-weight:900;letter-spacing:-2px;line-height:1;color:#f1f5f9}
+.dk-val.cyan{color:#06b6d4}.dk-val.green{color:#10b981}.dk-val.purple{color:#a78bfa}.dk-val.red{color:#fb7185}.dk-val.muted{color:#334155}
+.dk-label{font-size:10px;color:#1e4060;letter-spacing:3px;text-transform:uppercase;margin-top:10px;font-weight:700}
+.dk-sub{font-size:12px;color:#1e4060;margin-top:5px}
+.dk-sub.pos{color:#10b981}.dk-sub.warn{color:#f59e0b}.dk-sub.danger{color:#f43f5e}
+/* Main grid */
+.dg-main{display:grid;grid-template-columns:2.5fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+.dg-bottom{display:grid;grid-template-columns:2.2fr 1.3fr 1fr;gap:1rem;margin-bottom:1rem}
+.d-card{background:#080f1e;border:1px solid #0f2035;border-radius:14px;padding:1.5rem}
+.d-card-t{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#1e4060;margin-bottom:1.25rem;font-weight:700}
+/* Cuadrilla rows */
+.d-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #080f1e}
 .d-row:last-child{border-bottom:none}
-.d-pos{font-size:12px;font-weight:700;color:#1e1e1e;width:20px;text-align:center}
-.d-nm{font-size:14px;font-weight:700;color:#ccc;width:160px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.d-bar{flex:1;height:8px;background:#111;border-radius:4px;overflow:hidden}
-.d-fill{height:100%;border-radius:4px;transition:width 1s ease}
-.d-fill.g{background:linear-gradient(90deg,#16a34a,#22c55e)}
+.d-pos{font-size:11px;font-weight:800;color:#1e3a5a;width:18px;text-align:center;flex-shrink:0}
+.d-nm{font-size:14px;font-weight:700;color:#94a3b8;width:190px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.d-bar{flex:1;height:6px;background:#0a1628;border-radius:4px;overflow:hidden}
+.d-fill{height:100%;border-radius:4px;transition:width 1.2s ease}
+.d-fill.g{background:linear-gradient(90deg,#059669,#10b981)}
 .d-fill.a{background:linear-gradient(90deg,#d97706,#f59e0b)}
-.d-fill.r{background:linear-gradient(90deg,#dc2626,#ef4444)}
-.d-pct{font-size:12px;color:#333;width:36px;text-align:right}
-.d-num{font-size:14px;font-weight:800;width:50px;text-align:right}
-.d-num.g{color:#22c55e}.d-num.a{color:#f59e0b}.d-num.r{color:#ef4444}
-.d-badge{font-size:9px;padding:3px 8px;border-radius:20px;font-weight:700;flex-shrink:0;letter-spacing:.5px}
-.d-badge.lib{background:#052e16;color:#22c55e;border:1px solid #166534}
-.d-badge.trab{background:#111;color:#444;border:1px solid #222}
-.d-leader{background:linear-gradient(135deg,#052e16 0%,#080808 60%);border:1px solid #166534;border-radius:12px;padding:1.5rem;text-align:center}
-.d-leader-crown{font-size:28px;margin-bottom:.5rem}
-.d-leader-t{font-size:10px;letter-spacing:3px;color:#166534;text-transform:uppercase;margin-bottom:.5rem}
-.d-leader-n{font-size:28px;font-weight:900;color:#22c55e;letter-spacing:-1px;line-height:1}
-.d-leader-v{font-size:12px;color:#4ade80;margin-top:6px}
-.d-leader-pct{font-size:36px;font-weight:900;color:#166534;margin-top:.5rem}
-.d-rank-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #111}
-.d-rank-row:last-child{border-bottom:none}
-.d-rn{font-size:18px;font-weight:900;width:28px;text-align:center;color:#1e1e1e}
-.d-rn.g1{color:#f59e0b}.d-rn.g2{color:#6b7280}.d-rn.g3{color:#78350f}
-.d-pago-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #111}
-.d-pago-row:last-child{border-bottom:none}
-.d-pago-nm{font-size:13px;font-weight:700;color:#ccc}
-.d-pago-sub{font-size:10px;color:#333;margin-top:2px}
-.d-pago-val{font-size:15px;font-weight:900}
-.d-pago-val.pos{color:#22c55e}.d-pago-val.neg{color:#ef4444}
-.d-alert{background:#1c0a0a;border:1px solid #7f1d1d;border-radius:10px;padding:1rem;margin-bottom:.7rem}
+.d-fill.r{background:linear-gradient(90deg,#dc2626,#f43f5e)}
+.d-pct{font-size:12px;color:#1e4060;width:38px;text-align:right;font-weight:600;flex-shrink:0}
+.d-num{font-size:15px;font-weight:900;width:46px;text-align:right;flex-shrink:0}
+.d-num.g{color:#10b981}.d-num.a{color:#f59e0b}.d-num.r{color:#f43f5e}
+.d-badge{font-size:9px;padding:3px 9px;border-radius:20px;font-weight:800;flex-shrink:0;letter-spacing:.5px}
+.d-badge.lib{background:rgba(16,185,129,.1);color:#10b981;border:1px solid rgba(16,185,129,.25)}
+.d-badge.trab{background:rgba(148,163,184,.06);color:#334155;border:1px solid #0f2035}
+/* Leader card */
+.d-leader{background:linear-gradient(160deg,rgba(16,185,129,.08),rgba(6,182,212,.04));border:1px solid rgba(16,185,129,.2);border-radius:14px;padding:1.5rem;text-align:center;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px}
+.d-leader-crown{font-size:32px;margin-bottom:4px}
+.d-leader-t{font-size:9px;letter-spacing:3px;color:rgba(16,185,129,.5);text-transform:uppercase;font-weight:700}
+.d-leader-n{font-size:26px;font-weight:900;color:#10b981;letter-spacing:-1px;line-height:1.1;margin-top:4px}
+.d-leader-pct{font-size:42px;font-weight:900;color:rgba(16,185,129,.25);line-height:1}
+.d-leader-v{font-size:12px;color:rgba(16,185,129,.5);margin-top:2px}
+/* Worst card */
+.d-worst{background:rgba(244,63,94,.04);border:1px solid rgba(244,63,94,.15);border-radius:14px;padding:1.25rem;text-align:center;margin-top:1rem}
+.d-worst-t{font-size:9px;letter-spacing:2px;color:rgba(244,63,94,.4);text-transform:uppercase;font-weight:700;margin-bottom:6px}
+.d-worst-n{font-size:18px;font-weight:900;color:#f43f5e;letter-spacing:-.5px}
+.d-worst-v{font-size:11px;color:rgba(244,63,94,.5);margin-top:3px}
+/* Alerts */
+.d-alert{background:rgba(244,63,94,.05);border:1px solid rgba(244,63,94,.15);border-radius:10px;padding:.9rem 1rem;margin-bottom:.6rem}
+.d-alert:last-child{margin-bottom:0}
 .d-alert-nm{font-size:13px;font-weight:700;color:#fca5a5}
-.d-alert-val{font-size:11px;color:#ef4444;margin-top:2px}
+.d-alert-cuad{font-size:10px;color:rgba(244,63,94,.4);margin-top:2px}
+.d-alert-val{font-size:14px;font-weight:900;color:#f43f5e;margin-top:4px}
+/* Saldos */
+.d-pago-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #080f1e}
+.d-pago-row:last-child{border-bottom:none}
+.d-pago-nm{font-size:13px;font-weight:700;color:#94a3b8}
+.d-pago-sub{font-size:10px;color:#1e4060;margin-top:2px}
+.d-pago-val{font-size:14px;font-weight:900}
+.d-pago-val.pos{color:#10b981}.d-pago-val.neg{color:#f43f5e}
+/* Ranking */
+.d-rank-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #080f1e}
+.d-rank-row:last-child{border-bottom:none}
+.d-rn{font-size:20px;font-weight:900;width:28px;text-align:center;color:#1e4060}
+.d-rn.g1{color:#f59e0b}.d-rn.g2{color:#64748b}.d-rn.g3{color:#92400e}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
@@ -603,6 +634,7 @@ async function doLogin(){
         ['cargar','resumen','pagos','historico','dias','saldos','config','log','ranking','dashboard'].forEach(function(t){
           var e=document.getElementById('at-'+t);if(e)e.style.display=t==='dashboard'?'block':'none';
         });
+        document.getElementById('app').classList.add('desktop-mode');
         renderDashboard();
       }
     }
@@ -979,9 +1011,10 @@ function poblarSelects(){
 
 function admTab(tab,el){
   ['cargar','resumen','pagos','historico','dias','saldos','config','log','ranking','dashboard'].forEach(t=>{const e=document.getElementById('at-'+t);if(e)e.style.display=t===tab?'block':'none';});
-  // Also hide cuad-detalle when switching tabs
   const det=document.getElementById('at-cuad-detalle');if(det)det.style.display='none';
   document.querySelectorAll('#s-adm .ntab').forEach(e=>e.classList.remove('active'));el.classList.add('active');
+  const appEl=document.getElementById('app');
+  if(tab==='dashboard'){appEl.classList.add('desktop-mode');}else{appEl.classList.remove('desktop-mode');}
   if(tab==='resumen')renderAdmResumen();
   if(tab==='pagos')renderPagos();
   if(tab==='dias')renderDiasEsp();
@@ -1901,33 +1934,42 @@ async function renderDashboard() {
     });
 
     var alertH = '';
-    alertas.slice(0,3).forEach(function(a){
-      alertH += '<div class="d-alert"><div class="d-alert-nm">⚠ '+a.nm+'</div><div class="d-alert-val">Debe '+fmtPesos(Math.abs(a.sal))+'</div></div>';
+    alertas.slice(0,6).forEach(function(a){
+      alertH += '<div class="d-alert"><div class="d-alert-nm">'+a.nm+'</div><div class="d-alert-cuad">'+a.cuad+'</div><div class="d-alert-val">Debe '+fmtPesos(Math.abs(a.sal))+'</div></div>';
     });
 
     var html = '';
-    // Header
-    html += '<div class="dh"><div class="dh-left">';
-    html += '<div class="dh-title">FG Conexiones</div>';
-    html += '<div class="dh-sub">Panel de control · Semana '+fmtL(lunes)+' al '+fmtL(hasta)+'</div>';
-    html += '</div><div class="dh-right"><div class="dh-date">'+fStr+'</div>';
+
+    // ── HEADER ──
+    html += '<div class="dh">';
+    html += '<div class="dh-logo">';
+    html += '<div class="dh-logo-mark">FG</div>';
+    html += '<div><div class="dh-title">FG Conexiones</div>';
+    html += '<div class="dh-sub">Panel de control · Semana '+fmtL(lunes)+' al '+fmtL(hasta)+'</div></div>';
+    html += '</div>';
+    html += '<div class="dh-right">';
+    html += '<div class="dh-date">'+fStr+'</div>';
     html += '<button class="d-refresh" onclick="renderDashboard()">↻ Actualizar</button>';
     html += '</div></div>';
 
-    // KPIs 4 cols
+    // ── KPIs ──
+    var promCuad = (totGen/CUADRILLAS.length).toFixed(1);
+    var promClr = parseFloat(promCuad)>=meta?'green':(parseFloat(promCuad)>=meta*0.7?'':' style="color:#f59e0b"');
+    var tecPend = sRows.filter(function(s){return s.sal>0;}).length;
     html += '<div class="dk">';
-    html += '<div class="dk-card"><div class="dk-val">'+totGen.toFixed(1)+'</div><div class="dk-label">Equiv. totales</div><div class="dk-sub">'+cuadsOk+'/7 cuadrillas ok</div></div>';
-    html += '<div class="dk-card"><div class="dk-val">'+(totGen/7).toFixed(1)+'</div><div class="dk-label">Promedio / cuadrilla</div><div class="dk-sub">Meta: '+meta+'</div></div>';
-    html += '<div class="dk-card"><div class="dk-val" style="color:'+(totPend>0?'#22c55e':'#333')+'">'+fmtPesos(totPend)+'</div><div class="dk-label">Pagos pendientes</div><div class="dk-sub">'+sRows.filter(function(s){return s.sal>0;}).length+' técnicos</div></div>';
-    html += '<div class="dk-card"><div class="dk-val" style="color:'+(alertas.length>0?'#ef4444':'#22c55e')+'">'+alertas.length+'</div><div class="dk-label">Alertas deuda</div><div class="dk-sub">'+(alertas.length?'Requieren atención':'Sin alertas')+'</div></div>';
+    html += '<div class="dk-card c1"><div class="dk-icon">📊</div><div class="dk-val cyan">'+totGen.toFixed(1)+'</div><div class="dk-label">Equiv. totales semana</div><div class="dk-sub pos">'+cuadsOk+' / '+CUADRILLAS.length+' cuadrillas en meta</div></div>';
+    html += '<div class="dk-card c2"><div class="dk-icon">📈</div><div class="dk-val '+(parseFloat(promCuad)>=meta?'green':(parseFloat(promCuad)>=meta*0.7?'':'red'))+'">'+promCuad+'</div><div class="dk-label">Promedio por cuadrilla</div><div class="dk-sub">Meta semanal: '+meta+' equiv.</div></div>';
+    html += '<div class="dk-card c3"><div class="dk-icon">💰</div><div class="dk-val '+(totPend>0?'purple':'muted')+'">'+fmtPesos(totPend)+'</div><div class="dk-label">Pagos pendientes</div><div class="dk-sub '+(tecPend>0?'warn':'pos')+'">'+tecPend+' técnico'+(tecPend!==1?'s':'')+' por cobrar</div></div>';
+    html += '<div class="dk-card '+(alertas.length>0?'c4':'c4ok')+'"><div class="dk-icon">'+(alertas.length?'⚠️':'✅')+'</div><div class="dk-val '+(alertas.length>0?'red':'green')+'">'+alertas.length+'</div><div class="dk-label">Alertas de deuda</div><div class="dk-sub '+(alertas.length?'danger':'pos')+'">'+(alertas.length?alertas.length+' requieren atención':'Sin deudas activas')+'</div></div>';
     html += '</div>';
 
-    // Main grid: progress + leader + alerts
-    html += '<div class="dg3">';
-    // Progreso
+    // ── FILA PRINCIPAL: progreso | líder | alertas ──
+    html += '<div class="dg-main">';
+
+    // Progreso cuadrillas
     html += '<div class="d-card"><div class="d-card-t">Progreso semanal por cuadrilla</div>'+cuadH+'</div>';
-    // Lider
-    html += '<div>';
+
+    // Líder
     html += '<div class="d-leader">';
     html += '<div class="d-leader-crown">🏆</div>';
     html += '<div class="d-leader-t">Cuadrilla líder</div>';
@@ -1935,25 +1977,17 @@ async function renderDashboard() {
     html += '<div class="d-leader-pct">'+lider.pct+'%</div>';
     html += '<div class="d-leader-v">'+lider.tot.toFixed(2)+' equiv.</div>';
     html += '</div>';
-    if (ultimo && ultimo.pct < 80) {
-      html += '<div class="d-card" style="margin-top:1rem;border-color:#1c1c1c">';
-      html += '<div class="d-card-t">Más atrasada</div>';
-      html += '<div style="text-align:center;padding:.5rem">';
-      html += '<div style="font-size:16px;font-weight:800;color:#ef4444">'+ultimo.cuad.nombre+'</div>';
-      html += '<div style="font-size:12px;color:#444;margin-top:4px">'+ultimo.tot.toFixed(1)+' equiv · '+ultimo.pct+'%</div>';
-      html += '</div></div>';
-    }
-    html += '</div>';
-    // Alertas
-    html += '<div class="d-card">';
-    html += '<div class="d-card-t">⚠ Deudas activas</div>';
-    html += alertH || '<p style="font-size:12px;color:#222;text-align:center;padding:1rem">Sin deudas</p>';
+
+    // Alertas deuda
+    html += '<div class="d-card"><div class="d-card-t">⚠ Deudas activas</div>';
+    if (!alertH) { html += '<div style="text-align:center;padding:2rem 1rem"><div style="font-size:28px;margin-bottom:8px">✅</div><div style="font-size:12px;color:#0d3050">Sin deudas activas</div></div>'; }
+    else { html += alertH; }
     html += '</div>';
     html += '</div>';
 
-    // Bottom: chart + saldos + ranking
-    html += '<div style="display:grid;grid-template-columns:2fr 1.2fr 1fr;gap:1rem;margin-bottom:1.5rem">';
-    html += '<div class="d-card"><div class="d-card-t">Evolución últimas 4 semanas</div><canvas id="d-chart" height="220"></canvas></div>';
+    // ── FILA INFERIOR: gráfico | saldos | ranking ──
+    html += '<div class="dg-bottom">';
+    html += '<div class="d-card"><div class="d-card-t">Evolución últimas 4 semanas por cuadrilla</div><canvas id="d-chart" height="190"></canvas></div>';
     html += '<div class="d-card"><div class="d-card-t">Saldos por técnico</div>'+salH+'</div>';
     html += '<div class="d-card"><div class="d-card-t">🏆 Ranking histórico</div>'+rankH+'</div>';
     html += '</div>';
@@ -1970,14 +2004,12 @@ async function renderDashboard() {
         options: {
           responsive: true,
           plugins: {
-            legend: { labels: { color: '#444', font: { size: 10 }, boxWidth: 10 } },
-            tooltip: { backgroundColor: '#111', titleColor: '#fff', bodyColor: '#999', borderColor: '#1e1e1e', borderWidth: 1 }
+            legend: { labels: { color: '#1e4060', font: { size: 10 }, boxWidth: 10 } },
+            tooltip: { backgroundColor: '#0e1628', titleColor: '#f1f5f9', bodyColor: '#64748b', borderColor: '#0f2035', borderWidth: 1 }
           },
           scales: {
-            x: { grid: { color: '#111' }, ticks: { color: '#333', font: { size: 10 } } },
-            y: { grid: { color: '#111' }, ticks: { color: '#333', font: { size: 10 } },
-              annotation: { line: { value: meta, color: '#1a7a3c', borderWidth: 1 } }
-            }
+            x: { grid: { color: '#080f1e' }, ticks: { color: '#1e4060', font: { size: 10 } } },
+            y: { grid: { color: '#080f1e' }, ticks: { color: '#1e4060', font: { size: 10 } } }
           }
         }
       });
