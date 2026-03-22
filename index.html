@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v39</title>
+<title>FG Conexiones v41</title>
 <style>
 /* ═══ BASE ═══ */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -306,13 +306,13 @@ tr:hover td{background:#f8fafc}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v39</div>
+    <div class="login-ver">FG Conexiones · v41</div>
   </div>
 </div>
 
 <!-- TÉCNICO -->
 <div id="s-tec" class="screen">
-  <div class="tec-header"><h2 id="t-nombre"></h2><span class="tec-ver">v39</span><button class="btn btn-sm" onclick="logout()">Salir</button></div>
+  <div class="tec-header"><h2 id="t-nombre"></h2><span class="tec-ver">v41</span><button class="btn btn-sm" onclick="logout()">Salir</button></div>
   <div class="tec-content">
   <div class="nav">
     <div class="ntab active" onclick="tecTab('semana',this)">Semana</div>
@@ -373,7 +373,7 @@ tr:hover td{background:#f8fafc}
       <span></span><span></span><span></span>
     </button>
     <div style="font-size:15px;font-weight:700;color:#0f172a" id="adm-mobile-title">FG Conexiones</div>
-    <div style="font-size:10px;color:#94a3b8;margin-left:auto">v39</div>
+    <div style="font-size:10px;color:#94a3b8;margin-left:auto">v41</div>
   </div>
   <div id="adm-overlay" onclick="closeSidebar()"></div>
 
@@ -422,7 +422,7 @@ tr:hover td{background:#f8fafc}
       <div class="sb-footer">
         <div class="sb-user-name" id="sb-nombre">—</div>
         <div class="sb-user-rol" id="sb-rol">—</div>
-        <div class="sb-version">v39</div>
+        <div class="sb-version">v41</div>
         <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
       </div>
     </aside>
@@ -743,11 +743,29 @@ async function doLogin(){
   if(!u||!p){err.textContent='Ingresá usuario y contraseña';return;}
   spin.style.display='inline-block';err.textContent='';
   try{
-    const d=await sbGet('usuarios',`?username=eq.${u}&password_hash=eq.${p}&activo=eq.true&select=*`);
-    if(!d||!d.length){err.textContent='Usuario o contraseña incorrectos';spin.style.display='none';return;}
+    // Test de conexión primero
+    let d;
+    try{
+      d=await sbGet('usuarios',`?username=eq.${u}&password_hash=eq.${p}&activo=eq.true&select=*`);
+    }catch(fetchErr){
+      err.textContent='Error Supabase: '+fetchErr.message;spin.style.display='none';return;
+    }
+    if(!d||!d.length){
+      // Debug: verificar si el usuario existe aunque sea
+      try{
+        const exists=await sbGet('usuarios',`?username=eq.${u}&select=username,rol,activo`);
+        if(!exists||!exists.length){
+          err.textContent='Usuario "'+u+'" no encontrado en la base de datos.';
+        } else {
+          err.textContent='Usuario encontrado (rol: '+exists[0].rol+', activo: '+exists[0].activo+') pero la contraseña no coincide.';
+        }
+      }catch(e2){
+        err.textContent='Usuario o contraseña incorrectos (no se pudo verificar: '+e2.message+')';
+      }
+      spin.style.display='none';return;
+    }
     CU=d[0];spin.style.display='none';wkOff=0;admWkOff=0;
     await Promise.all([cargarTipos(),cargarConfig(),cargarCuadrillas(),cargarDiasEsp(),cargarFeriadosAR()]);
-    // Registrar login y sesión activa
     try{
       await sbPost('log_actividad',{usuario:CU.username,accion:'LOGIN',detalle:CU.nombre+' ('+CU.rol+') ingresó al sistema'});
       await sbUpsert('sesiones_activas',{username:CU.username,nombre:CU.nombre,rol:CU.rol,ultimo_acceso:new Date().toISOString()});
@@ -766,9 +784,9 @@ async function doLogin(){
         var mt=document.getElementById('adm-mobile-title');if(mt)mt.textContent='Panel';
       }
     }
-  }catch(e){err.textContent='Error de conexión: '+e.message;spin.style.display='none';}
-  // Llamar dashboard fuera del catch para no romper el login si falla
+  }catch(e){err.textContent='Error: '+e.message;spin.style.display='none';}
   if(CU&&CU.rol==='jefe'){try{renderDashboard();}catch(e){console.error('Dashboard error:',e);}}
+}
 }
 function startHeartbeat(){
   if(window._hbInterval)clearInterval(window._hbInterval);
