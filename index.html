@@ -12,8 +12,9 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f8;color:#0f172a;min-height:100vh}
 #app{min-height:100vh;width:100%}
-.screen{display:none}.screen.active{display:block}
-#s-adm.screen.active{display:flex;flex-direction:column}
+.screen{display:none!important}.screen.active{display:block!important}
+#s-login.screen.active{display:flex!important}
+#s-adm.screen.active{display:flex!important;flex-direction:column}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* ═══ LOGIN ═══ */
@@ -149,7 +150,8 @@ tr:hover td{background:#f8fafc}
 .cuad-config-tecs{font-size:13px;color:#64748b}
 
 /* ═══ ADMIN SIDEBAR LAYOUT ═══ */
-#s-adm{display:flex;flex-direction:column;min-height:100vh;background:#f0f4f8}
+#s-adm{min-height:100vh;background:#f0f4f8}
+#s-adm.screen.active{display:flex!important;flex-direction:column}
 #adm-layout{display:flex;flex:1}
 #adm-sidebar{width:232px;flex-shrink:0;background:#0f172a;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;z-index:40}
 #adm-main{flex:1;padding:2rem 2.5rem;overflow-y:auto;min-width:0}
@@ -755,7 +757,6 @@ async function doLogin(){
     else{
       showScr('adm');await renderAdm();
       if(CU.rol==='jefe'){
-        // Activate panel tab in sidebar
         document.querySelectorAll('#adm-sidebar .sb-item,.sb-sub-item').forEach(function(e){e.classList.remove('active');});
         var sbDash=document.getElementById('sb-tab-dashboard');
         if(sbDash){sbDash.style.display='flex';sbDash.classList.add('active');}
@@ -763,10 +764,11 @@ async function doLogin(){
           var e=document.getElementById('at-'+t);if(e)e.style.display=t==='dashboard'?'block':'none';
         });
         var mt=document.getElementById('adm-mobile-title');if(mt)mt.textContent='Panel';
-        renderDashboard();
       }
     }
-  }catch(e){err.textContent='Error de conexión.';spin.style.display='none';}
+  }catch(e){err.textContent='Error de conexión: '+e.message;spin.style.display='none';}
+  // Llamar dashboard fuera del catch para no romper el login si falla
+  if(CU&&CU.rol==='jefe'){try{renderDashboard();}catch(e){console.error('Dashboard error:',e);}}
 }
 function startHeartbeat(){
   if(window._hbInterval)clearInterval(window._hbInterval);
@@ -1116,29 +1118,29 @@ function buildRankHTML(data,tipo){
 // ADMIN
 // =============================================
 async function renderAdm(){
-  // Sidebar: show Panel tab only for jefe
-  var sbDash=document.getElementById('sb-tab-dashboard');
-  if(sbDash)sbDash.style.display=CU&&CU.rol==='jefe'?'flex':'none';
-  // Populate sidebar user info
-  var sbN=document.getElementById('sb-nombre'),sbR=document.getElementById('sb-rol');
-  if(sbN)sbN.textContent=CU.nombre;
-  if(sbR)sbR.textContent=CU.rol.charAt(0).toUpperCase()+CU.rol.slice(1);
-  // Keep backward compat
-  var aN=document.getElementById('a-nombre');if(aN)aN.textContent=CU.nombre;
-  document.getElementById('a-fecha').value=fmtD(new Date());
-  poblarSelects();
-  onCuadChange();renderSaldoTecs();renderHistTecs();
-  buildTareasInputs();onFechaChange();
-  const g4cuads=CUADRILLAS.filter(c=>c.grupo===1).map(c=>c.nombre).join('<br>');
-  const g3cuads=CUADRILLAS.filter(c=>c.grupo===2).map(c=>c.nombre).join('<br>');
-  document.getElementById('sg4-tecs').innerHTML=g4cuads;
-  document.getElementById('sg3-tecs').innerHTML=g3cuads;
+  try{
+    // Sidebar: show Panel tab only for jefe
+    var sbDash=document.getElementById('sb-tab-dashboard');
+    if(sbDash)sbDash.style.display=CU&&CU.rol==='jefe'?'flex':'none';
+    var sbN=document.getElementById('sb-nombre'),sbR=document.getElementById('sb-rol');
+    if(sbN)sbN.textContent=CU.nombre;
+    if(sbR)sbR.textContent=CU.rol.charAt(0).toUpperCase()+CU.rol.slice(1);
+    var aN=document.getElementById('a-nombre');if(aN)aN.textContent=CU.nombre;
+    var aF=document.getElementById('a-fecha');if(aF)aF.value=fmtD(new Date());
+    poblarSelects();
+    onCuadChange();renderSaldoTecs();renderHistTecs();
+    buildTareasInputs();onFechaChange();
+    const g4cuads=CUADRILLAS.filter(c=>c.grupo===1).map(c=>c.nombre).join('<br>');
+    const g3cuads=CUADRILLAS.filter(c=>c.grupo===2).map(c=>c.nombre).join('<br>');
+    const sg4=document.getElementById('sg4-tecs'),sg3=document.getElementById('sg3-tecs');
+    if(sg4)sg4.innerHTML=g4cuads;if(sg3)sg3.innerHTML=g3cuads;
+  }catch(err){console.error('renderAdm error:',err);}
 }
 
 function poblarSelects(){
   const opts=CUADRILLAS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
   ['a-cuad','s-cuad','hist-cuad'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opts;});
-  document.getElementById('d-cuad').innerHTML='<option value="">Todas las cuadrillas</option>'+opts;
+  const dc=document.getElementById('d-cuad');if(dc)dc.innerHTML='<option value="">Todas las cuadrillas</option>'+opts;
 }
 
 // ═══ SIDEBAR NAVIGATION ═══
