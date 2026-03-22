@@ -6,11 +6,12 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v36</title>
+<title>FG Conexiones v37</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#111;min-height:100vh}
 #app{max-width:480px;margin:0 auto;padding:1rem;padding-bottom:3rem}
+#app.desktop-mode{max-width:1400px;padding:1.5rem 2rem}
 .screen{display:none}.screen.active{display:block}
 .logo{text-align:center;padding:2rem 0 1.5rem}
 .logo h1{font-size:24px;font-weight:700;letter-spacing:-0.5px}
@@ -125,43 +126,60 @@ tr:last-child td{border-bottom:none}
 .cuad-config-name{font-size:15px;font-weight:700;margin-bottom:4px}
 .cuad-config-tecs{font-size:13px;color:#666}
 
-#dash-content{background:#0d0d0d;min-height:80vh;padding:1.5rem;border-radius:12px;color:#e0e0e0}
-.dh{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e1e1e;padding-bottom:1rem;margin-bottom:1.5rem}
-.dh-title{font-size:22px;font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:-1px}
-.dh-sub{font-size:11px;color:#444;letter-spacing:2px;text-transform:uppercase;margin-top:3px}
-.dk{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem}
-.dk-card{background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:1.2rem}
-.dk-val{font-size:30px;font-weight:900;letter-spacing:-1px;line-height:1;color:#fff}
-.dk-label{font-size:10px;color:#444;letter-spacing:2px;text-transform:uppercase;margin-top:6px}
-.dg{display:grid;grid-template-columns:1.5fr 1fr;gap:1rem;margin-bottom:1.5rem}
-.d-card{background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:1.2rem}
-.d-card-t{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#333;margin-bottom:1rem;font-weight:700}
-.d-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #161616}
+/* === DASHBOARD DESKTOP === */
+#dash-content{background:#080808;min-height:90vh;padding:2rem;border-radius:16px;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif}
+.dh{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #161616;padding-bottom:1.5rem;margin-bottom:2rem}
+.dh-left{}
+.dh-title{font-size:32px;font-weight:900;color:#fff;letter-spacing:-2px;line-height:1}
+.dh-sub{font-size:12px;color:#333;letter-spacing:3px;text-transform:uppercase;margin-top:6px}
+.dh-right{text-align:right}
+.dh-date{font-size:13px;color:#333;margin-bottom:8px}
+.d-refresh{background:none;border:1px solid #1e1e1e;color:#333;font-size:11px;padding:6px 14px;border-radius:6px;cursor:pointer;text-transform:uppercase;letter-spacing:2px;transition:all .2s}
+.d-refresh:hover{border-color:#22c55e;color:#22c55e}
+.dk{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem}
+.dk-card{background:#0f0f0f;border:1px solid #161616;border-radius:12px;padding:1.5rem;position:relative;overflow:hidden}
+.dk-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#22c55e,transparent)}
+.dk-val{font-size:36px;font-weight:900;letter-spacing:-2px;line-height:1;color:#fff}
+.dk-label{font-size:10px;color:#333;letter-spacing:3px;text-transform:uppercase;margin-top:8px}
+.dk-sub{font-size:11px;color:#1a7a3c;margin-top:4px}
+.dg3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+.dg2{display:grid;grid-template-columns:3fr 2fr;gap:1rem;margin-bottom:1.5rem}
+.d-card{background:#0f0f0f;border:1px solid #161616;border-radius:12px;padding:1.5rem}
+.d-card-t{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#2a2a2a;margin-bottom:1.2rem;font-weight:700}
+.d-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #111}
 .d-row:last-child{border-bottom:none}
-.d-nm{font-size:13px;font-weight:700;color:#bbb;width:150px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.d-bar{flex:1;height:7px;background:#1a1a1a;border-radius:3px;overflow:hidden}
-.d-fill{height:100%;border-radius:3px}
-.d-fill.g{background:#22c55e}.d-fill.a{background:#f59e0b}.d-fill.r{background:#ef4444}
-.d-num{font-size:12px;font-weight:700;color:#555;width:38px;text-align:right}
-.d-badge{font-size:9px;padding:2px 6px;border-radius:10px;font-weight:700;flex-shrink:0}
+.d-pos{font-size:12px;font-weight:700;color:#1e1e1e;width:20px;text-align:center}
+.d-nm{font-size:14px;font-weight:700;color:#ccc;width:160px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.d-bar{flex:1;height:8px;background:#111;border-radius:4px;overflow:hidden}
+.d-fill{height:100%;border-radius:4px;transition:width 1s ease}
+.d-fill.g{background:linear-gradient(90deg,#16a34a,#22c55e)}
+.d-fill.a{background:linear-gradient(90deg,#d97706,#f59e0b)}
+.d-fill.r{background:linear-gradient(90deg,#dc2626,#ef4444)}
+.d-pct{font-size:12px;color:#333;width:36px;text-align:right}
+.d-num{font-size:14px;font-weight:800;width:50px;text-align:right}
+.d-num.g{color:#22c55e}.d-num.a{color:#f59e0b}.d-num.r{color:#ef4444}
+.d-badge{font-size:9px;padding:3px 8px;border-radius:20px;font-weight:700;flex-shrink:0;letter-spacing:.5px}
 .d-badge.lib{background:#052e16;color:#22c55e;border:1px solid #166534}
-.d-badge.trab{background:#1c1917;color:#57534e;border:1px solid #292524}
-.d-leader{background:linear-gradient(135deg,#052e16,#0d0d0d);border:1px solid #166534;border-radius:10px;padding:1.2rem;text-align:center;margin-bottom:1rem}
-.d-leader-t{font-size:10px;letter-spacing:2px;color:#166534;text-transform:uppercase;margin-bottom:.4rem}
-.d-leader-n{font-size:24px;font-weight:900;color:#22c55e;letter-spacing:-1px}
-.d-leader-v{font-size:12px;color:#4ade80;margin-top:3px}
-.d-rank-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #161616}
+.d-badge.trab{background:#111;color:#444;border:1px solid #222}
+.d-leader{background:linear-gradient(135deg,#052e16 0%,#080808 60%);border:1px solid #166534;border-radius:12px;padding:1.5rem;text-align:center}
+.d-leader-crown{font-size:28px;margin-bottom:.5rem}
+.d-leader-t{font-size:10px;letter-spacing:3px;color:#166534;text-transform:uppercase;margin-bottom:.5rem}
+.d-leader-n{font-size:28px;font-weight:900;color:#22c55e;letter-spacing:-1px;line-height:1}
+.d-leader-v{font-size:12px;color:#4ade80;margin-top:6px}
+.d-leader-pct{font-size:36px;font-weight:900;color:#166534;margin-top:.5rem}
+.d-rank-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #111}
 .d-rank-row:last-child{border-bottom:none}
 .d-rn{font-size:18px;font-weight:900;width:28px;text-align:center;color:#1e1e1e}
-.d-rn.g1{color:#f59e0b}.d-rn.g2{color:#6b7280}.d-rn.g3{color:#92400e}
-.d-pago-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #161616}
+.d-rn.g1{color:#f59e0b}.d-rn.g2{color:#6b7280}.d-rn.g3{color:#78350f}
+.d-pago-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #111}
 .d-pago-row:last-child{border-bottom:none}
-.d-pago-nm{font-size:12px;font-weight:700;color:#bbb}
-.d-pago-sub{font-size:10px;color:#444}
-.d-pago-val{font-size:13px;font-weight:900}
+.d-pago-nm{font-size:13px;font-weight:700;color:#ccc}
+.d-pago-sub{font-size:10px;color:#333;margin-top:2px}
+.d-pago-val{font-size:15px;font-weight:900}
 .d-pago-val.pos{color:#22c55e}.d-pago-val.neg{color:#ef4444}
-.d-refresh{background:none;border:1px solid #1e1e1e;color:#444;font-size:10px;padding:5px 12px;border-radius:5px;cursor:pointer;text-transform:uppercase;letter-spacing:1px}
-.d-refresh:hover{border-color:#444;color:#999}
+.d-alert{background:#1c0a0a;border:1px solid #7f1d1d;border-radius:10px;padding:1rem;margin-bottom:.7rem}
+.d-alert-nm{font-size:13px;font-weight:700;color:#fca5a5}
+.d-alert-val{font-size:11px;color:#ef4444;margin-top:2px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
@@ -181,7 +199,7 @@ tr:last-child td{border-bottom:none}
 
 <!-- TÉCNICO -->
 <div id="s-tec" class="screen">
-  <div class="topbar"><h2 id="t-nombre"></h2><span style="font-size:10px;color:#aaa;margin:0 6px">v36</span><button class="btn btn-sm" onclick="logout()">Salir</button></div>
+  <div class="topbar"><h2 id="t-nombre"></h2><span style="font-size:10px;color:#aaa;margin:0 6px">v37</span><button class="btn btn-sm" onclick="logout()">Salir</button></div>
   <div class="nav">
     <div class="ntab active" onclick="tecTab('semana',this)">Semana</div>
     <div class="ntab" onclick="tecTab('cobros',this)">Mis cobros</div>
@@ -235,7 +253,7 @@ tr:last-child td{border-bottom:none}
 
 <!-- ADMIN/JEFE -->
 <div id="s-adm" class="screen">
-  <div class="topbar"><h2 id="a-nombre"></h2><span style="font-size:10px;color:#aaa;margin:0 6px">v36</span><button class="btn btn-sm" onclick="logout()">Salir</button></div>
+  <div class="topbar"><h2 id="a-nombre"></h2><span style="font-size:10px;color:#aaa;margin:0 6px">v37</span><button class="btn btn-sm" onclick="logout()">Salir</button></div>
   <div class="nav">
     <div class="ntab active" onclick="admTab('cargar',this)">Cargar</div>
     <div class="ntab" onclick="admTab('resumen',this)">Resumen</div>
@@ -246,7 +264,7 @@ tr:last-child td{border-bottom:none}
     <div class="ntab" onclick="admTab('config',this)">Config</div>
     <div class="ntab" onclick="admTab('log',this)">Log</div>
     <div class="ntab" onclick="admTab('ranking',this)">Ranking</div>
-    <div class="ntab" onclick="admTab('dashboard',this)">📊 Panel</div>
+    <div class="ntab" id="tab-dashboard" onclick="admTab('dashboard',this)">📊 Panel</div>
   </div>
 
   <div id="at-cargar">
@@ -575,7 +593,19 @@ async function doLogin(){
     }catch(ex){}
     startHeartbeat();
     if(CU.rol==='tecnico'){showScr('tec');await renderTec();}
-    else{showScr('adm');await renderAdm();}
+    else{
+      showScr('adm');await renderAdm();
+      if(CU.rol==='jefe'){
+        // Activate dashboard tab
+        document.querySelectorAll('#s-adm .ntab').forEach(function(e){e.classList.remove('active');});
+        var td=document.getElementById('tab-dashboard');
+        if(td)td.classList.add('active');
+        ['cargar','resumen','pagos','historico','dias','saldos','config','log','ranking','dashboard'].forEach(function(t){
+          var e=document.getElementById('at-'+t);if(e)e.style.display=t==='dashboard'?'block':'none';
+        });
+        renderDashboard();
+      }
+    }
   }catch(e){err.textContent='Error de conexión.';spin.style.display='none';}
 }
 function startHeartbeat(){
@@ -926,6 +956,9 @@ function buildRankHTML(data,tipo){
 // ADMIN
 // =============================================
 async function renderAdm(){
+  // Mostrar tab dashboard solo para jefe
+  var tabDash = document.getElementById('tab-dashboard');
+  if (tabDash) tabDash.style.display = CU && CU.rol === 'jefe' ? '' : 'none';
   document.getElementById('a-nombre').textContent=CU.nombre;
   document.getElementById('a-fecha').value=fmtD(new Date());
   poblarSelects();
@@ -1760,12 +1793,14 @@ async function guardarCuadrilla(){
 function cerrarCuadModal(){document.getElementById('cuad-modal').classList.add('hidden');editCuadId=null;}
 
 
-// ===== DASHBOARD =====
+
+// ===== DASHBOARD JEFE =====
 var _dChart = null;
 async function renderDashboard() {
   var el = document.getElementById('dash-content');
   if (!el) return;
-  el.innerHTML = '<div class="loading"><span class="spinner"></span>Cargando panel...</div>';
+  if (!CU || CU.rol !== 'jefe') { el.innerHTML = ''; return; }
+  el.innerHTML = '<div style="text-align:center;padding:3rem;color:#333">Cargando panel...</div>';
   try {
     var meta = parseInt(CONFIG.meta_semanal || 30);
     var precio = parseInt(CONFIG.precio_instalacion || 7000);
@@ -1773,11 +1808,12 @@ async function renderDashboard() {
     var domD = new Date(lunes + 'T12:00:00'); domD.setDate(domD.getDate() + 6);
     var hasta = fmtD(domD);
     var hoy = new Date();
+
     var regs = await sbGet('registros', '?fecha=gte.' + lunes + '&fecha=lte.' + hasta + '&select=*,registro_tareas(*)');
     var sc = await getSemConf(lunes);
     var gl = sc ? sc.grupo_libra : null;
 
-    // Cuadrilla rows
+    // Cuadrilla data
     var cRows = [];
     for (var i = 0; i < CUADRILLAS.length; i++) {
       var cuad = CUADRILLAS[i];
@@ -1801,14 +1837,17 @@ async function renderDashboard() {
       }
     }
     sRows.sort(function(a,b){ return b.sal - a.sal; });
-    var totPend = 0; sRows.filter(function(s){ return s.sal>0; }).forEach(function(s){ totPend+=s.sal; });
+    var totPend = 0;
+    sRows.filter(function(s){ return s.sal>0; }).forEach(function(s){ totPend+=s.sal; });
     var totGen = 0; cRows.forEach(function(c){ totGen+=c.tot; });
+    var cuadsOk = cRows.filter(function(c){ return c.pct>=100; }).length;
+    var alertas = sRows.filter(function(s){ return s.sal<-5000; });
 
     // Ranking
     var rk = await buildRankings();
     var top5 = rk.rankInd.slice(0,5);
 
-    // Chart last 4 weeks
+    // Chart 4 weeks
     var sems = [getLunes(-3), getLunes(-2), getLunes(-1), lunes];
     var clabels = sems.map(function(s){ return fmtL(s); });
     var clrs = ['#22c55e','#3b82f6','#f59e0b','#a855f7','#ef4444','#06b6d4','#ec4899'];
@@ -1817,30 +1856,35 @@ async function renderDashboard() {
       var cuadC = CUADRILLAS[ci];
       var vals = [];
       for (var wi = 0; wi < sems.length; wi++) {
-        var sem = sems[wi];
-        var df = new Date(sem+'T12:00:00'); df.setDate(df.getDate()+6);
-        var rw = await sbGet('registros','?cuadrilla_id=eq.'+cuadC.id+'&fecha=gte.'+sem+'&fecha=lte.'+fmtD(df)+'&select=registro_tareas(tipo_tarea_id,cantidad)');
+        var df = new Date(sems[wi]+'T12:00:00'); df.setDate(df.getDate()+6);
+        var rw = await sbGet('registros','?cuadrilla_id=eq.'+cuadC.id+'&fecha=gte.'+sems[wi]+'&fecha=lte.'+fmtD(df)+'&select=registro_tareas(tipo_tarea_id,cantidad)');
         var tv = 0; rw.forEach(function(x){ (x.registro_tareas||[]).forEach(function(rt){ tv+=calcEquiv(rt.tipo_tarea_id,rt.cantidad); }); });
         vals.push(parseFloat(tv.toFixed(2)));
       }
-      dsets.push({ label: cuadC.nombre, data: vals, backgroundColor: clrs[ci]+'44', borderColor: clrs[ci], borderWidth: 2, borderRadius: 4 });
+      dsets.push({ label: cuadC.nombre, data: vals, backgroundColor: clrs[ci]+'33', borderColor: clrs[ci], borderWidth: 2, borderRadius: 3, tension: 0.3 });
     }
 
-    // Build HTML (string concat only - no nested template literals)
+    // Build HTML
+    var lider = cRows[0];
+    var ultimo = cRows[cRows.length-1];
+    var fStr = hoy.toLocaleDateString('es-AR', {weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+
     var cuadH = '';
     for (var ri = 0; ri < cRows.length; ri++) {
       var c = cRows[ri];
       cuadH += '<div class="d-row">';
-      cuadH += '<div class="d-nm">' + (ri===0?'🥇 ':'') + c.cuad.nombre + '</div>';
+      cuadH += '<div class="d-pos">' + (ri+1) + '</div>';
+      cuadH += '<div class="d-nm">' + c.cuad.nombre + '</div>';
       cuadH += '<div class="d-bar"><div class="d-fill ' + c.bc + '" style="width:' + c.pct + '%"></div></div>';
-      cuadH += '<div class="d-num">' + c.tot.toFixed(1) + '</div>';
+      cuadH += '<div class="d-pct">' + c.pct + '%</div>';
+      cuadH += '<div class="d-num ' + c.bc + '">' + c.tot.toFixed(1) + '</div>';
       cuadH += '<span class="d-badge ' + (c.libre?'lib':'trab') + '">' + (c.libre?'LIBRE':'SAB') + '</span>';
       cuadH += '</div>';
     }
 
     var salH = '';
-    var st = sRows.slice(0,6);
-    if (!st.length) { salH = '<p style="font-size:12px;color:#333;text-align:center;padding:1rem">Todos al dia</p>'; }
+    var st = sRows.slice(0,8);
+    if (!st.length) { salH = '<p style="font-size:12px;color:#222;text-align:center;padding:2rem">Sin saldos pendientes</p>'; }
     else { st.forEach(function(s){
       salH += '<div class="d-pago-row"><div><div class="d-pago-nm">'+s.nm+'</div><div class="d-pago-sub">'+s.cuad+'</div></div>';
       salH += '<div class="d-pago-val '+(s.sal>0?'pos':'neg')+'">'+(s.sal>=0?'+':'')+fmtPesos(s.sal)+'</div></div>';
@@ -1851,37 +1895,66 @@ async function renderDashboard() {
     top5.forEach(function(t, idx){
       rankH += '<div class="d-rank-row">';
       rankH += '<div class="d-rn '+(rnc[idx]||'')+'>'+(idx+1)+'</div>';
-      rankH += '<div style="flex:1"><div style="font-size:13px;font-weight:700;color:#bbb">'+t.nombre+'</div>';
-      rankH += '<div style="font-size:10px;color:#444">'+t.cuad+'</div></div>';
-      rankH += '<div style="font-size:13px;font-weight:900;color:#22c55e">'+t.total.toFixed(1)+'</div></div>';
+      rankH += '<div style="flex:1"><div style="font-size:14px;font-weight:700;color:#ccc">'+t.nombre+'</div>';
+      rankH += '<div style="font-size:11px;color:#333">'+t.cuad+'</div></div>';
+      rankH += '<div style="font-size:15px;font-weight:900;color:#22c55e">'+t.total.toFixed(1)+'</div></div>';
     });
 
-    var lider = cRows[0];
-    var fStr = hoy.toLocaleDateString('es-AR',{weekday:'long',day:'2-digit',month:'long'});
+    var alertH = '';
+    alertas.slice(0,3).forEach(function(a){
+      alertH += '<div class="d-alert"><div class="d-alert-nm">⚠ '+a.nm+'</div><div class="d-alert-val">Debe '+fmtPesos(Math.abs(a.sal))+'</div></div>';
+    });
 
     var html = '';
-    html += '<div class="dh">';
-    html += '<div><div class="dh-title">FG Conexiones</div><div class="dh-sub">Panel · Semana '+fmtL(lunes)+' - '+fmtL(hasta)+'</div></div>';
-    html += '<div style="text-align:right"><div style="font-size:12px;color:#444">'+fStr+'</div>';
-    html += '<button class="d-refresh" onclick="renderDashboard()" style="margin-top:6px">↻ actualizar</button></div></div>';
-
-    html += '<div class="dk">';
-    html += '<div class="dk-card"><div class="dk-val">'+totGen.toFixed(1)+'</div><div class="dk-label">Equiv. totales esta semana</div></div>';
-    html += '<div class="dk-card"><div class="dk-val">'+(totGen/7).toFixed(1)+'</div><div class="dk-label">Promedio por cuadrilla</div></div>';
-    html += '<div class="dk-card"><div class="dk-val" style="color:'+(totPend>0?'#22c55e':'#444')+'">'+fmtPesos(totPend)+'</div><div class="dk-label">Pagos pendientes</div></div>';
-    html += '</div>';
-
-    html += '<div class="dg">';
-    html += '<div class="d-card"><div class="d-card-t">Progreso semanal por cuadrilla</div>'+cuadH+'</div>';
-    html += '<div>';
-    html += '<div class="d-leader"><div class="d-leader-t">🥇 Cuadrilla líder</div>';
-    html += '<div class="d-leader-n">'+lider.cuad.nombre+'</div>';
-    html += '<div class="d-leader-v">'+lider.tot.toFixed(2)+' equiv · '+lider.pct+'% de meta</div></div>';
-    html += '<div class="d-card"><div class="d-card-t">Saldos pendientes</div>'+salH+'</div>';
+    // Header
+    html += '<div class="dh"><div class="dh-left">';
+    html += '<div class="dh-title">FG Conexiones</div>';
+    html += '<div class="dh-sub">Panel de control · Semana '+fmtL(lunes)+' al '+fmtL(hasta)+'</div>';
+    html += '</div><div class="dh-right"><div class="dh-date">'+fStr+'</div>';
+    html += '<button class="d-refresh" onclick="renderDashboard()">↻ Actualizar</button>';
     html += '</div></div>';
 
-    html += '<div class="dg">';
-    html += '<div class="d-card"><div class="d-card-t">Últimas 4 semanas por cuadrilla</div><canvas id="d-chart" height="180"></canvas></div>';
+    // KPIs 4 cols
+    html += '<div class="dk">';
+    html += '<div class="dk-card"><div class="dk-val">'+totGen.toFixed(1)+'</div><div class="dk-label">Equiv. totales</div><div class="dk-sub">'+cuadsOk+'/7 cuadrillas ok</div></div>';
+    html += '<div class="dk-card"><div class="dk-val">'+(totGen/7).toFixed(1)+'</div><div class="dk-label">Promedio / cuadrilla</div><div class="dk-sub">Meta: '+meta+'</div></div>';
+    html += '<div class="dk-card"><div class="dk-val" style="color:'+(totPend>0?'#22c55e':'#333')+'">'+fmtPesos(totPend)+'</div><div class="dk-label">Pagos pendientes</div><div class="dk-sub">'+sRows.filter(function(s){return s.sal>0;}).length+' técnicos</div></div>';
+    html += '<div class="dk-card"><div class="dk-val" style="color:'+(alertas.length>0?'#ef4444':'#22c55e')+'">'+alertas.length+'</div><div class="dk-label">Alertas deuda</div><div class="dk-sub">'+(alertas.length?'Requieren atención':'Sin alertas')+'</div></div>';
+    html += '</div>';
+
+    // Main grid: progress + leader + alerts
+    html += '<div class="dg3">';
+    // Progreso
+    html += '<div class="d-card"><div class="d-card-t">Progreso semanal por cuadrilla</div>'+cuadH+'</div>';
+    // Lider
+    html += '<div>';
+    html += '<div class="d-leader">';
+    html += '<div class="d-leader-crown">🏆</div>';
+    html += '<div class="d-leader-t">Cuadrilla líder</div>';
+    html += '<div class="d-leader-n">'+lider.cuad.nombre+'</div>';
+    html += '<div class="d-leader-pct">'+lider.pct+'%</div>';
+    html += '<div class="d-leader-v">'+lider.tot.toFixed(2)+' equiv.</div>';
+    html += '</div>';
+    if (ultimo && ultimo.pct < 80) {
+      html += '<div class="d-card" style="margin-top:1rem;border-color:#1c1c1c">';
+      html += '<div class="d-card-t">Más atrasada</div>';
+      html += '<div style="text-align:center;padding:.5rem">';
+      html += '<div style="font-size:16px;font-weight:800;color:#ef4444">'+ultimo.cuad.nombre+'</div>';
+      html += '<div style="font-size:12px;color:#444;margin-top:4px">'+ultimo.tot.toFixed(1)+' equiv · '+ultimo.pct+'%</div>';
+      html += '</div></div>';
+    }
+    html += '</div>';
+    // Alertas
+    html += '<div class="d-card">';
+    html += '<div class="d-card-t">⚠ Deudas activas</div>';
+    html += alertH || '<p style="font-size:12px;color:#222;text-align:center;padding:1rem">Sin deudas</p>';
+    html += '</div>';
+    html += '</div>';
+
+    // Bottom: chart + saldos + ranking
+    html += '<div style="display:grid;grid-template-columns:2fr 1.2fr 1fr;gap:1rem;margin-bottom:1.5rem">';
+    html += '<div class="d-card"><div class="d-card-t">Evolución últimas 4 semanas</div><canvas id="d-chart" height="220"></canvas></div>';
+    html += '<div class="d-card"><div class="d-card-t">Saldos por técnico</div>'+salH+'</div>';
     html += '<div class="d-card"><div class="d-card-t">🏆 Ranking histórico</div>'+rankH+'</div>';
     html += '</div>';
 
@@ -1897,19 +1970,21 @@ async function renderDashboard() {
         options: {
           responsive: true,
           plugins: {
-            legend: { labels: { color: '#555', font: { size: 10 }, boxWidth: 12 } },
-            tooltip: { backgroundColor: '#111', titleColor: '#fff', bodyColor: '#999', borderColor: '#222', borderWidth: 1 }
+            legend: { labels: { color: '#444', font: { size: 10 }, boxWidth: 10 } },
+            tooltip: { backgroundColor: '#111', titleColor: '#fff', bodyColor: '#999', borderColor: '#1e1e1e', borderWidth: 1 }
           },
           scales: {
-            x: { grid: { color: '#161616' }, ticks: { color: '#444', font: { size: 10 } } },
-            y: { grid: { color: '#161616' }, ticks: { color: '#444', font: { size: 10 } } }
+            x: { grid: { color: '#111' }, ticks: { color: '#333', font: { size: 10 } } },
+            y: { grid: { color: '#111' }, ticks: { color: '#333', font: { size: 10 } },
+              annotation: { line: { value: meta, color: '#1a7a3c', borderWidth: 1 } }
+            }
           }
         }
       });
     }, 150);
 
   } catch(e) {
-    el.innerHTML = '<div class="card"><p style="color:#c0392b">Error: ' + e.message + '</p></div>';
+    el.innerHTML = '<div style="padding:2rem;color:#c0392b">Error: ' + e.message + '</div>';
   }
 }
 
