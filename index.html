@@ -673,16 +673,15 @@ async function renderTecSemana(){
     }
   });
 
-  // Vacaciones: si el técnico tiene vacaciones esta semana → suma 30 equiv
+  // Vacaciones: si el técnico tiene vacaciones esta semana → suma meta equiv
   if(esInd){
     try{
       const vacData=await sbGet('dias_especiales',
         `?cuadrilla_id=eq.${cuadId}&tecnico_nombre=eq.${encodeURIComponent(CU.tecnico_ref)}&tipo=eq.vacaciones&fecha=gte.${fechas[0]}&fecha=lte.${fechas[fechas.length-1]}&select=fecha`);
       if(vacData&&vacData.length>0){
-        // Tiene vacaciones esta semana: la semana entera = 30 equiv
         totalSemana=meta;
         dias.forEach(d=>totPorDia[d.fecha]=0);
-        totPorDia[vacData[0].fecha]=meta; // mostrar en el día que se marcó
+        totPorDia[vacData[0].fecha]=meta;
       }
       // Certificado: días marcados = 5 equiv ese día
       const certData=await sbGet('dias_especiales',
@@ -693,6 +692,16 @@ async function renderTecSemana(){
       });
     }catch(e){}
   }
+  // Feriados: aplican a todos (cuadrilla_id null = todas, o esta cuadrilla)
+  try{
+    const ferData=await sbGet('dias_especiales',
+      `?tipo=eq.feriado&fecha=gte.${fechas[0]}&fecha=lte.${fechas[fechas.length-1]}&select=fecha,cuadrilla_id`);
+    ferData.forEach(d=>{
+      if(d.cuadrilla_id&&d.cuadrilla_id!==cuadId)return;
+      totPorDia[d.fecha]=(totPorDia[d.fecha]||0)+5;
+      totalSemana+=5;
+    });
+  }catch(e){}
 
   let saldoTotal=0;
   try{
@@ -1389,12 +1398,14 @@ async function abrirDetalleCuad(cuadId,desde,hasta){
   const precioUnit=precio/2;
   const regs=await sbGet('registros',`?cuadrilla_id=eq.${cuadId}&fecha=gte.${desde}&fecha=lte.${hasta}&select=*,registro_tareas(*)`);
   const diasEspCuad=await sbGet('dias_especiales',`?cuadrilla_id=eq.${cuadId}&select=*`);
+  // Feriados del período (aplican a todos: cuadrilla_id null o esta cuadrilla)
+  const feriadosPer=await sbGet('dias_especiales',`?tipo=eq.feriado&fecha=gte.${desde}&fecha=lte.${hasta}&select=fecha,cuadrilla_id`);
+  const feriadosAplicables=feriadosPer.filter(f=>!f.cuadrilla_id||f.cuadrilla_id===cuadId);
   const tecs=getTecs(cuadId);
   const MARZO2026='2026-03-01';
   let html='';
 
   for(const tec of tecs){
-    // Agrupar por semana (para cálculo financiero correcto)
     const porSemana={};
     regs.forEach(reg=>{
       const sem=getLunesDesd(reg.fecha);
@@ -1419,6 +1430,13 @@ async function abrirDetalleCuad(cuadId,desde,hasta){
     });
     // Certificado
     diasEspCuad.filter(d=>d.tecnico_nombre===tec&&d.tipo==='certificado').forEach(d=>{
+      const sem=getLunesDesd(d.fecha);
+      if(!porSemana[sem])porSemana[sem]={pareja:0,solo:0,dias:{}};
+      porSemana[sem].pareja+=5;
+      porSemana[sem].dias[d.fecha]=(porSemana[sem].dias[d.fecha]||0)+5;
+    });
+    // Feriados: 5 equiv para todos los técnicos
+    feriadosAplicables.forEach(d=>{
       const sem=getLunesDesd(d.fecha);
       if(!porSemana[sem])porSemana[sem]={pareja:0,solo:0,dias:{}};
       porSemana[sem].pareja+=5;
