@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v41</title>
+<title>FG Conexiones v42</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#111;min-height:100vh}
@@ -199,7 +199,7 @@ tr:last-child td{border-bottom:none}
 
 <!-- TÉCNICO -->
 <div id="s-tec" class="screen">
-  <div class="topbar"><h2 id="t-nombre"></h2><span style="font-size:10px;color:#aaa;margin:0 6px">v41</span><button class="btn btn-sm" onclick="logout()">Salir</button></div>
+  <div class="topbar"><h2 id="t-nombre"></h2><span style="font-size:10px;color:#aaa;margin:0 6px">v42</span><button class="btn btn-sm" onclick="logout()">Salir</button></div>
   <div class="nav">
     <div class="ntab active" onclick="tecTab('semana',this)">Semana</div>
     <div class="ntab" onclick="tecTab('cobros',this)">Mis cobros</div>
@@ -253,7 +253,7 @@ tr:last-child td{border-bottom:none}
 
 <!-- ADMIN/JEFE -->
 <div id="s-adm" class="screen">
-  <div class="topbar"><h2 id="a-nombre"></h2><span style="font-size:10px;color:#aaa;margin:0 6px">v41</span><button class="btn btn-sm" onclick="logout()">Salir</button></div>
+  <div class="topbar"><h2 id="a-nombre"></h2><span style="font-size:10px;color:#aaa;margin:0 6px">v42</span><button class="btn btn-sm" onclick="logout()">Salir</button></div>
   <div class="nav">
     <div class="ntab active" onclick="admTab('cargar',this)">Cargar</div>
     <div class="ntab" onclick="admTab('resumen',this)">Resumen</div>
@@ -731,32 +731,33 @@ async function renderTecSemana(){
       valEl.textContent='Faltan '+faltaInst.toFixed(2);valEl.style.color='#c0392b';
     }
   }
-  // Bloque 2: deuda/favor acumulada desde marzo (semanas cerradas)
+  // Bloque 2: saldo neto acumulado (extras - pagos ya cobrados)
   const cardDeuda=document.getElementById('t-deuda-card');
   if(cardDeuda&&esInd){
     try{
       const infoAcum=await calcSaldoTecnico(cuadId,CU.tecnico_ref);
-      // Convertir saldo en plata a equivalentes
       const precioUnit=parseInt(CONFIG.precio_instalacion||7000)/2;
-      const equivAcum=infoAcum.totalExtras/precioUnit; // equiv acumuladas (puede ser negativo)
+      // Usar saldo NETO (totalExtras - totalPagado), igual que Mis cobros
+      const saldoNeto=infoAcum.saldo;
+      const equivAcum=saldoNeto/precioUnit;
       cardDeuda.style.display='block';
-      if(Math.abs(equivAcum)<0.01){
+      if(Math.abs(saldoNeto)<1){
         cardDeuda.style.background='#f8f8f5';
         cardDeuda.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center">
-          <div><div style="font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em">Historial acumulado</div>
-          <div style="font-size:13px;color:#888">Sin deuda ni saldo pendiente</div></div>
+          <div><div style="font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em">Saldo pendiente</div>
+          <div style="font-size:13px;color:#888">Todo cobrado, sin saldo pendiente</div></div>
           <div style="font-size:20px">✓</div></div>`;
-      }else if(equivAcum<0){
+      }else if(saldoNeto<0){
         cardDeuda.style.background='#fff5f5';
         cardDeuda.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center">
-          <div><div style="font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em">Historial acumulado</div>
-          <div style="font-size:13px;color:#c0392b">Debés ${Math.abs(equivAcum).toFixed(2)} equiv. (${fmtPesos(Math.abs(infoAcum.totalExtras))})</div></div>
+          <div><div style="font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em">Saldo pendiente</div>
+          <div style="font-size:13px;color:#c0392b">Debés ${Math.abs(equivAcum).toFixed(2)} equiv. (${fmtPesos(Math.abs(saldoNeto))})</div></div>
           <div style="font-size:20px;font-weight:800;color:#c0392b">-${Math.abs(equivAcum).toFixed(2)}</div></div>`;
       }else{
         cardDeuda.style.background='#f0faf4';
         cardDeuda.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center">
-          <div><div style="font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em">Historial acumulado</div>
-          <div style="font-size:13px;color:#1a7a3c">Tenés ${equivAcum.toFixed(2)} equiv. a favor (${fmtPesos(infoAcum.totalExtras)})</div></div>
+          <div><div style="font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em">Saldo pendiente</div>
+          <div style="font-size:13px;color:#1a7a3c">Te deben ${equivAcum.toFixed(2)} equiv. (${fmtPesos(saldoNeto)})</div></div>
           <div style="font-size:20px;font-weight:800;color:#1a7a3c">+${equivAcum.toFixed(2)}</div></div>`;
       }
     }catch(e){cardDeuda.style.display='none';}
