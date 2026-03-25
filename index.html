@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v42</title>
+<title>FG Conexiones v43</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#111;min-height:100vh}
@@ -199,12 +199,13 @@ tr:last-child td{border-bottom:none}
 
 <!-- TÉCNICO -->
 <div id="s-tec" class="screen">
-  <div class="topbar"><h2 id="t-nombre"></h2><span style="font-size:10px;color:#aaa;margin:0 6px">v42</span><button class="btn btn-sm" onclick="logout()">Salir</button></div>
+  <div class="topbar"><h2 id="t-nombre"></h2><span style="font-size:10px;color:#aaa;margin:0 6px">v43</span><button class="btn btn-sm" onclick="logout()">Salir</button></div>
   <div class="nav">
     <div class="ntab active" onclick="tecTab('semana',this)">Semana</div>
     <div class="ntab" onclick="tecTab('cobros',this)">Mis cobros</div>
     <div class="ntab" onclick="tecTab('dias',this)">Por día</div>
     <div class="ntab" onclick="tecTab('ranking',this)">Ranking</div>
+    <div class="ntab" id="tec-tab-adelantos" onclick="tecTab('adelantos',this)" style="display:none">Mis adelantos</div>
   </div>
   <div id="tt-semana">
     <div class="wknav"><button onclick="chgWk(-1)">‹</button><span id="t-wk-lbl"></span><button onclick="chgWk(1)">›</button></div>
@@ -249,11 +250,14 @@ tr:last-child td{border-bottom:none}
     <div class="card"><div class="card-title">Ranking individual</div><div id="t-rank-ind"><div class="loading"><span class="spinner"></span></div></div></div>
     <p style="font-size:12px;color:#999;text-align:center;margin-top:8px">Más instalaciones equiv. = elegís primero las vacaciones.</p>
   </div>
+  <div id="tt-adelantos" style="display:none">
+    <div id="t-adelantos-content"><div class="loading"><span class="spinner"></span>Cargando...</div></div>
+  </div>
 </div>
 
 <!-- ADMIN/JEFE -->
 <div id="s-adm" class="screen">
-  <div class="topbar"><h2 id="a-nombre"></h2><span style="font-size:10px;color:#aaa;margin:0 6px">v42</span><button class="btn btn-sm" onclick="logout()">Salir</button></div>
+  <div class="topbar"><h2 id="a-nombre"></h2><span style="font-size:10px;color:#aaa;margin:0 6px">v43</span><button class="btn btn-sm" onclick="logout()">Salir</button></div>
   <div class="nav">
     <div class="ntab active" onclick="admTab('cargar',this)">Cargar</div>
     <div class="ntab" onclick="admTab('resumen',this)">Resumen</div>
@@ -261,6 +265,8 @@ tr:last-child td{border-bottom:none}
     <div class="ntab" onclick="admTab('historico',this)">Histórico</div>
     <div class="ntab" onclick="admTab('dias',this)">Días</div>
     <div class="ntab" onclick="admTab('saldos',this)">Saldos</div>
+    <div class="ntab" onclick="admTab('combustible',this)">⛽ Combustible</div>
+    <div class="ntab" id="tab-adelantos" onclick="admTab('adelantos',this)" style="display:none">💵 Adelantos</div>
     <div class="ntab" onclick="admTab('config',this)">Config</div>
     <div class="ntab" onclick="admTab('log',this)">Log</div>
     <div class="ntab" onclick="admTab('ranking',this)">Ranking</div>
@@ -455,6 +461,62 @@ tr:last-child td{border-bottom:none}
     <div class="card"><div class="card-title">Ranking individual</div><div id="adm-rank-ind"><div class="loading"><span class="spinner"></span></div></div></div>
     <p style="font-size:12px;color:#999;text-align:center;margin-top:8px">Incluye histórico de enero y febrero. Más instalaciones equiv. = elegís primero las vacaciones.</p>
   </div>
+
+  <!-- COMBUSTIBLE -->
+  <div id="at-combustible" style="display:none">
+    <div class="card">
+      <div class="card-title">⛽ Registrar carga de combustible</div>
+      <div class="fg"><label>Cuadrilla</label><select id="comb-cuad"></select></div>
+      <div class="fg"><label>Fecha</label><input type="date" id="comb-fecha"/></div>
+      <div class="fg"><label>Monto ($)</label><input type="number" id="comb-monto" placeholder="Ej: 15000"/></div>
+      <div class="fg"><label>Descripción (opcional)</label><input type="text" id="comb-desc" placeholder="Ej: YPF Ruta 9"/></div>
+      <button class="btn btn-dark btn-full" onclick="guardarCombustible()">Guardar carga</button>
+      <p class="ok-msg" id="comb-ok"></p><p class="err-msg" id="comb-err"></p>
+    </div>
+    <div class="card">
+      <div class="card-title">Resumen por cuadrilla</div>
+      <div id="comb-resumen"><div class="loading"><span class="spinner"></span></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Historial de cargas</div>
+      <div class="fg" style="margin-bottom:.5rem">
+        <label>Filtrar por mes</label>
+        <select id="comb-mes-fil" onchange="renderCombustibleLista()">
+          <option value="">Todos</option>
+          <option value="2026-01">Enero 2026</option><option value="2026-02">Febrero 2026</option>
+          <option value="2026-03" selected>Marzo 2026</option><option value="2026-04">Abril 2026</option>
+          <option value="2026-05">Mayo 2026</option><option value="2026-06">Junio 2026</option>
+          <option value="2026-07">Julio 2026</option><option value="2026-08">Agosto 2026</option>
+          <option value="2026-09">Septiembre 2026</option><option value="2026-10">Octubre 2026</option>
+          <option value="2026-11">Noviembre 2026</option><option value="2026-12">Diciembre 2026</option>
+        </select>
+      </div>
+      <div id="comb-lista"><div class="loading"><span class="spinner"></span></div></div>
+    </div>
+  </div>
+
+  <!-- ADELANTOS -->
+  <div id="at-adelantos" style="display:none">
+    <div class="card" id="adel-form-card">
+      <div class="card-title">💵 Registrar adelanto</div>
+      <div class="fg"><label>Cuadrilla</label><select id="adel-cuad" onchange="renderAdelTecs()"></select></div>
+      <div class="fg"><label>Técnico</label><select id="adel-tec"></select></div>
+      <div class="fg"><label>Fecha</label><input type="date" id="adel-fecha"/></div>
+      <div class="fg"><label>Monto ($)</label><input type="number" id="adel-monto" placeholder="Ej: 20000"/></div>
+      <div class="fg"><label>Descripción (opcional)</label><input type="text" id="adel-desc" placeholder="Ej: Adelanto semana 1 de abril"/></div>
+      <button class="btn btn-dark btn-full" onclick="guardarAdelanto()">Registrar adelanto</button>
+      <p class="ok-msg" id="adel-ok"></p><p class="err-msg" id="adel-err"></p>
+    </div>
+    <div class="card">
+      <div class="card-title">Adelantos por técnico (mayor a menor)</div>
+      <div id="adel-resumen"><div class="loading"><span class="spinner"></span></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Historial de adelantos</div>
+      <div id="adel-lista"><div class="loading"><span class="spinner"></span></div></div>
+    </div>
+  </div>
+
 </div>
 
 <!-- MODAL EDITAR REGISTRO -->
@@ -626,13 +688,17 @@ async function renderTec(){
   const c=CUADRILLAS.find(x=>x.id===CU.cuadrilla_id);
   document.getElementById('t-nombre').textContent=CU.tecnico_ref?CU.nombre:(c?c.nombre:CU.nombre);
   document.getElementById('t-fecha-libre').value=fmtD(new Date());
+  // Mostrar tab adelantos solo a técnicos individuales
+  const tabAdel=document.getElementById('tec-tab-adelantos');
+  if(tabAdel)tabAdel.style.display=CU.tecnico_ref?'':'none';
   await renderTecSemana();
 }
 function tecTab(tab,el){
-  ['semana','cobros','dias','ranking'].forEach(t=>document.getElementById('tt-'+t).style.display=t===tab?'block':'none');
+  ['semana','cobros','dias','ranking','adelantos'].forEach(t=>document.getElementById('tt-'+t).style.display=t===tab?'block':'none');
   document.querySelectorAll('#s-tec .ntab').forEach(e=>e.classList.remove('active'));el.classList.add('active');
   if(tab==='ranking')renderTecRanking();
   if(tab==='cobros')renderTecCobros();
+  if(tab==='adelantos')renderTecAdelantos();
 }
 function chgWk(d){wkOff+=d;renderTecSemana();}
 
@@ -969,15 +1035,18 @@ function buildRankHTML(data,tipo){
 // ADMIN
 // =============================================
 async function renderAdm(){
-  // Mostrar tab dashboard solo para jefe
   var tabDash = document.getElementById('tab-dashboard');
   if (tabDash) tabDash.style.display = CU && CU.rol === 'jefe' ? '' : 'none';
+  // Adelantos: solo jefe puede cargar
+  var tabAdel = document.getElementById('tab-adelantos');
+  if (tabAdel) tabAdel.style.display = CU && CU.rol === 'jefe' ? '' : 'none';
+  var adelForm = document.getElementById('adel-form-card');
+  if (adelForm) adelForm.style.display = CU && CU.rol === 'jefe' ? 'block' : 'none';
   document.getElementById('a-nombre').textContent=CU.nombre;
   document.getElementById('a-fecha').value=fmtD(new Date());
   poblarSelects();
   onCuadChange();renderSaldoTecs();renderHistTecs();
   buildTareasInputs();onFechaChange();
-  // Actualizar nombres en cards de sábado
   const g4cuads=CUADRILLAS.filter(c=>c.grupo===1).map(c=>c.nombre).join('<br>');
   const g3cuads=CUADRILLAS.filter(c=>c.grupo===2).map(c=>c.nombre).join('<br>');
   document.getElementById('sg4-tecs').innerHTML=g4cuads;
@@ -986,13 +1055,16 @@ async function renderAdm(){
 
 function poblarSelects(){
   const opts=CUADRILLAS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
-  ['a-cuad','s-cuad','hist-cuad'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opts;});
+  ['a-cuad','s-cuad','hist-cuad','comb-cuad','adel-cuad'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opts;});
   document.getElementById('d-cuad').innerHTML='<option value="">Todas las cuadrillas</option>'+opts;
+  // Init fecha fields
+  const hoy=fmtD(new Date());
+  ['comb-fecha','adel-fecha'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.value)el.value=hoy;});
+  renderAdelTecs();
 }
 
 function admTab(tab,el){
-  ['cargar','resumen','pagos','historico','dias','saldos','config','log','ranking','dashboard'].forEach(t=>{const e=document.getElementById('at-'+t);if(e)e.style.display=t===tab?'block':'none';});
-  // Also hide cuad-detalle when switching tabs
+  ['cargar','resumen','pagos','historico','dias','saldos','config','log','ranking','dashboard','combustible','adelantos'].forEach(t=>{const e=document.getElementById('at-'+t);if(e)e.style.display=t===tab?'block':'none';});
   const det=document.getElementById('at-cuad-detalle');if(det)det.style.display='none';
   document.querySelectorAll('#s-adm .ntab').forEach(e=>e.classList.remove('active'));el.classList.add('active');
   if(tab==='resumen')renderAdmResumen();
@@ -1003,6 +1075,8 @@ function admTab(tab,el){
   if(tab==='historico')renderHistLista();
   if(tab==='ranking')renderAdmRanking();
   if(tab==='dashboard')renderDashboard();
+  if(tab==='combustible')renderCombustible();
+  if(tab==='adelantos')renderAdelantos();
 }
 
 function onCuadChange(){
@@ -2118,6 +2192,222 @@ async function renderLog(){
     const fecha=new Date(l.created_at).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
     return`<div style="padding:9px 0;border-bottom:1px solid #f0f0f0"><div style="font-size:13px;font-weight:600">${l.accion}</div><div style="font-size:12px;color:#666">${l.detalle||''}</div><div style="font-size:11px;color:#aaa">${l.usuario} · ${fecha}</div></div>`;
   }).join('');
+}
+// =============================================
+// COMBUSTIBLE
+// =============================================
+async function guardarCombustible(){
+  const cuadId=document.getElementById('comb-cuad').value;
+  const fecha=document.getElementById('comb-fecha').value;
+  const monto=parseFloat(document.getElementById('comb-monto').value);
+  const desc=document.getElementById('comb-desc').value.trim();
+  const ok=document.getElementById('comb-ok'),err=document.getElementById('comb-err');
+  err.textContent='';ok.textContent='';
+  if(!fecha||isNaN(monto)||monto<=0){err.textContent='Completá fecha y monto.';return;}
+  try{
+    await sbPost('combustible',{cuadrilla_id:cuadId,fecha,monto,descripcion:desc||null,created_by:CU.username});
+    await logAct('Combustible',`${CUADRILLAS.find(c=>c.id===cuadId)?.nombre||cuadId} · ${fmtPesos(monto)} · ${fecha}`,'combustible');
+    ok.textContent='Carga registrada ✓';setTimeout(()=>ok.textContent='',2500);
+    document.getElementById('comb-monto').value='';document.getElementById('comb-desc').value='';
+    renderCombustibleLista();renderCombustibleResumen();
+  }catch(e){err.textContent='Error: '+e.message;}
+}
+
+async function renderCombustible(){
+  // init fecha
+  const hoy=fmtD(new Date());
+  const cf=document.getElementById('comb-fecha');if(cf&&!cf.value)cf.value=hoy;
+  renderCombustibleResumen();
+  renderCombustibleLista();
+}
+
+async function renderCombustibleResumen(){
+  const el=document.getElementById('comb-resumen');if(!el)return;
+  el.innerHTML='<div class="loading"><span class="spinner"></span></div>';
+  try{
+    const data=await sbGet('combustible','?order=fecha.desc');
+    // Acumulado por cuadrilla
+    const totales={};
+    data.forEach(d=>{
+      if(!totales[d.cuadrilla_id])totales[d.cuadrilla_id]=0;
+      totales[d.cuadrilla_id]+=parseFloat(d.monto);
+    });
+    if(!data.length){el.innerHTML='<p style="font-size:13px;color:#999">Sin registros aún.</p>';return;}
+    el.innerHTML=CUADRILLAS.map(c=>{
+      const tot=totales[c.id]||0;if(!tot)return'';
+      return`<div class="row"><span style="font-size:14px;font-weight:600">${c.nombre}</span><span style="font-size:15px;font-weight:700;color:#2980b9">${fmtPesos(tot)}</span></div>`;
+    }).join('')+'<div class="row" style="border-top:2px solid #eee;margin-top:4px"><span style="font-size:13px;font-weight:700">TOTAL</span><span style="font-size:15px;font-weight:800;color:#111">${fmtPesos(Object.values(totales).reduce((a,b)=>a+b,0))}</span></div>'
+      .replace('${fmtPesos(Object.values(totales).reduce((a,b)=>a+b,0))}', fmtPesos(Object.values(totales).reduce((a,b)=>a+b,0)));
+  }catch(e){el.innerHTML='<p style="font-size:13px;color:#c0392b">Error: '+e.message+'</p>';}
+}
+
+async function renderCombustibleLista(){
+  const el=document.getElementById('comb-lista');if(!el)return;
+  el.innerHTML='<div class="loading"><span class="spinner"></span></div>';
+  const mes=document.getElementById('comb-mes-fil')?.value||'';
+  try{
+    let params='?order=fecha.desc&limit=60';
+    if(mes)params+=`&fecha=gte.${mes}-01&fecha=lte.${mes}-31`;
+    const data=await sbGet('combustible',params);
+    if(!data.length){el.innerHTML='<p style="font-size:13px;color:#999">Sin registros para este período.</p>';return;}
+    el.innerHTML=data.map(d=>{
+      const c=CUADRILLAS.find(x=>x.id===d.cuadrilla_id);
+      return`<div class="row">
+        <div>
+          <div style="font-size:14px;font-weight:600">${c?c.nombre:d.cuadrilla_id}</div>
+          <div style="font-size:12px;color:#888">${fmtFull(d.fecha)}${d.descripcion?' · '+d.descripcion:''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:15px;font-weight:700;color:#2980b9">${fmtPesos(d.monto)}</span>
+          <button class="btn btn-sm btn-red" onclick="elimCombustible('${d.id}')">✕</button>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){el.innerHTML='<p style="font-size:13px;color:#c0392b">Error: '+e.message+'</p>';}
+}
+
+async function elimCombustible(id){
+  if(!confirm('¿Eliminar esta carga de combustible?'))return;
+  try{
+    await sbDelete('combustible',`?id=eq.${id}`);
+    await logAct('Eliminar combustible',`ID ${id}`,'combustible');
+    renderCombustibleLista();renderCombustibleResumen();
+  }catch(e){alert('Error: '+e.message);}
+}
+
+// =============================================
+// ADELANTOS
+// =============================================
+function renderAdelTecs(){
+  const c=document.getElementById('adel-cuad')?.value;if(!c)return;
+  const el=document.getElementById('adel-tec');if(el)el.innerHTML=getTecs(c).map(t=>`<option>${t}</option>`).join('');
+}
+
+async function guardarAdelanto(){
+  if(CU.rol!=='jefe'){alert('Solo el jefe puede registrar adelantos.');return;}
+  const cuadId=document.getElementById('adel-cuad').value;
+  const tec=document.getElementById('adel-tec').value;
+  const fecha=document.getElementById('adel-fecha').value;
+  const monto=parseFloat(document.getElementById('adel-monto').value);
+  const desc=document.getElementById('adel-desc').value.trim();
+  const ok=document.getElementById('adel-ok'),err=document.getElementById('adel-err');
+  err.textContent='';ok.textContent='';
+  if(!fecha||isNaN(monto)||monto<=0){err.textContent='Completá fecha y monto.';return;}
+  try{
+    await sbPost('adelantos',{cuadrilla_id:cuadId,tecnico_nombre:tec,fecha,monto,descripcion:desc||null,descontado:false,created_by:CU.username});
+    await logAct('Adelanto',`${tec} · ${fmtPesos(monto)} · ${fecha}`,'adelantos');
+    ok.textContent='Adelanto registrado ✓';setTimeout(()=>ok.textContent='',2500);
+    document.getElementById('adel-monto').value='';document.getElementById('adel-desc').value='';
+    renderAdelantos();
+  }catch(e){err.textContent='Error: '+e.message;}
+}
+
+async function renderAdelantos(){
+  const elRes=document.getElementById('adel-resumen'),elLis=document.getElementById('adel-lista');
+  if(!elRes||!elLis)return;
+  elRes.innerHTML='<div class="loading"><span class="spinner"></span></div>';
+  elLis.innerHTML='<div class="loading"><span class="spinner"></span></div>';
+  try{
+    const data=await sbGet('adelantos','?order=fecha.desc');
+    // Resumen por técnico (mayor a menor)
+    const totTec={};
+    data.forEach(d=>{
+      if(!totTec[d.tecnico_nombre])totTec[d.tecnico_nombre]={total:0,cuad:d.cuadrilla_id};
+      totTec[d.tecnico_nombre].total+=parseFloat(d.monto);
+    });
+    const sorted=Object.entries(totTec).sort((a,b)=>b[1].total-a[1].total);
+    if(!sorted.length){
+      elRes.innerHTML='<p style="font-size:13px;color:#999">Sin adelantos registrados.</p>';
+    }else{
+      elRes.innerHTML=sorted.map(([tec,{total,cuad}])=>{
+        const c=CUADRILLAS.find(x=>x.id===cuad);
+        return`<div class="row">
+          <div>
+            <div style="font-size:14px;font-weight:600">${tec}</div>
+            <div style="font-size:12px;color:#888">${c?c.nombre:cuad}</div>
+          </div>
+          <span style="font-size:15px;font-weight:700;color:#c0392b">${fmtPesos(total)}</span>
+        </div>`;
+      }).join('');
+    }
+    // Historial completo
+    if(!data.length){
+      elLis.innerHTML='<p style="font-size:13px;color:#999">Sin adelantos registrados.</p>';
+    }else{
+      elLis.innerHTML=data.map(d=>{
+        const c=CUADRILLAS.find(x=>x.id===d.cuadrilla_id);
+        const desc=d.descripcion?` · ${d.descripcion}`:'';
+        const descontadoTag=d.descontado?'<span class="badge b-gray" style="margin-left:6px">Descontado</span>':'';
+        return`<div class="row">
+          <div>
+            <div style="font-size:14px;font-weight:600">${d.tecnico_nombre}${descontadoTag}</div>
+            <div style="font-size:12px;color:#888">${c?c.nombre:d.cuadrilla_id} · ${fmtFull(d.fecha)}${desc}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:15px;font-weight:700;color:#c0392b">${fmtPesos(d.monto)}</span>
+            ${CU.rol==='jefe'?`<button class="btn btn-sm" onclick="marcarAdelantoDescontado('${d.id}',${d.descontado})" title="${d.descontado?'Marcar pendiente':'Marcar descontado'}" style="font-size:11px">${d.descontado?'↩':'✓'}</button>
+            <button class="btn btn-sm btn-red" onclick="elimAdelanto('${d.id}')">✕</button>`:''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }catch(e){
+    elRes.innerHTML='<p style="font-size:13px;color:#c0392b">Error: '+e.message+'</p>';
+    elLis.innerHTML='';
+  }
+}
+
+async function marcarAdelantoDescontado(id, actual){
+  try{
+    await sbPatch('adelantos',`?id=eq.${id}`,{descontado:!actual});
+    await logAct('Adelanto',`ID ${id} marcado como ${!actual?'descontado':'pendiente'}`,'adelantos');
+    renderAdelantos();
+  }catch(e){alert('Error: '+e.message);}
+}
+
+async function elimAdelanto(id){
+  if(!confirm('¿Eliminar este adelanto?'))return;
+  try{
+    await sbDelete('adelantos',`?id=eq.${id}`);
+    await logAct('Eliminar adelanto',`ID ${id}`,'adelantos');
+    renderAdelantos();
+  }catch(e){alert('Error: '+e.message);}
+}
+
+// Vista técnico: sus propios adelantos
+async function renderTecAdelantos(){
+  const el=document.getElementById('t-adelantos-content');if(!el)return;
+  if(!CU.tecnico_ref){el.innerHTML='<div class="card"><p style="font-size:13px;color:#666">Iniciá sesión con tu usuario individual para ver tus adelantos.</p></div>';return;}
+  el.innerHTML='<div class="loading"><span class="spinner"></span>Cargando...</div>';
+  try{
+    const data=await sbGet('adelantos',`?tecnico_nombre=eq.${encodeURIComponent(CU.tecnico_ref)}&order=fecha.desc`);
+    const total=data.reduce((s,d)=>s+parseFloat(d.monto),0);
+    const pendiente=data.filter(d=>!d.descontado).reduce((s,d)=>s+parseFloat(d.monto),0);
+    if(!data.length){
+      el.innerHTML='<div class="card"><p style="font-size:13px;color:#999">No tenés adelantos registrados.</p></div>';
+      return;
+    }
+    const totalCls=pendiente>0?'#c0392b':'#1a7a3c';
+    let html=`<div class="saldo-box ${pendiente>0?'saldo-rojo':'saldo-cero'}">
+      <div class="saldo-titulo">Adelantos pendientes de descuento</div>
+      <div class="saldo-monto" style="color:${totalCls}">${fmtPesos(pendiente)}</div>
+      <div class="saldo-sub">Total recibido: ${fmtPesos(total)} · Ya descontado: ${fmtPesos(total-pendiente)}</div>
+    </div>`;
+    html+='<div class="card"><div class="card-title">Historial de adelantos</div>';
+    data.forEach(d=>{
+      const desTag=d.descontado?'<span class="badge b-gray" style="margin-left:6px">Descontado</span>':'<span class="badge b-warn" style="margin-left:6px">Pendiente</span>';
+      html+=`<div class="pago-item">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="pago-monto" style="color:#c0392b">${fmtPesos(d.monto)}${desTag}</div>
+            <div class="pago-sub">${fmtFull(d.fecha)}${d.descripcion?' · '+d.descripcion:''}</div>
+          </div>
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+    el.innerHTML=html;
+  }catch(e){el.innerHTML='<div class="card"><p style="font-size:13px;color:#c0392b">Error: '+e.message+'</p></div>';}
 }
 </script>
 </body>
