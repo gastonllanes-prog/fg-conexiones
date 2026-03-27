@@ -858,24 +858,25 @@ async function doLogin(){
     // Show sidebar layout
     document.getElementById('s-login').style.display='none';
     document.body.classList.add('app-ready');
-    buildSidebar();
+    try{buildSidebar();}catch(be){console.error('buildSidebar:',be);}
     if(CU.rol==='tecnico'){
       showContent('tec');
-      await renderTec();
+      try{await renderTec();}catch(re){console.error('renderTec:',re);}
     } else {
       showContent('adm');
-      await renderAdm();
+      try{await renderAdm();}catch(re){console.error('renderAdm:',re);}
       if(CU.rol==='jefe'){
         sbSetActive('dashboard');
         admTabShow('dashboard');
         document.getElementById('page-area').classList.add('dash-expand');
         _dashWkOff=0;
-        renderDashboard();
+        try{renderDashboard();}catch(de){console.error('renderDashboard:',de);}
       } else {
         admTabShow('cargar');
+        sbSetActive('cargar');
       }
     }
-  }catch(e){err.textContent='Error de conexión.';spin.style.display='none';}
+  }catch(e){err.textContent='Error: '+e.message;spin.style.display='none';console.error('doLogin error:',e);}
 }
 
 function startHeartbeat(){
@@ -917,8 +918,13 @@ document.getElementById('l-pass').addEventListener('keydown',e=>{if(e.key==='Ent
 // =============================================
 async function renderTec(){
   const c=CUADRILLAS.find(x=>x.id===CU.cuadrilla_id);
-  document.getElementById('t-nombre').textContent=CU.tecnico_ref?CU.nombre:(c?c.nombre:CU.nombre);
-  document.getElementById('t-fecha-libre').value=fmtD(new Date());
+  const nombre=CU.tecnico_ref?CU.nombre:(c?c.nombre:CU.nombre);
+  // Update sidebar user name and mobile title
+  document.getElementById('sb-nombre').textContent=CU.nombre;
+  const mt=document.getElementById('mobile-title');if(mt)mt.textContent=nombre;
+  // t-nombre might not exist in new layout — safe check
+  const tn=document.getElementById('t-nombre');if(tn)tn.textContent=nombre;
+  const tf=document.getElementById('t-fecha-libre');if(tf)tf.value=fmtD(new Date());
   // Mostrar tab adelantos solo a técnicos individuales
   const tabAdel=document.getElementById('tec-tab-adelantos');
   if(tabAdel)tabAdel.style.display=CU.tecnico_ref?'':'none';
