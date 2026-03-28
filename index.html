@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v56</title>
+<title>FG Conexiones v57</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f5f9;color:#0f172a;min-height:100vh}
@@ -373,7 +373,7 @@ tr:hover td{background:#f8fafc}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v56</div>
+    <div class="login-ver">FG Conexiones · v57</div>
   </div>
 </div>
 
@@ -391,7 +391,7 @@ tr:hover td{background:#f8fafc}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v56</div>
+    <div class="sb-ver">v57</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -405,7 +405,7 @@ tr:hover td{background:#f8fafc}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v56</div>
+    <div id="mobile-ver">v57</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -2404,57 +2404,247 @@ async function renderConfig(){
   const el=document.getElementById('at-config-content'),esJefe=CU.rol==='jefe';
   if(esJefe){
     el.innerHTML=`
-    <div class="card"><div class="card-title">Valores generales</div>
-      <div class="fg"><label>Precio por instalación ($)</label><input type="number" id="cfg-precio" value="${CONFIG.precio_instalacion||7000}" step="100"/></div>
-      <div class="fg"><label>Meta semanal (instalaciones equiv.)</label><input type="number" id="cfg-meta" value="${CONFIG.meta_semanal||30}"/></div>
-      <button class="btn btn-dark btn-sm" onclick="guardarConfigPrecio()">Guardar</button>
-      <p class="ok-msg" id="cfg-ok"></p>
+    <div class="nav" style="margin-bottom:1.25rem">
+      <div class="ntab active" onclick="cfgTab('general',this)">⚙️ General</div>
+      <div class="ntab" onclick="cfgTab('tecnicos',this)">🧑‍🔧 Técnicos</div>
+      <div class="ntab" onclick="cfgTab('usuarios',this)">👤 Usuarios</div>
+      <div class="ntab" onclick="cfgTab('cuadrillas',this)">🚗 Cuadrillas</div>
+      <div class="ntab" onclick="cfgTab('tareas',this)">📋 Tipos de tarea</div>
+      <div class="ntab" onclick="cfgTab('rotacion',this)">🗓 Sábados</div>
     </div>
-    <div class="card">
-      <div class="card-title">Cuadrillas — nombres y técnicos</div>
-      <p style="font-size:13px;color:#666;margin-bottom:.9rem">Tocá una cuadrilla para editar el nombre o cambiar los técnicos.</p>
-      <div id="cfg-cuad-lista">
-        ${CUADRILLAS.map(c=>`
-          <div class="cuad-config-item">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <div>
-                <div class="cuad-config-name">${c.nombre}</div>
-                <div class="cuad-config-tecs">${c.tec1||'—'} · ${c.tec2||'—'} <span class="badge b-gray" style="margin-left:4px">Grupo ${c.grupo}</span></div>
+
+    <!-- GENERAL -->
+    <div id="cfg-tab-general">
+      <div class="card"><div class="card-title">Valores generales</div>
+        <div class="fg"><label>Precio por instalación ($)</label><input type="number" id="cfg-precio" value="${CONFIG.precio_instalacion||7000}" step="100"/></div>
+        <div class="fg"><label>Meta semanal (equiv.)</label><input type="number" id="cfg-meta" value="${CONFIG.meta_semanal||30}"/></div>
+        <button class="btn btn-dark btn-sm" onclick="guardarConfigPrecio()">Guardar</button>
+        <p class="ok-msg" id="cfg-ok"></p>
+      </div>
+    </div>
+
+    <!-- TÉCNICOS -->
+    <div id="cfg-tab-tecnicos" style="display:none">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem">
+          <div class="card-title" style="margin-bottom:0">Técnicos registrados</div>
+          <button class="btn btn-sm btn-dark" onclick="abrirModalNuevoTec()">+ Nuevo técnico</button>
+        </div>
+        <div id="cfg-tec-lista"><div class="loading"><span class="spinner"></span></div></div>
+      </div>
+    </div>
+
+    <!-- USUARIOS -->
+    <div id="cfg-tab-usuarios" style="display:none">
+      <div class="msg msg-info" style="margin-bottom:.9rem">Las contraseñas son visibles solo para vos como jefe. Los técnicos pueden ver sus datos pero no la contraseña.</div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem">
+          <div class="card-title" style="margin-bottom:0">Gestión de usuarios</div>
+          <button class="btn btn-sm btn-dark" onclick="abrirModalNuevoUser()">+ Nuevo usuario</button>
+        </div>
+        <div id="cfg-user-lista"><div class="loading"><span class="spinner"></span></div></div>
+      </div>
+    </div>
+
+    <!-- CUADRILLAS -->
+    <div id="cfg-tab-cuadrillas" style="display:none">
+      <div class="card">
+        <div class="card-title">Cuadrillas — nombres y grupos</div>
+        <p style="font-size:13px;color:#64748b;margin-bottom:.9rem">Para cambiar los técnicos usá la pestaña "Técnicos".</p>
+        <div id="cfg-cuad-lista">
+          ${CUADRILLAS.map(c=>`
+            <div class="cuad-config-item">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div>
+                  <div class="cuad-config-name">${c.nombre}</div>
+                  <div class="cuad-config-tecs">${c.tec1||'—'} · ${c.tec2||'—'} <span class="badge b-gray" style="margin-left:4px">Grupo ${c.grupo}</span></div>
+                </div>
+                <button class="btn btn-sm btn-blue" onclick="abrirCuadModal('${c.id}')">✏️ Editar</button>
               </div>
-              <button class="btn btn-sm btn-blue" onclick="abrirCuadModal('${c.id}')">✏️ Editar</button>
-            </div>
-          </div>`).join('')}
+            </div>`).join('')}
+        </div>
       </div>
     </div>
-    <div class="card"><div class="card-title">Tipos de tarea</div>
-      ${TIPOS.map((t,i)=>`<div class="row"><div><div style="font-size:14px">${t.nombre}</div><div style="font-size:12px;color:#888">${t.solo_registra?'Solo registra':'Cada '+t.divisor+' = '+t.unidades+' equiv.'}</div></div>${i<6?'<span class="badge b-gray">Base</span>':`<button class="btn btn-sm btn-red" onclick="elimTipo('${t.id}')">✕</button>`}</div>`).join('')}
-      <hr style="border:none;border-top:1px solid #f0f0f0;margin:1rem 0">
-      <div class="card-title">Agregar tarea</div>
-      <div class="fg"><label>Nombre</label><input type="text" id="cfg-tn" placeholder="Ej: Migración"/></div>
-      <div class="fg"><label>Unidades para = 1 instalación</label><input type="number" id="cfg-te" step="0.5" placeholder="Ej: 3"/></div>
-      <div class="fg"><label>¿Cuántas instalaciones vale cada una?</label><input type="number" id="cfg-tu" step="0.5" value="1"/></div>
-      <div class="fg"><label>¿Solo registra?</label><select id="cfg-tr"><option value="0">No, suma</option><option value="1">Sí, solo registra</option></select></div>
-      <button class="btn btn-dark btn-sm" onclick="agregarTipo()">Agregar</button>
-      <p class="ok-msg" id="cfg-tareas-ok"></p>
-    </div>
-    <div class="card">
-      <div class="card-title">🗓 Rotación sábados</div>
-      <p style="font-size:13px;color:#666;margin-bottom:.9rem">Definí qué grupo libra el sábado de una semana. Las siguientes rotan automáticamente.</p>
-      <div class="fg"><label>Semana</label><input type="date" id="cfg-rot-fecha"/></div>
-      <div class="fg"><label>¿Qué grupo libra ese sábado?</label>
-        <select id="cfg-rot-grupo">
-          <option value="1">Grupo 1 libra (Enzo-Fernando, Daniel-Pablo, Maxi-Mauricio, Ricardo-Gustavo)</option>
-          <option value="2">Grupo 2 libra (Carlos-Oscar, Jorge-Gaspar, Pablo-Gerardo)</option>
-        </select>
+
+    <!-- TIPOS DE TAREA -->
+    <div id="cfg-tab-tareas" style="display:none">
+      <div class="card"><div class="card-title">Tipos de tarea</div>
+        ${TIPOS.map((t,i)=>`<div class="row"><div><div style="font-size:14px">${t.nombre}</div><div style="font-size:12px;color:#888">${t.solo_registra?'Solo registra':'Cada '+t.divisor+' = '+t.unidades+' equiv.'}</div></div>${i<6?'<span class="badge b-gray">Base</span>':`<button class="btn btn-sm btn-red" onclick="elimTipo('${t.id}')">✕</button>`}</div>`).join('')}
+        <hr style="border:none;border-top:1px solid #f1f5f9;margin:1rem 0">
+        <div class="card-title">Agregar tarea</div>
+        <div class="fg"><label>Nombre</label><input type="text" id="cfg-tn" placeholder="Ej: Migración"/></div>
+        <div class="fg"><label>Unidades para = 1 instalación</label><input type="number" id="cfg-te" step="0.5" placeholder="Ej: 3"/></div>
+        <div class="fg"><label>¿Cuántas instalaciones vale?</label><input type="number" id="cfg-tu" step="0.5" value="1"/></div>
+        <div class="fg"><label>¿Solo registra?</label><select id="cfg-tr"><option value="0">No, suma</option><option value="1">Sí, solo registra</option></select></div>
+        <button class="btn btn-dark btn-sm" onclick="agregarTipo()">Agregar</button>
+        <p class="ok-msg" id="cfg-tareas-ok"></p>
       </div>
-      <button class="btn btn-dark btn-sm" onclick="guardarRotacion()">Guardar rotación</button>
-      <p class="ok-msg" id="cfg-rot-ok"></p>
+    </div>
+
+    <!-- ROTACIÓN SÁBADOS -->
+    <div id="cfg-tab-rotacion" style="display:none">
+      <div class="card"><div class="card-title">🗓 Rotación sábados</div>
+        <p style="font-size:13px;color:#64748b;margin-bottom:.9rem">Definí qué grupo libra el sábado de una semana. Las siguientes rotan automáticamente.</p>
+        <div class="fg"><label>Semana</label><input type="date" id="cfg-rot-fecha"/></div>
+        <div class="fg"><label>¿Qué grupo libra ese sábado?</label>
+          <select id="cfg-rot-grupo">
+            <option value="1">Grupo 1 libra</option>
+            <option value="2">Grupo 2 libra</option>
+          </select>
+        </div>
+        <button class="btn btn-dark btn-sm" onclick="guardarRotacion()">Guardar rotación</button>
+        <p class="ok-msg" id="cfg-rot-ok"></p>
+      </div>
     </div>`;
   }else{
-    el.innerHTML=`<div class="card"><div class="msg msg-info" style="margin-bottom:.9rem">La configuración solo puede modificarla el jefe (Gastón Llanes).</div>
-    ${TIPOS.map(t=>`<div class="row"><div style="font-size:14px">${t.nombre}</div><div style="font-size:12px;color:#888">${t.solo_registra?'Solo registra':'Cada '+t.divisor+' = '+t.unidades+' equiv.'}</div></div>`).join('')}
+    el.innerHTML=`<div class="card"><div class="msg msg-info" style="margin-bottom:.9rem">La configuración solo puede modificarla el jefe.</div>
+    ${TIPOS.map(t=>`<div class="row"><div style="font-size:14px">${t.nombre}</div><div style="font-size:12px;color:#94a3b8">${t.solo_registra?'Solo registra':'Cada '+t.divisor+' = '+t.unidades+' equiv.'}</div></div>`).join('')}
     </div>`;
   }
+}
+
+function cfgTab(tab, el){
+  ['general','tecnicos','usuarios','cuadrillas','tareas','rotacion'].forEach(t=>{
+    const e=document.getElementById('cfg-tab-'+t);if(e)e.style.display=t===tab?'block':'none';
+  });
+  document.querySelectorAll('#at-config-content .ntab').forEach(e=>e.classList.remove('active'));
+  if(el)el.classList.add('active');
+  if(tab==='tecnicos')renderCfgTecnicos();
+  if(tab==='usuarios')renderCfgUsuarios();
+}
+
+// ─────────── TÉCNICOS ABM ───────────
+async function renderCfgTecnicos(){
+  const el=document.getElementById('cfg-tec-lista');if(!el)return;
+  el.innerHTML='<div class="loading"><span class="spinner"></span></div>';
+  try{
+    const [tecs, cuads] = await Promise.all([
+      sbGet('tecnicos','?order=nombre.asc&select=*'),
+      Promise.resolve(CUADRILLAS)
+    ]);
+    if(!tecs.length){
+      el.innerHTML=`<p style="font-size:13px;color:#94a3b8;text-align:center;padding:1rem">Sin técnicos cargados. Ejecutá el SQL de migración primero.</p>
+        <button class="btn btn-dark btn-sm btn-full" onclick="migrarTecnicosDesde Cuadrillas()">Migrar desde cuadrillas</button>`;
+      return;
+    }
+    el.innerHTML=`<table style="font-size:13px"><thead><tr>
+      <th>Nombre</th><th>Cuadrilla</th><th>Estado</th><th style="text-align:center">Acciones</th>
+    </tr></thead><tbody>
+    ${tecs.map(t=>{
+      const cuad=cuads.find(c=>c.id===t.cuadrilla_id);
+      return`<tr>
+        <td style="font-weight:600">${t.nombre}</td>
+        <td><select onchange="cambiarCuadTec('${t.id}',this.value)" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 8px;font-size:12px;font-family:inherit">
+          <option value="">Sin cuadrilla</option>
+          ${cuads.map(c=>`<option value="${c.id}"${c.id===t.cuadrilla_id?' selected':''}>${c.nombre}</option>`).join('')}
+        </select></td>
+        <td><span class="badge ${t.activo?'b-ok':'b-gray'}">${t.activo?'Activo':'Inactivo'}</span></td>
+        <td style="text-align:center;white-space:nowrap">
+          <button class="btn btn-sm" style="font-size:11px" onclick="editarNombreTec('${t.id}','${t.nombre}')">✏️</button>
+          <button class="btn btn-sm ${t.activo?'btn-red':''}" style="font-size:11px" onclick="toggleActivoTec('${t.id}',${t.activo})">${t.activo?'Desact.':'Activar'}</button>
+        </td>
+      </tr>`;
+    }).join('')}
+    </tbody></table>`;
+  }catch(e){el.innerHTML=`<p style="color:#ef4444;font-size:13px">Error: ${e.message}</p>`;}
+}
+
+async function cambiarCuadTec(tecId, cuadId){
+  try{
+    await sbPatch('tecnicos',`?id=eq.${tecId}`,{cuadrilla_id:cuadId||null});
+    await logAct('ABM Técnico',`ID ${tecId} → cuadrilla ${cuadId}`,'tecnicos');
+    // Actualizar cuadrillas en memoria si es necesario
+    await cargarCuadrillas();
+    renderCfgTecnicos();
+  }catch(e){alert('Error: '+e.message);}
+}
+
+async function toggleActivoTec(tecId, activo){
+  if(!confirm(`¿${activo?'Desactivar':'Activar'} este técnico?`))return;
+  try{
+    await sbPatch('tecnicos',`?id=eq.${tecId}`,{activo:!activo});
+    // Desactivar también el usuario si existe
+    if(activo) await sbPatch('usuarios',`?tecnico_id=eq.${tecId}`,{activo:false}).catch(()=>{});
+    renderCfgTecnicos();
+  }catch(e){alert('Error: '+e.message);}
+}
+
+async function editarNombreTec(tecId, nombre){
+  const nuevo=prompt('Nombre del técnico:',nombre);
+  if(!nuevo||nuevo===nombre)return;
+  try{
+    await sbPatch('tecnicos',`?id=eq.${tecId}`,{nombre:nuevo});
+    await logAct('ABM Técnico',`Renombrado: ${nombre} → ${nuevo}`,'tecnicos');
+    renderCfgTecnicos();
+  }catch(e){alert('Error: '+e.message);}
+}
+
+function abrirModalNuevoTec(){
+  const nombre=prompt('Nombre del técnico nuevo:');
+  if(!nombre)return;
+  const cuadId=CUADRILLAS.length?CUADRILLAS[0].id:null;
+  sbPost('tecnicos',{nombre,cuadrilla_id:cuadId,activo:true})
+    .then(()=>{logAct('ABM Técnico','Nuevo: '+nombre,'tecnicos');renderCfgTecnicos();})
+    .catch(e=>alert('Error: '+e.message));
+}
+
+// ─────────── USUARIOS ABM ───────────
+async function renderCfgUsuarios(){
+  const el=document.getElementById('cfg-user-lista');if(!el)return;
+  el.innerHTML='<div class="loading"><span class="spinner"></span></div>';
+  try{
+    const users=await sbGet('usuarios','?order=rol.asc,nombre.asc&select=*');
+    const rolBadge={jefe:'b-info',admin:'b-warn',tecnico:'b-gray'};
+    el.innerHTML=`<table style="font-size:13px"><thead><tr>
+      <th>Nombre</th><th>Usuario</th><th>Rol</th><th>Contraseña</th><th>Estado</th><th style="text-align:center">Acciones</th>
+    </tr></thead><tbody>
+    ${users.map(u=>`<tr>
+      <td style="font-weight:600">${u.nombre}</td>
+      <td style="font-family:monospace;color:#64748b">${u.username}</td>
+      <td><span class="badge ${rolBadge[u.rol]||'b-gray'}">${u.rol}</span></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-family:monospace;font-size:12px;background:#f8fafc;padding:3px 8px;border-radius:6px;border:1px solid #e2e8f0" id="pw-${u.id}">${u.password_visible||u.password_hash||'—'}</span>
+          ${CU.rol==='jefe'?`<button class="btn btn-sm" style="font-size:11px;padding:4px 8px" onclick="resetearPassword('${u.id}','${u.username}')">✏️</button>`:''}
+        </div>
+      </td>
+      <td><span class="badge ${u.activo?'b-ok':'b-gray'}">${u.activo?'Activo':'Inactivo'}</span></td>
+      <td style="text-align:center">
+        <button class="btn btn-sm ${u.activo?'btn-red':''}" style="font-size:11px" onclick="toggleActivoUser('${u.id}',${u.activo})">${u.activo?'Desact.':'Activar'}</button>
+      </td>
+    </tr>`).join('')}
+    </tbody></table>`;
+  }catch(e){el.innerHTML=`<p style="color:#ef4444;font-size:13px">Error: ${e.message}</p>`;}
+}
+
+async function resetearPassword(userId, username){
+  const nueva=prompt(`Nueva contraseña para "${username}":`)
+  if(!nueva)return;
+  try{
+    await sbPatch('usuarios',`?id=eq.${userId}`,{password_hash:nueva,password_visible:nueva});
+    await logAct('Reset password',`Usuario: ${username}`,'usuarios');
+    renderCfgUsuarios();
+  }catch(e){alert('Error: '+e.message);}
+}
+
+async function toggleActivoUser(userId, activo){
+  if(!confirm(`¿${activo?'Desactivar':'Activar'} este usuario?`))return;
+  try{
+    await sbPatch('usuarios',`?id=eq.${userId}`,{activo:!activo});
+    renderCfgUsuarios();
+  }catch(e){alert('Error: '+e.message);}
+}
+
+function abrirModalNuevoUser(){
+  const nombre=prompt('Nombre completo:');if(!nombre)return;
+  const username=prompt('Nombre de usuario (sin espacios, minúsculas):');if(!username)return;
+  const pass=prompt('Contraseña inicial (ej: DNI):');if(!pass)return;
+  const roles=['tecnico','admin','jefe'];
+  const rolIdx=prompt('Rol (0=técnico, 1=admin, 2=jefe):','0');
+  const rol=roles[parseInt(rolIdx||0)]||'tecnico';
+  sbPost('usuarios',{nombre,username:username.toLowerCase(),password_hash:pass,password_visible:pass,rol,activo:true})
+    .then(()=>{logAct('Nuevo usuario',`${nombre} (${rol})`,'usuarios');renderCfgUsuarios();})
+    .catch(e=>alert('Error: '+e.message));
 }
 
 async function guardarConfigPrecio(){
