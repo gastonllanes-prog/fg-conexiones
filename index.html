@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v53</title>
+<title>FG Conexiones v54</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f5f9;color:#0f172a;min-height:100vh}
@@ -373,7 +373,7 @@ tr:hover td{background:#f8fafc}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v53</div>
+    <div class="login-ver">FG Conexiones · v54</div>
   </div>
 </div>
 
@@ -391,7 +391,7 @@ tr:hover td{background:#f8fafc}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v53</div>
+    <div class="sb-ver">v54</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -405,7 +405,7 @@ tr:hover td{background:#f8fafc}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v53</div>
+    <div id="mobile-ver">v54</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -739,14 +739,33 @@ tr:hover td{background:#f8fafc}
       </div>
       <div>
         <div class="card">
-          <div class="card-title">Adelantos por técnico</div>
-          <div id="adel-resumen"><div class="loading"><span class="spinner"></span></div></div>
+          <div class="card-title">Filtros</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.75rem">
+            <div class="fg" style="margin-bottom:0"><label>Desde</label><input type="date" id="adel-fil-desde" onchange="renderAdelantos()"/></div>
+            <div class="fg" style="margin-bottom:0"><label>Hasta</label><input type="date" id="adel-fil-hasta" onchange="renderAdelantos()"/></div>
+          </div>
+          <div class="fg" style="margin-bottom:.5rem"><label>Técnico</label>
+            <select id="adel-fil-tec" onchange="renderAdelantos()">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div class="fg" style="margin-bottom:0"><label>Estado</label>
+            <select id="adel-fil-estado" onchange="renderAdelantos()">
+              <option value="">Todos</option>
+              <option value="pendiente">Pendientes</option>
+              <option value="descontado">Descontados</option>
+            </select>
+          </div>
         </div>
         <div class="card">
-          <div class="card-title">Historial completo</div>
-          <div id="adel-lista"><div class="loading"><span class="spinner"></span></div></div>
+          <div class="card-title">Resumen por técnico</div>
+          <div id="adel-resumen"><div class="loading"><span class="spinner"></span></div></div>
         </div>
       </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Historial</div>
+      <div id="adel-lista"><div class="loading"><span class="spinner"></span></div></div>
     </div>
   </div>
 
@@ -783,6 +802,20 @@ tr:hover td{background:#f8fafc}
 
   </div><!-- end page-area -->
 </div><!-- end main-content -->
+
+<!-- MODAL DESCUENTO ADELANTO -->
+<div class="modal-overlay hidden" id="adel-desc-modal">
+  <div class="modal">
+    <div class="modal-title">Marcar como descontado</div>
+    <div class="fg"><label>Fecha del descuento</label><input type="date" id="adel-desc-fecha"/></div>
+    <div class="fg"><label>Observación</label><input type="text" id="adel-desc-obs" placeholder="Ej: Descontado con sueldo de Enero"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-dark" style="flex:2" onclick="confirmarDescuento()">Confirmar descuento</button>
+      <button class="btn" style="flex:1" onclick="document.getElementById('adel-desc-modal').classList.add('hidden')">Cancelar</button>
+    </div>
+    <p class="err-msg" id="adel-desc-err"></p>
+  </div>
+</div>
 
 <script>
 const SB_URL='https://fwsapvunhavwspoblzmt.supabase.co';
@@ -1340,8 +1373,11 @@ async function renderTecRanking(){
 }
 
 async function buildRankings(){
-  const regs=await sbGet('registros','?select=cuadrilla_id,tecnico_nombre,solo,registro_tareas(tipo_tarea_id,cantidad)');
-  const hist=await sbGet('historico_totales','?select=*');
+  // Batch en paralelo
+  const [regs, hist] = await Promise.all([
+    sbGet('registros','?select=cuadrilla_id,tecnico_nombre,solo,registro_tareas(tipo_tarea_id,cantidad)'),
+    sbGet('historico_totales','?select=*')
+  ]);
   const totCuad={},totInd={};
   CUADRILLAS.forEach(c=>{
     totCuad[c.id]={nombre:c.nombre,total:0};
@@ -2651,11 +2687,76 @@ async function renderDashboard() {
 
 // RANKING ADMIN
 async function renderAdmRanking(){
-  document.getElementById('adm-rank-cuad').innerHTML='<div class="loading"><span class="spinner"></span></div>';
-  document.getElementById('adm-rank-ind').innerHTML='<div class="loading"><span class="spinner"></span></div>';
+  const el=document.getElementById('at-ranking');
+  if(!el)return;
+  // Mostrar loading en los contenedores existentes
+  const rc=document.getElementById('adm-rank-cuad'),ri=document.getElementById('adm-rank-ind');
+  if(rc)rc.innerHTML='<div class="loading"><span class="spinner"></span></div>';
+  if(ri)ri.innerHTML='<div class="loading"><span class="spinner"></span></div>';
+
   const{rankCuad,rankInd}=await buildRankings();
-  document.getElementById('adm-rank-cuad').innerHTML=buildRankHTML(rankCuad,'cuad');
-  document.getElementById('adm-rank-ind').innerHTML=buildRankHTML(rankInd,'ind');
+  const total=rankCuad.reduce((s,c)=>s+c.total,0);
+  const clrs=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#ec4899'];
+  const medals=['🥇','🥈','🥉'];
+
+  // ── Ranking cuadrillas: donut + lista ──
+  const cuadHtml=`
+    <div style="display:grid;grid-template-columns:200px 1fr;gap:1.5rem;align-items:center">
+      <div style="position:relative;width:200px;height:200px;flex-shrink:0">
+        <canvas id="rank-chart-cuad" width="200" height="200"></canvas>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none">
+          <div style="font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Total</div>
+          <div style="font-size:22px;font-weight:900;color:#0f172a;letter-spacing:-.5px">${total.toFixed(0)}</div>
+          <div style="font-size:10px;color:#94a3b8">equiv.</div>
+        </div>
+      </div>
+      <div>${rankCuad.map((r,i)=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9">
+          <div style="width:10px;height:10px;border-radius:50%;background:${clrs[i]||'#94a3b8'};flex-shrink:0"></div>
+          <div style="flex:1;font-size:13px;font-weight:${i<3?700:500};color:${i<3?'#0f172a':'#475569'}">${medals[i]||''}${medals[i]?' ':''}${r.nombre}</div>
+          <div style="font-size:14px;font-weight:800;color:#0f172a">${r.total.toFixed(1)}</div>
+          <div style="font-size:10px;color:#94a3b8;width:32px;text-align:right">${total>0?(r.total/total*100).toFixed(0)+'%':''}</div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  if(rc)rc.innerHTML=cuadHtml;
+
+  // ── Ranking individual: barras horizontales ──
+  const maxInd=rankInd[0]?.total||1;
+  const indHtml=`<div>${rankInd.map((r,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9">
+      <div style="font-size:16px;font-weight:900;color:${i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#92400e':'#cbd5e1'};width:28px;text-align:center;flex-shrink:0">${medals[i]||i+1}</div>
+      <div style="width:130px;flex-shrink:0">
+        <div style="font-size:13px;font-weight:${i<3?700:500};color:${i<3?'#0f172a':'#475569'}">${r.nombre}</div>
+        <div style="font-size:10px;color:#94a3b8">${r.cuad}</div>
+      </div>
+      <div style="flex:1;background:#f1f5f9;border-radius:99px;height:7px;overflow:hidden">
+        <div style="height:100%;border-radius:99px;background:${i===0?'linear-gradient(90deg,#f59e0b,#fbbf24)':i<3?'linear-gradient(90deg,#3b82f6,#60a5fa)':'#cbd5e1'};width:${(r.total/maxInd*100).toFixed(0)}%;transition:width .7s ease"></div>
+      </div>
+      <div style="font-size:14px;font-weight:800;color:#0f172a;width:50px;text-align:right">${r.total.toFixed(1)}</div>
+    </div>`).join('')}
+    <p style="font-size:11px;color:#94a3b8;text-align:center;margin-top:1rem">Incluye histórico desde enero. Mayor puntaje = elige primero las vacaciones.</p>
+  </div>`;
+  if(ri)ri.innerHTML=indHtml;
+
+  // Render donut chart
+  setTimeout(()=>{
+    const ctx=document.getElementById('rank-chart-cuad');
+    if(!ctx)return;
+    if(window._rankChart)window._rankChart.destroy();
+    window._rankChart=new Chart(ctx,{
+      type:'doughnut',
+      data:{
+        labels:rankCuad.map(r=>r.nombre),
+        datasets:[{data:rankCuad.map(r=>r.total),backgroundColor:clrs.slice(0,rankCuad.length),borderWidth:0,hoverOffset:4}]
+      },
+      options:{
+        responsive:false,cutout:'72%',
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return` ${c.label}: ${c.raw.toFixed(1)} equiv`;}}}},
+        animation:{animateRotate:true,duration:800}
+      }
+    });
+  },100);
 }
 
 // LOG
@@ -2807,64 +2908,119 @@ async function guardarAdelanto(){
 async function renderAdelantos(){
   const elRes=document.getElementById('adel-resumen'),elLis=document.getElementById('adel-lista');
   if(!elRes||!elLis)return;
+
+  // Poblar filtro técnicos si está vacío
+  const filTec=document.getElementById('adel-fil-tec');
+  if(filTec&&filTec.options.length<=1){
+    const allTecs=[];
+    CUADRILLAS.forEach(c=>getTecs(c.id).forEach(t=>{if(!allTecs.includes(t))allTecs.push(t);}));
+    allTecs.sort().forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;filTec.appendChild(o);});
+  }
+
   elRes.innerHTML='<div class="loading"><span class="spinner"></span></div>';
   elLis.innerHTML='<div class="loading"><span class="spinner"></span></div>';
   try{
-    const data=await sbGet('adelantos','?order=fecha.desc');
-    // Resumen por técnico (mayor a menor)
+    // Construir query con filtros
+    let params='?order=fecha.desc';
+    const filDesde=document.getElementById('adel-fil-desde')?.value;
+    const filHasta=document.getElementById('adel-fil-hasta')?.value;
+    const filTecVal=document.getElementById('adel-fil-tec')?.value;
+    const filEstado=document.getElementById('adel-fil-estado')?.value;
+    if(filDesde)params+=`&fecha=gte.${filDesde}`;
+    if(filHasta)params+=`&fecha=lte.${filHasta}`;
+    if(filTecVal)params+=`&tecnico_nombre=eq.${encodeURIComponent(filTecVal)}`;
+    if(filEstado==='pendiente')params+='&descontado=eq.false';
+    if(filEstado==='descontado')params+='&descontado=eq.true';
+
+    const data=await sbGet('adelantos',params);
+
+    // Resumen por técnico (solo pendientes)
     const totTec={};
-    data.forEach(d=>{
+    data.filter(d=>!d.descontado).forEach(d=>{
       if(!totTec[d.tecnico_nombre])totTec[d.tecnico_nombre]={total:0,cuad:d.cuadrilla_id};
       totTec[d.tecnico_nombre].total+=parseFloat(d.monto);
     });
     const sorted=Object.entries(totTec).sort((a,b)=>b[1].total-a[1].total);
     if(!sorted.length){
-      elRes.innerHTML='<p style="font-size:13px;color:#999">Sin adelantos registrados.</p>';
+      elRes.innerHTML='<p style="font-size:13px;color:#94a3b8">Sin adelantos pendientes.</p>';
     }else{
-      elRes.innerHTML=sorted.map(([tec,{total,cuad}])=>{
+      const totalPend=sorted.reduce((s,[,v])=>s+v.total,0);
+      elRes.innerHTML=`<div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Total pendiente: <span style="color:#7c3aed">${fmtPesos(totalPend)}</span></div>`+
+      sorted.map(([tec,{total,cuad}])=>{
         const c=CUADRILLAS.find(x=>x.id===cuad);
-        return`<div class="row">
-          <div>
-            <div style="font-size:14px;font-weight:600">${tec}</div>
-            <div style="font-size:12px;color:#888">${c?c.nombre:cuad}</div>
-          </div>
-          <span style="font-size:15px;font-weight:700;color:#c0392b">${fmtPesos(total)}</span>
-        </div>`;
+        return`<div class="row"><div><div style="font-size:13px;font-weight:600">${tec}</div><div style="font-size:11px;color:#94a3b8">${c?c.nombre:cuad}</div></div><span style="font-size:14px;font-weight:800;color:#7c3aed">${fmtPesos(total)}</span></div>`;
       }).join('');
     }
-    // Historial completo
+
+    // Historial
     if(!data.length){
-      elLis.innerHTML='<p style="font-size:13px;color:#999">Sin adelantos registrados.</p>';
-    }else{
-      elLis.innerHTML=data.map(d=>{
-        const c=CUADRILLAS.find(x=>x.id===d.cuadrilla_id);
-        const desc=d.descripcion?` · ${d.descripcion}`:'';
-        const descontadoTag=d.descontado?'<span class="badge b-gray" style="margin-left:6px">Descontado</span>':'';
-        return`<div class="row">
-          <div>
-            <div style="font-size:14px;font-weight:600">${d.tecnico_nombre}${descontadoTag}</div>
-            <div style="font-size:12px;color:#888">${c?c.nombre:d.cuadrilla_id} · ${fmtFull(d.fecha)}${desc}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:15px;font-weight:700;color:#c0392b">${fmtPesos(d.monto)}</span>
-            ${CU.rol==='jefe'?`<button class="btn btn-sm" onclick="marcarAdelantoDescontado('${d.id}',${d.descontado})" title="${d.descontado?'Marcar pendiente':'Marcar descontado'}" style="font-size:11px">${d.descontado?'↩':'✓'}</button>
-            <button class="btn btn-sm btn-red" onclick="elimAdelanto('${d.id}')">✕</button>`:''}
-          </div>
-        </div>`;
-      }).join('');
+      elLis.innerHTML='<p style="font-size:13px;color:#94a3b8">Sin adelantos para los filtros seleccionados.</p>';
+      return;
     }
+    elLis.innerHTML=`<table style="font-size:13px"><thead><tr>
+      <th>Técnico</th><th>Fecha</th><th>Descripción</th>
+      <th style="text-align:right">Monto</th><th>Estado</th>
+      <th style="text-align:center">Acciones</th>
+    </tr></thead><tbody>
+    ${data.map(d=>{
+      const c=CUADRILLAS.find(x=>x.id===d.cuadrilla_id);
+      const desInfo=d.descontado&&d.fecha_descuento?`<div style="font-size:10px;color:#94a3b8">${fmtFull(d.fecha_descuento)}${d.obs_descuento?' · '+d.obs_descuento:''}</div>`:'';
+      return`<tr>
+        <td style="font-weight:600">${d.tecnico_nombre}<div style="font-size:10px;color:#94a3b8">${c?c.nombre:''}</div></td>
+        <td>${fmtFull(d.fecha)}</td>
+        <td style="color:#64748b">${d.descripcion||'—'}</td>
+        <td style="text-align:right;font-weight:700;color:#7c3aed">${fmtPesos(d.monto)}</td>
+        <td>${d.descontado?`<span class="badge b-gray">Descontado</span>${desInfo}`:'<span class="badge b-warn">Pendiente</span>'}</td>
+        <td style="text-align:center;white-space:nowrap">
+          ${CU.rol==='jefe'?`
+            ${!d.descontado?`<button class="btn btn-sm" style="font-size:11px;padding:4px 10px;color:#059669;border-color:#a7f3d0" onclick="abrirModalDescuento('${d.id}')">✓ Descontar</button>`
+              :`<button class="btn btn-sm" style="font-size:11px;padding:4px 10px;color:#94a3b8" onclick="revertirDescuento('${d.id}')">↩</button>`}
+            <button class="btn btn-sm btn-red" style="font-size:11px;padding:4px 8px" onclick="elimAdelanto('${d.id}')">✕</button>
+          `:''}
+        </td>
+      </tr>`;
+    }).join('')}
+    </tbody></table>`;
   }catch(e){
-    elRes.innerHTML='<p style="font-size:13px;color:#c0392b">Error: '+e.message+'</p>';
+    elRes.innerHTML='<p style="font-size:13px;color:#ef4444">Error: '+e.message+'</p>';
     elLis.innerHTML='';
   }
 }
 
-async function marcarAdelantoDescontado(id, actual){
+// Modal descuento
+var _adelDescId=null;
+function abrirModalDescuento(id){
+  _adelDescId=id;
+  document.getElementById('adel-desc-fecha').value=fmtD(new Date());
+  document.getElementById('adel-desc-obs').value='';
+  document.getElementById('adel-desc-err').textContent='';
+  document.getElementById('adel-desc-modal').classList.remove('hidden');
+}
+async function confirmarDescuento(){
+  if(!_adelDescId)return;
+  const fecha=document.getElementById('adel-desc-fecha').value;
+  const obs=document.getElementById('adel-desc-obs').value.trim();
+  const errEl=document.getElementById('adel-desc-err');
+  if(!fecha){errEl.textContent='Ingresá la fecha del descuento.';return;}
   try{
-    await sbPatch('adelantos',`?id=eq.${id}`,{descontado:!actual});
-    await logAct('Adelanto',`ID ${id} marcado como ${!actual?'descontado':'pendiente'}`,'adelantos');
+    await sbPatch('adelantos',`?id=eq.${_adelDescId}`,{descontado:true,fecha_descuento:fecha,obs_descuento:obs||null});
+    await logAct('Adelanto descontado',`ID ${_adelDescId} · ${fecha}${obs?' · '+obs:''}`, 'adelantos');
+    document.getElementById('adel-desc-modal').classList.add('hidden');
+    _adelDescId=null;
+    renderAdelantos();
+  }catch(e){errEl.textContent='Error: '+e.message;}
+}
+async function revertirDescuento(id){
+  if(!confirm('¿Marcar como pendiente nuevamente?'))return;
+  try{
+    await sbPatch('adelantos',`?id=eq.${id}`,{descontado:false,fecha_descuento:null,obs_descuento:null});
     renderAdelantos();
   }catch(e){alert('Error: '+e.message);}
+}
+
+async function marcarAdelantoDescontado(id, actual){
+  if(!actual){abrirModalDescuento(id);}
+  else{await revertirDescuento(id);}
 }
 
 async function elimAdelanto(id){
@@ -2897,12 +3053,18 @@ async function renderTecAdelantos(){
     </div>`;
     html+='<div class="card"><div class="card-title">Historial de adelantos</div>';
     data.forEach(d=>{
-      const desTag=d.descontado?'<span class="badge b-gray" style="margin-left:6px">Descontado</span>':'<span class="badge b-warn" style="margin-left:6px">Pendiente</span>';
+      const desTag=d.descontado
+        ?`<span class="badge b-gray" style="margin-left:6px">Descontado</span>`
+        :'<span class="badge b-warn" style="margin-left:6px">Pendiente</span>';
+      const desInfo=d.descontado&&(d.fecha_descuento||d.obs_descuento)
+        ?`<div style="font-size:11px;color:#94a3b8;margin-top:2px">${d.fecha_descuento?fmtFull(d.fecha_descuento):''}${d.obs_descuento?' · '+d.obs_descuento:''}</div>`
+        :'';
       html+=`<div class="pago-item">
-        <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div>
-            <div class="pago-monto" style="color:#c0392b">${fmtPesos(d.monto)}${desTag}</div>
+            <div class="pago-monto" style="color:#7c3aed">${fmtPesos(d.monto)}${desTag}</div>
             <div class="pago-sub">${fmtFull(d.fecha)}${d.descripcion?' · '+d.descripcion:''}</div>
+            ${desInfo}
           </div>
         </div>
       </div>`;
