@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v48</title>
+<title>FG Conexiones v49</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f5f9;color:#0f172a;min-height:100vh}
@@ -68,6 +68,12 @@ body.app-ready #main-content{display:flex}
   #page-area{padding:1rem}
 }
 @media(min-width:769px){#mobile-topbar{display:none!important}#sidebar-overlay{display:none!important}}
+
+/* Max-width for content areas — evita que se estiren en pantallas anchas */
+#s-tec{max-width:640px}
+#at-cargar,#at-pagos,#at-saldos,#at-config,#at-log,#at-combustible,#at-adelantos{max-width:780px}
+#at-resumen,#at-historico,#at-dias,#at-ranking,#at-cuad-detalle{max-width:960px}
+#at-dashboard{max-width:100%}
 .card{background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:1.25rem;margin-bottom:.9rem;box-shadow:0 1px 4px rgba(15,23,42,.04)}
 .card-title{font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.9rem}
 .fg{margin-bottom:.85rem}
@@ -300,7 +306,7 @@ tr:hover td{background:#f8fafc}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v48</div>
+    <div class="login-ver">FG Conexiones · v49</div>
   </div>
 </div>
 
@@ -318,7 +324,7 @@ tr:hover td{background:#f8fafc}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v48</div>
+    <div class="sb-ver">v49</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -332,7 +338,7 @@ tr:hover td{background:#f8fafc}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v48</div>
+    <div id="mobile-ver">v49</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1744,112 +1750,90 @@ async function abrirDetalleCuad(cuadId,desde,hasta){
   const precioUnit=precio/2;
   const regs=await sbGet('registros',`?cuadrilla_id=eq.${cuadId}&fecha=gte.${desde}&fecha=lte.${hasta}&select=*,registro_tareas(*)`);
   const diasEspCuad=await sbGet('dias_especiales',`?cuadrilla_id=eq.${cuadId}&select=*`);
-  // Feriados del período (aplican a todos: cuadrilla_id null o esta cuadrilla)
   const feriadosPer=await sbGet('dias_especiales',`?tipo=eq.feriado&fecha=gte.${desde}&fecha=lte.${hasta}&select=fecha,cuadrilla_id`);
   const feriadosAplicables=feriadosPer.filter(f=>!f.cuadrilla_id||f.cuadrilla_id===cuadId);
   const tecs=getTecs(cuadId);
-  const MARZO2026='2026-03-01';
   let html='';
 
   for(const tec of tecs){
+    // Agrupar por semana, separando días de pareja vs días solo
     const porSemana={};
     regs.forEach(reg=>{
       const sem=getLunesDesd(reg.fecha);
-      if(!porSemana[sem])porSemana[sem]={pareja:0,solo:0,dias:{}};
+      if(!porSemana[sem])porSemana[sem]={diasPar:{},diasSolo:{}};
       let eq=0;(reg.registro_tareas||[]).forEach(rt=>eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));
       if(reg.solo&&reg.tecnico_nombre===tec){
-        porSemana[sem].solo+=eq;
-        porSemana[sem].dias[reg.fecha]=(porSemana[sem].dias[reg.fecha]||0)+eq;
-      }else if(reg.solo&&reg.tecnico_nombre!==tec){
-        // otro fue solo: neutral
+        // Día solo: se acumula separado
+        porSemana[sem].diasSolo[reg.fecha]=(porSemana[sem].diasSolo[reg.fecha]||0)+eq;
       }else if(!reg.solo){
-        porSemana[sem].pareja+=eq;
-        porSemana[sem].dias[reg.fecha]=(porSemana[sem].dias[reg.fecha]||0)+eq;
+        // Día en pareja
+        porSemana[sem].diasPar[reg.fecha]=(porSemana[sem].diasPar[reg.fecha]||0)+eq;
       }
     });
-    // Vacaciones
-    diasEspCuad.filter(d=>d.tecnico_nombre===tec&&d.tipo==='vacaciones').forEach(d=>{
+    // Días especiales → van a pareja
+    diasEspCuad.filter(d=>d.tecnico_nombre===tec&&(d.tipo==='vacaciones'||d.tipo==='certificado')).forEach(d=>{
       const sem=getLunesDesd(d.fecha);
-      if(!porSemana[sem])porSemana[sem]={pareja:0,solo:0,dias:{}};
-      porSemana[sem].pareja=meta;
-      porSemana[sem].dias[d.fecha]=(porSemana[sem].dias[d.fecha]||0)+meta;
+      if(!porSemana[sem])porSemana[sem]={diasPar:{},diasSolo:{}};
+      const v=d.tipo==='vacaciones'?meta:5;
+      porSemana[sem].diasPar[d.fecha]=(porSemana[sem].diasPar[d.fecha]||0)+v;
     });
-    // Certificado
-    diasEspCuad.filter(d=>d.tecnico_nombre===tec&&d.tipo==='certificado').forEach(d=>{
-      const sem=getLunesDesd(d.fecha);
-      if(!porSemana[sem])porSemana[sem]={pareja:0,solo:0,dias:{}};
-      porSemana[sem].pareja+=5;
-      porSemana[sem].dias[d.fecha]=(porSemana[sem].dias[d.fecha]||0)+5;
-    });
-    // Feriados: 5 equiv para todos los técnicos
     feriadosAplicables.forEach(d=>{
       const sem=getLunesDesd(d.fecha);
-      if(!porSemana[sem])porSemana[sem]={pareja:0,solo:0,dias:{}};
-      porSemana[sem].pareja+=5;
-      porSemana[sem].dias[d.fecha]=(porSemana[sem].dias[d.fecha]||0)+5;
+      if(!porSemana[sem])porSemana[sem]={diasPar:{},diasSolo:{}};
+      porSemana[sem].diasPar[d.fecha]=(porSemana[sem].diasPar[d.fecha]||0)+5;
     });
 
-    // Calcular financiero semana a semana (igual que calcSaldoTecnico)
-    let ganTotal=0;
-    let eqDisplay=0; // para mostrar (solo×2 duplicado)
-    let eqPar=0,eqSolo=0;
-    Object.entries(porSemana).sort().forEach(([sem,{pareja,solo,dias}])=>{
-      if(pareja===0&&solo===0)return;
-      const efectivo=pareja+(solo*2);
-      ganTotal+=(efectivo-meta)*precioUnit;
-      eqPar+=pareja;
-      eqSolo+=solo;
-      eqDisplay+=pareja+(solo*2); // mostrar doble
+    // Totales
+    let eqPar=0,eqSolo=0,ganTotal=0;
+    Object.values(porSemana).forEach(({diasPar,diasSolo})=>{
+      const par=Object.values(diasPar).reduce((s,v)=>s+v,0);
+      const sol=Object.values(diasSolo).reduce((s,v)=>s+v,0);
+      eqPar+=par; eqSolo+=sol;
+      ganTotal+=(par+(sol*2)-meta)*precioUnit;
     });
-
-    // Días para mostrar en lista
-    const diasDisplay={};
-    Object.values(porSemana).forEach(({dias})=>{
-      Object.entries(dias).forEach(([f,v])=>{
-        diasDisplay[f]=(diasDisplay[f]||0)+v;
-      });
-    });
-
+    const eqDisplay=eqPar+(eqSolo*2);
     const neg=ganTotal<0;
-    const soloInfo=eqSolo>0?` (incl. solo×2: ${(eqSolo*2).toFixed(2)})`:'';
+
     html+=`<div class="det-tec-block">
       <div class="det-tec-header">
         <span class="det-tec-name">${tec}</span>
         <span class="det-tec-total">${eqDisplay.toFixed(2)} equiv.</span>
       </div>
-      <div style="font-size:12px;color:#888;margin-bottom:8px">
-        Pareja: ${eqPar.toFixed(2)} · Solo: ${eqSolo.toFixed(2)}${soloInfo} ·
-        <span style="color:${neg?'#c0392b':'#1a7a3c'};font-weight:700">${ganTotal>=0?'+':''}${fmtPesos(ganTotal)}</span>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:#64748b;margin-bottom:10px">
+        <span>En pareja: <strong style="color:#0f172a">${eqPar.toFixed(2)}</strong></span>
+        ${eqSolo>0?`<span>Solo: <strong style="color:#7c3aed">${eqSolo.toFixed(2)}</strong> <span style="color:#94a3b8">(×2 = ${(eqSolo*2).toFixed(2)})</span></span>`:''}
+        <span style="color:${neg?'#ef4444':'#059669'};font-weight:700">${ganTotal>=0?'+':''}${fmtPesos(ganTotal)}</span>
       </div>`;
-    // Días
-    Object.entries(diasDisplay).sort().forEach(([fecha,eq])=>{
-      const de=esDiaEsp(fecha);
-      const _icons={lluvia:'🌧',feriado:'📅',vacaciones:'🏖',certificado:'🏥'};
-      const icon=de?(_icons[de.tipo]||''):'';
-      html+=`<div class="det-day-row"><span>${icon} ${fmtFull(fecha)}</span><span style="font-weight:600">${eq.toFixed(2)}</span></div>`;
+
+    // Semanas
+    Object.entries(porSemana).sort().forEach(([sem,{diasPar,diasSolo}])=>{
+      const parTotal=Object.values(diasPar).reduce((s,v)=>s+v,0);
+      const solTotal=Object.values(diasSolo).reduce((s,v)=>s+v,0);
+      if(parTotal===0&&solTotal===0)return;
+      const domSem=new Date(sem+'T12:00:00');domSem.setDate(domSem.getDate()+6);
+      html+=`<div style="background:#f8fafc;border-radius:10px;padding:.75rem 1rem;margin-bottom:.5rem;border:1px solid #f1f5f9">`;
+      html+=`<div style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Semana ${fmtL(sem)} – ${fmtL(fmtD(domSem))}</div>`;
+      // Días en pareja
+      if(Object.keys(diasPar).length>0){
+        html+=`<div style="font-size:11px;font-weight:600;color:#3b82f6;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em">En pareja</div>`;
+        Object.entries(diasPar).sort().forEach(([fecha,eq])=>{
+          const de=esDiaEsp(fecha);
+          const icons={lluvia:'🌧 ',feriado:'📅 ',vacaciones:'🏖 ',certificado:'🏥 '};
+          const icon=de?(icons[de.tipo]||''):'';
+          html+=`<div class="det-day-row"><span style="color:#475569">${icon}${fmtFull(fecha)}</span><span style="font-weight:600;color:#0f172a">${eq.toFixed(2)}</span></div>`;
+        });
+      }
+      // Días solo
+      if(Object.keys(diasSolo).length>0){
+        html+=`<div style="font-size:11px;font-weight:600;color:#7c3aed;margin-top:6px;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em">Solo (×2)</div>`;
+        Object.entries(diasSolo).sort().forEach(([fecha,eq])=>{
+          html+=`<div class="det-day-row"><span style="color:#475569">${fmtFull(fecha)} <span class="solo-badge">solo</span></span><span style="font-weight:700;color:#7c3aed">${eq.toFixed(2)} <span style="font-size:11px;color:#94a3b8">→ ${(eq*2).toFixed(2)} equiv.</span></span></div>`;
+        });
+      }
+      html+='</div>';
     });
     html+='</div>';
   }
-
-  // Tareas día a día (todos los registros del período)
-  html+=`<div class="card"><div class="card-title">Todas las tareas del período</div>`;
-  const regsSorted=[...regs].sort((a,b)=>a.fecha.localeCompare(b.fecha));
-  if(!regsSorted.length)html+='<p style="font-size:13px;color:#999">Sin registros en este período.</p>';
-  regsSorted.forEach(reg=>{
-    let eq=0,tarH='';
-    (reg.registro_tareas||[]).forEach(rt=>{
-      const e=calcEquiv(rt.tipo_tarea_id,rt.cantidad);
-      if(rt.cantidad>0){
-        const t=TIPOS.find(x=>x.id===rt.tipo_tarea_id);
-        tarH+=`<span style="font-size:12px;color:#888">${t?t.nombre:rt.tipo_tarea_id}: ${rt.cantidad}</span><br>`;
-        eq+=e;
-      }
-    });
-    const soloTag=reg.solo?`<span class="solo-badge">${reg.tecnico_nombre} solo</span>`:'';
-    const parTag=!reg.solo?'<span style="font-size:11px;color:#888"> · En pareja</span>':'';
-    html+=`<div class="row"><div><div style="font-size:14px;font-weight:600">${fmtFull(reg.fecha)}${parTag} ${soloTag}</div><div>${tarH}</div></div><div style="font-size:16px;font-weight:800">${eq.toFixed(2)}</div></div>`;
-  });
-  html+='</div>';
   el.innerHTML=html;
 }
 function volverResumen(){
@@ -2242,89 +2226,180 @@ async function renderDashboard() {
     var hasta = fmtD(domD);
     var hoy = new Date();
     var esActual = _dashWkOff === 0;
+    var MARZO2026 = '2026-03-01';
 
-    // Datos principales en paralelo
-    var regs = await sbGet('registros', '?fecha=gte.' + lunes + '&fecha=lte.' + hasta + '&select=*,registro_tareas(*)');
-    var sc = await getSemConf(lunes);
-    var gl = sc ? sc.grupo_libra : null;
-    var feriadosSem = await sbGet('dias_especiales', '?tipo=eq.feriado&fecha=gte.'+lunes+'&fecha=lte.'+hasta+'&select=fecha,cuadrilla_id');
+    // ═══ BATCH: todas las queries en paralelo ═══
+    var sem3Atras = getLunes(_dashWkOff - 3);
+    var domChart = new Date(lunes + 'T12:00:00'); domChart.setDate(domChart.getDate() + 6);
 
-    // === CUADRILLAS ===
+    var [regs, regsChart, allSaldos, allPagos, allDiasEsp, feriadosSem,
+         semConf, combustMes, adelPend, histData] = await Promise.all([
+      // 1. Registros semana actual
+      sbGet('registros', '?fecha=gte.'+lunes+'&fecha=lte.'+hasta+'&select=*,registro_tareas(*)'),
+      // 2. Registros 4 semanas para el gráfico (un solo query grande)
+      sbGet('registros', '?fecha=gte.'+sem3Atras+'&fecha=lte.'+hasta+'&select=cuadrilla_id,fecha,registro_tareas(tipo_tarea_id,cantidad)'),
+      // 3. Todos los saldos cerrados (para calcular extras)
+      sbGet('saldos', '?select=cuadrilla_id,semana_inicio,valor'),
+      // 4. Todos los pagos
+      sbGet('pagos', '?select=cuadrilla_id,tecnico_nombre,monto'),
+      // 5. Todos los dias especiales (vac, cert, feriados)
+      sbGet('dias_especiales', '?select=fecha,tipo,cuadrilla_id,tecnico_nombre'),
+      // 6. Feriados de la semana actual
+      sbGet('dias_especiales', '?tipo=eq.feriado&fecha=gte.'+lunes+'&fecha=lte.'+hasta+'&select=fecha,cuadrilla_id'),
+      // 7. Configuración sábado
+      getSemConf(lunes),
+      // 8. Combustible mes actual
+      sbGet('combustible', '?fecha=gte.'+fmtD(hoy).slice(0,7)+'-01&select=cuadrilla_id,monto'),
+      // 9. Adelantos pendientes
+      sbGet('adelantos', '?descontado=eq.false&select=tecnico_nombre,cuadrilla_id,monto'),
+      // 10. Historico totales para ranking
+      sbGet('historico_totales', '?select=*')
+    ]);
+
+    var gl = semConf ? semConf.grupo_libra : null;
+
+    // ═══ CUADRILLAS: progreso semana ═══
     var cRows = [];
-    for (var i = 0; i < CUADRILLAS.length; i++) {
-      var cuad = CUADRILLAS[i];
+    CUADRILLAS.forEach(function(cuad){
       var tot = 0;
       regs.filter(function(r){ return r.cuadrilla_id === cuad.id; }).forEach(function(r){
         (r.registro_tareas||[]).forEach(function(rt){ tot += calcEquiv(rt.tipo_tarea_id, rt.cantidad); });
       });
-      // Sumar feriados
       feriadosSem.forEach(function(f){ if(!f.cuadrilla_id||f.cuadrilla_id===cuad.id) tot+=5; });
       var libre = gl ? cuad.grupo === gl : false;
       var pct = Math.min(100, Math.round((tot/meta)*100));
       cRows.push({ cuad:cuad, tot:tot, libre:libre, pct:pct, bc:pct>=100?'g':pct>=60?'a':'r' });
-    }
+    });
     cRows.sort(function(a,b){ return b.tot - a.tot; });
     var totGen = 0; cRows.forEach(function(c){ totGen+=c.tot; });
     var cuadsOk = cRows.filter(function(c){ return c.pct>=100; }).length;
-    var pctGeneral = Math.round((totGen/(meta*CUADRILLAS.length))*100);
 
-    // === SALDOS ===
+    // ═══ SALDOS: calcular en memoria (sin queries adicionales) ═══
+    var lunesHoy = getLunesDesd(fmtD(hoy));
+    var semanasCerradasPorCuad = {};
+    allSaldos.forEach(function(s){
+      if(!semanasCerradasPorCuad[s.cuadrilla_id]) semanasCerradasPorCuad[s.cuadrilla_id] = {};
+      semanasCerradasPorCuad[s.cuadrilla_id][s.semana_inicio] = parseFloat(s.valor);
+    });
+
+    // Calcular extras por técnico en memoria
+    var extrasPorTec = {}; // key: cuadId_tecNombre → totalExtras
+    var pagosPorTec = {};  // key: cuadId_tecNombre → totalPagado
+    allPagos.forEach(function(p){
+      var k = p.cuadrilla_id+'_'+p.tecnico_nombre;
+      pagosPorTec[k] = (pagosPorTec[k]||0) + parseFloat(p.monto);
+    });
+
+    // Agrupar registros por cuadrilla+tecnico+semana
+    CUADRILLAS.forEach(function(cuad){
+      var semC = semanasCerradasPorCuad[cuad.id] || {};
+      var tecs = getTecs(cuad.id);
+      tecs.forEach(function(tec){
+        var porSemana = {};
+        // Registros
+        allDiasEsp.filter(function(d){ return d.fecha >= MARZO2026; }).forEach(function(){}); // init
+        regsChart.filter(function(r){ return r.cuadrilla_id===cuad.id && r.fecha>=MARZO2026; }).forEach(function(reg){
+          var sem = getLunesDesd(reg.fecha);
+          if(sem >= lunesHoy && !semC[sem]) return; // semana abierta actual: skip
+          if(!porSemana[sem]) porSemana[sem] = {par:0, sol:0};
+          var eq = 0; (reg.registro_tareas||[]).forEach(function(rt){ eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad); });
+          if(reg.solo && reg.tecnico_nombre===tec) porSemana[sem].sol += eq;
+          else if(!reg.solo) porSemana[sem].par += eq;
+        });
+        // Vacaciones / certificado / feriado en días especiales
+        allDiasEsp.filter(function(d){ return d.fecha>=MARZO2026; }).forEach(function(d){
+          var sem = getLunesDesd(d.fecha);
+          if(sem >= lunesHoy && !semC[sem]) return;
+          if(!porSemana[sem]) porSemana[sem] = {par:0, sol:0};
+          if(d.tipo==='vacaciones' && d.tecnico_nombre===tec && d.cuadrilla_id===cuad.id)
+            porSemana[sem].par = meta;
+          else if(d.tipo==='certificado' && d.tecnico_nombre===tec && d.cuadrilla_id===cuad.id)
+            porSemana[sem].par += 5;
+          else if(d.tipo==='feriado' && (!d.cuadrilla_id||d.cuadrilla_id===cuad.id))
+            porSemana[sem].par += 5;
+        });
+        var totalExtras = 0;
+        Object.entries(porSemana).sort().forEach(function(e){
+          var par = e[1].par, sol = e[1].sol;
+          if(par===0 && sol===0) return;
+          totalExtras += (par + sol*2 - meta) * precioUnit;
+        });
+        var k = cuad.id+'_'+tec;
+        extrasPorTec[k] = totalExtras;
+      });
+    });
+
     var sRows = [];
-    for (var j = 0; j < CUADRILLAS.length; j++) {
-      var tecs = getTecs(CUADRILLAS[j].id);
-      for (var k = 0; k < tecs.length; k++) {
-        var inf = await calcSaldoTecnico(CUADRILLAS[j].id, tecs[k]);
-        sRows.push({ nm:tecs[k], cuad:CUADRILLAS[j].nombre, sal:inf.saldo });
-      }
-    }
+    CUADRILLAS.forEach(function(cuad){
+      getTecs(cuad.id).forEach(function(tec){
+        var k = cuad.id+'_'+tec;
+        var extras = extrasPorTec[k]||0;
+        var pagado = pagosPorTec[k]||0;
+        sRows.push({ nm:tec, cuad:cuad.nombre, sal:extras-pagado });
+      });
+    });
     sRows.sort(function(a,b){ return b.sal - a.sal; });
     var totPend = 0;
     sRows.filter(function(s){ return s.sal>0; }).forEach(function(s){ totPend+=s.sal; });
     var alertas = sRows.filter(function(s){ return s.sal<-5000; });
 
-    // === COMBUSTIBLE (mes actual) ===
-    var mesCurr = fmtD(hoy).slice(0,7);
-    var combustMes = await sbGet('combustible','?fecha=gte.'+mesCurr+'-01&fecha=lte.'+mesCurr+'-31&select=cuadrilla_id,monto');
+    // ═══ COMBUSTIBLE ═══
     var totComb = combustMes.reduce(function(s,d){ return s+parseFloat(d.monto); }, 0);
-    var combPorCuad = {};
-    combustMes.forEach(function(d){ combPorCuad[d.cuadrilla_id]=(combPorCuad[d.cuadrilla_id]||0)+parseFloat(d.monto); });
 
-    // === ADELANTOS (pendientes) ===
-    var adelPend = await sbGet('adelantos','?descontado=eq.false&select=tecnico_nombre,cuadrilla_id,monto');
+    // ═══ ADELANTOS ═══
     var totAdel = adelPend.reduce(function(s,d){ return s+parseFloat(d.monto); }, 0);
     var adelPorTec = {};
     adelPend.forEach(function(d){ adelPorTec[d.tecnico_nombre]=(adelPorTec[d.tecnico_nombre]||0)+parseFloat(d.monto); });
     var adelSorted = Object.entries(adelPorTec).sort(function(a,b){ return b[1]-a[1]; }).slice(0,5);
 
-    // === RANKING ===
-    var rk = await buildRankings();
-    var top5 = rk.rankInd.slice(0,5);
+    // ═══ RANKING (en memoria con histData) ═══
+    var totCuad = {}, totInd = {};
+    CUADRILLAS.forEach(function(c){
+      totCuad[c.id] = {nombre:c.nombre, total:0};
+      getTecs(c.id).forEach(function(t){ totInd[c.id+'_'+t]={nombre:t,cuad:c.nombre,total:0}; });
+    });
+    histData.forEach(function(h){
+      if(totCuad[h.cuadrilla_id]) totCuad[h.cuadrilla_id].total+=parseFloat(h.total_equiv||0);
+      var k=h.cuadrilla_id+'_'+h.tecnico_nombre;
+      if(totInd[k]) totInd[k].total+=parseFloat(h.total_equiv||0);
+    });
+    regsChart.forEach(function(reg){
+      var eq=0; (reg.registro_tareas||[]).forEach(function(rt){ eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad); });
+      if(totCuad[reg.cuadrilla_id]) totCuad[reg.cuadrilla_id].total+=eq;
+      if(reg.solo){
+        var k=reg.cuadrilla_id+'_'+reg.tecnico_nombre;
+        if(totInd[k]) totInd[k].total+=eq;
+      } else {
+        getTecs(reg.cuadrilla_id).forEach(function(t){
+          var k=reg.cuadrilla_id+'_'+t;
+          if(totInd[k]) totInd[k].total+=eq;
+        });
+      }
+    });
+    var top5 = Object.values(totInd).sort(function(a,b){return b.total-a.total;}).slice(0,5);
 
-    // === GRÁFICO 4 semanas ===
+    // ═══ GRÁFICO (en memoria con regsChart) ═══
     var sems = [getLunes(_dashWkOff-3), getLunes(_dashWkOff-2), getLunes(_dashWkOff-1), lunes];
     var clabels = sems.map(function(s){ return fmtL(s); });
     var clrs = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#ec4899'];
-    var dsets = [];
-    for (var ci = 0; ci < CUADRILLAS.length; ci++) {
-      var cuadC = CUADRILLAS[ci];
-      var vals = [];
-      for (var wi = 0; wi < sems.length; wi++) {
-        var df2 = new Date(sems[wi]+'T12:00:00'); df2.setDate(df2.getDate()+6);
-        var rw = await sbGet('registros','?cuadrilla_id=eq.'+cuadC.id+'&fecha=gte.'+sems[wi]+'&fecha=lte.'+fmtD(df2)+'&select=registro_tareas(tipo_tarea_id,cantidad)');
-        var tv = 0; rw.forEach(function(x){ (x.registro_tareas||[]).forEach(function(rt){ tv+=calcEquiv(rt.tipo_tarea_id,rt.cantidad); }); });
-        vals.push(parseFloat(tv.toFixed(2)));
-      }
-      dsets.push({ label:cuadC.nombre, data:vals, backgroundColor:clrs[ci]+'25', borderColor:clrs[ci], borderWidth:2, borderRadius:4 });
-    }
+    var dsets = CUADRILLAS.map(function(cuad, ci){
+      var vals = sems.map(function(sem){
+        var domS = new Date(sem+'T12:00:00'); domS.setDate(domS.getDate()+6);
+        var hastaS = fmtD(domS);
+        var tv = 0;
+        regsChart.filter(function(r){ return r.cuadrilla_id===cuad.id && r.fecha>=sem && r.fecha<=hastaS; })
+          .forEach(function(r){ (r.registro_tareas||[]).forEach(function(rt){ tv+=calcEquiv(rt.tipo_tarea_id,rt.cantidad); }); });
+        return parseFloat(tv.toFixed(2));
+      });
+      return { label:cuad.nombre, data:vals, backgroundColor:clrs[ci]+'25', borderColor:clrs[ci], borderWidth:2, borderRadius:4 };
+    });
 
     var lider = cRows[0];
     var ultimo = cRows[cRows.length-1];
     var fStr = hoy.toLocaleDateString('es-AR', {weekday:'long',day:'2-digit',month:'long'});
 
-    // ======= BUILD HTML =======
+    // ═══ BUILD HTML ═══
     var html = '';
-
-    // ── HEADER ──
     html += '<div class="dh">';
     html += '<div class="dh-brand"><div class="dh-logo">FG</div>';
     html += '<div><div class="dh-title">FG Conexiones</div>';
@@ -2338,111 +2413,49 @@ async function renderDashboard() {
     html += '<button class="d-refresh" style="margin-left:8px" onclick="_dashWkOff=0;renderDashboard()">↻ HOY</button>';
     html += '</div></div></div>';
 
-    // ── KPIs (6 cards) ──
     var kpiAccents = ['#3b82f6','#10b981','#f59e0b','#a78bfa','#ef4444','#06b6d4'];
     html += '<div class="dk">';
-
-    // 1. Total equiv
-    html += '<div class="dk-card"><div class="dk-accent" style="background:'+kpiAccents[0]+'"></div>';
-    html += '<div class="dk-icon">📊</div>';
-    html += '<div class="dk-val">'+totGen.toFixed(1)+'</div>';
-    html += '<div class="dk-label">Equiv. totales</div>';
-    html += '<div class="dk-sub '+(cuadsOk===CUADRILLAS.length?'pos':cuadsOk>0?'warn':'neg')+'">'+cuadsOk+' / '+CUADRILLAS.length+' en meta</div></div>';
-
-    // 2. Promedio
-    var prom = (totGen/CUADRILLAS.length).toFixed(1);
-    html += '<div class="dk-card"><div class="dk-accent" style="background:'+kpiAccents[1]+'"></div>';
-    html += '<div class="dk-icon">📈</div>';
-    html += '<div class="dk-val">'+prom+'</div>';
-    html += '<div class="dk-label">Promedio / cuadrilla</div>';
-    html += '<div class="dk-sub">Meta: '+meta+' equiv.</div></div>';
-
-    // 3. Pagos pendientes
+    html += '<div class="dk-card"><div class="dk-accent" style="background:'+kpiAccents[0]+'"></div><div class="dk-icon">📊</div><div class="dk-val">'+totGen.toFixed(1)+'</div><div class="dk-label">Equiv. totales</div><div class="dk-sub '+(cuadsOk===CUADRILLAS.length?'pos':cuadsOk>0?'warn':'neg')+'">'+cuadsOk+' / '+CUADRILLAS.length+' en meta</div></div>';
+    html += '<div class="dk-card"><div class="dk-accent" style="background:'+kpiAccents[1]+'"></div><div class="dk-icon">📈</div><div class="dk-val">'+(totGen/CUADRILLAS.length).toFixed(1)+'</div><div class="dk-label">Promedio / cuadrilla</div><div class="dk-sub">Meta: '+meta+' equiv.</div></div>';
     var tecsPend = sRows.filter(function(s){return s.sal>0;}).length;
-    html += '<div class="dk-card"><div class="dk-accent" style="background:'+kpiAccents[2]+'"></div>';
-    html += '<div class="dk-icon">💰</div>';
-    html += '<div class="dk-val" style="font-size:22px;letter-spacing:-.5px">'+fmtPesos(totPend)+'</div>';
-    html += '<div class="dk-label">Pagos pendientes</div>';
-    html += '<div class="dk-sub '+(tecsPend>0?'warn':'pos')+'">'+tecsPend+' técnico'+(tecsPend!==1?'s':'')+' por cobrar</div></div>';
-
-    // 4. Alertas
-    html += '<div class="dk-card"><div class="dk-accent" style="background:'+(alertas.length?kpiAccents[4]:kpiAccents[1])+'"></div>';
-    html += '<div class="dk-icon">'+(alertas.length?'⚠️':'✅')+'</div>';
-    html += '<div class="dk-val" style="color:'+(alertas.length?'#f87171':'#10b981')+'">'+alertas.length+'</div>';
-    html += '<div class="dk-label">Alertas deuda</div>';
-    html += '<div class="dk-sub '+(alertas.length?'neg':'pos')+'">'+(alertas.length?'Requieren atención':'Sin deudas')+'</div></div>';
-
-    // 5. Combustible mes
-    html += '<div class="dk-card"><div class="dk-accent" style="background:'+kpiAccents[5]+'"></div>';
-    html += '<div class="dk-icon">⛽</div>';
-    html += '<div class="dk-val" style="font-size:22px;letter-spacing:-.5px;color:#38bdf8">'+fmtPesos(totComb)+'</div>';
-    html += '<div class="dk-label">Combustible este mes</div>';
-    html += '<div class="dk-sub">'+combustMes.length+' carga'+(combustMes.length!==1?'s':'')+' registradas</div></div>';
-
-    // 6. Adelantos pendientes
-    html += '<div class="dk-card"><div class="dk-accent" style="background:'+kpiAccents[3]+'"></div>';
-    html += '<div class="dk-icon">💵</div>';
-    html += '<div class="dk-val" style="font-size:22px;letter-spacing:-.5px;color:#a78bfa">'+fmtPesos(totAdel)+'</div>';
-    html += '<div class="dk-label">Adelantos pendientes</div>';
-    html += '<div class="dk-sub">'+adelPend.length+' adelanto'+(adelPend.length!==1?'s':'')+' sin descontar</div></div>';
+    html += '<div class="dk-card"><div class="dk-accent" style="background:'+kpiAccents[2]+'"></div><div class="dk-icon">💰</div><div class="dk-val" style="font-size:22px;letter-spacing:-.5px">'+fmtPesos(totPend)+'</div><div class="dk-label">Pagos pendientes</div><div class="dk-sub '+(tecsPend>0?'warn':'pos')+'">'+tecsPend+' técnico'+(tecsPend!==1?'s':'')+' por cobrar</div></div>';
+    html += '<div class="dk-card"><div class="dk-accent" style="background:'+(alertas.length?kpiAccents[4]:kpiAccents[1])+'"></div><div class="dk-icon">'+(alertas.length?'⚠️':'✅')+'</div><div class="dk-val" style="color:'+(alertas.length?'#f87171':'#10b981')+'">'+alertas.length+'</div><div class="dk-label">Alertas deuda</div><div class="dk-sub '+(alertas.length?'neg':'pos')+'">'+(alertas.length?'Requieren atención':'Sin deudas')+'</div></div>';
+    html += '<div class="dk-card"><div class="dk-accent" style="background:'+kpiAccents[5]+'"></div><div class="dk-icon">⛽</div><div class="dk-val" style="font-size:22px;letter-spacing:-.5px;color:#38bdf8">'+fmtPesos(totComb)+'</div><div class="dk-label">Combustible este mes</div><div class="dk-sub">'+combustMes.length+' cargas registradas</div></div>';
+    html += '<div class="dk-card"><div class="dk-accent" style="background:'+kpiAccents[3]+'"></div><div class="dk-icon">💵</div><div class="dk-val" style="font-size:22px;letter-spacing:-.5px;color:#a78bfa">'+fmtPesos(totAdel)+'</div><div class="dk-label">Adelantos pendientes</div><div class="dk-sub">'+adelPend.length+' sin descontar</div></div>';
     html += '</div>';
 
-    // ── FILA PRINCIPAL ──
     html += '<div class="dg-main">';
-
-    // Progreso cuadrillas
     html += '<div class="d-card"><div class="d-card-t">Progreso semanal por cuadrilla</div>';
     cRows.forEach(function(c, ri){
-      var tec1=c.cuad.tec1||'', tec2=c.cuad.tec2||'';
-      html += '<div class="d-row">';
-      html += '<div class="d-pos">'+(ri+1)+'</div>';
+      html += '<div class="d-row"><div class="d-pos">'+(ri+1)+'</div>';
       html += '<div style="width:175px;flex-shrink:0"><div class="d-nm">'+c.cuad.nombre+'</div>';
-      html += '<div class="d-nm2">'+tec1+(tec2?' · '+tec2:'')+'</div></div>';
+      html += '<div class="d-nm2">'+(c.cuad.tec1||'')+((c.cuad.tec1&&c.cuad.tec2)?' · ':'')+( c.cuad.tec2||'')+'</div></div>';
       html += '<div class="d-bar"><div class="d-fill '+c.bc+'" style="width:'+c.pct+'%"></div></div>';
-      html += '<div class="d-pct">'+c.pct+'%</div>';
-      html += '<div class="d-num '+c.bc+'">'+c.tot.toFixed(1)+'</div>';
-      html += '<span class="d-badge '+(c.libre?'lib':'trab')+'">'+(c.libre?'LIBRE':'SAB')+'</span>';
-      html += '</div>';
+      html += '<div class="d-pct">'+c.pct+'%</div><div class="d-num '+c.bc+'">'+c.tot.toFixed(1)+'</div>';
+      html += '<span class="d-badge '+(c.libre?'lib':'trab')+'">'+(c.libre?'LIBRE':'SAB')+'</span></div>';
     });
     html += '</div>';
 
-    // Líder + peor
     html += '<div style="display:flex;flex-direction:column;gap:.875rem">';
-    html += '<div class="d-leader">';
-    html += '<div class="d-leader-crown">🏆</div>';
-    html += '<div class="d-leader-t">Cuadrilla líder</div>';
-    html += '<div class="d-leader-n">'+lider.cuad.nombre+'</div>';
-    html += '<div class="d-leader-pct">'+lider.pct+'%</div>';
-    html += '<div class="d-leader-v">'+lider.tot.toFixed(2)+' equiv.</div></div>';
+    html += '<div class="d-leader"><div class="d-leader-crown">🏆</div><div class="d-leader-t">Cuadrilla líder</div><div class="d-leader-n">'+lider.cuad.nombre+'</div><div class="d-leader-pct">'+lider.pct+'%</div><div class="d-leader-v">'+lider.tot.toFixed(2)+' equiv.</div></div>';
     if(ultimo && ultimo.pct < 80){
-      html += '<div class="d-worst">';
-      html += '<div class="d-worst-t">Más atrasada</div>';
-      html += '<div class="d-worst-n">'+ultimo.cuad.nombre+'</div>';
-      html += '<div class="d-worst-v">'+ultimo.tot.toFixed(1)+' equiv · '+ultimo.pct+'%</div></div>';
+      html += '<div class="d-worst"><div class="d-worst-t">Más atrasada</div><div class="d-worst-n">'+ultimo.cuad.nombre+'</div><div class="d-worst-v">'+ultimo.tot.toFixed(1)+' equiv · '+ultimo.pct+'%</div></div>';
     }
     html += '</div>';
 
-    // Alertas deuda
     html += '<div class="d-card"><div class="d-card-t">⚠ Deudas activas</div>';
     if(!alertas.length){
-      html += '<div style="text-align:center;padding:2rem 0"><div style="font-size:32px;margin-bottom:8px">✅</div><div style="font-size:11px;color:#1f2937;letter-spacing:1px">SIN DEUDAS</div></div>';
+      html += '<div style="text-align:center;padding:2rem 0"><div style="font-size:32px">✅</div><div style="font-size:11px;color:#1f2937;letter-spacing:1px;margin-top:8px">SIN DEUDAS</div></div>';
     } else {
       alertas.slice(0,6).forEach(function(a){
-        html += '<div class="d-alert"><div class="d-alert-nm">'+a.nm+'</div>';
-        html += '<div class="d-alert-cuad">'+a.cuad+'</div>';
-        html += '<div class="d-alert-val">Debe '+fmtPesos(Math.abs(a.sal))+'</div></div>';
+        html += '<div class="d-alert"><div class="d-alert-nm">'+a.nm+'</div><div class="d-alert-cuad">'+a.cuad+'</div><div class="d-alert-val">Debe '+fmtPesos(Math.abs(a.sal))+'</div></div>';
       });
     }
-    html += '</div>';
-    html += '</div>'; // end dg-main
+    html += '</div></div>';
 
-    // ── FILA INFERIOR ──
     html += '<div class="dg-bot">';
-
-    // Gráfico
     html += '<div class="d-card"><div class="d-card-t">Últimas 4 semanas · Equiv. por cuadrilla</div><canvas id="d-chart" height="200"></canvas></div>';
 
-    // Saldos técnicos
     html += '<div class="d-card"><div class="d-card-t">Saldos por técnico</div>';
     if(!sRows.length){ html += '<p style="font-size:12px;color:#374151;text-align:center;padding:1rem">Sin saldos</p>'; }
     else { sRows.slice(0,7).forEach(function(s){
@@ -2451,35 +2464,23 @@ async function renderDashboard() {
     }); }
     html += '</div>';
 
-    // Ranking histórico
     html += '<div class="d-card"><div class="d-card-t">🏆 Ranking histórico</div>';
     top5.forEach(function(t, idx){
       var rnc=['g1','g2','g3'];
-      html += '<div class="d-rank-row">';
-      html += '<div class="d-rn '+(rnc[idx]||'')+'">'+(idx+1)+'</div>';
+      html += '<div class="d-rank-row"><div class="d-rn '+(rnc[idx]||'')+'">'+(idx+1)+'</div>';
       html += '<div style="flex:1"><div style="font-size:13px;font-weight:700;color:#9ca3af">'+t.nombre+'</div>';
       html += '<div style="font-size:10px;color:#374151">'+t.cuad+'</div></div>';
       html += '<div style="font-size:14px;font-weight:900;color:#10b981">'+t.total.toFixed(1)+'</div></div>';
     });
     html += '</div>';
 
-    // Adelantos pendientes
     html += '<div class="d-card"><div class="d-card-t">💵 Adelantos sin descontar</div>';
-    if(!adelSorted.length){
-      html += '<p style="font-size:12px;color:#374151;text-align:center;padding:1rem">Sin adelantos</p>';
-    } else {
-      adelSorted.forEach(function(e){
-        html += '<div class="d-adel-row"><div class="d-adel-nm">'+e[0]+'</div>';
-        html += '<div class="d-adel-val">'+fmtPesos(e[1])+'</div></div>';
-      });
-    }
-    html += '</div>';
-
-    html += '</div>'; // end dg-bot
+    if(!adelSorted.length){ html += '<p style="font-size:12px;color:#374151;text-align:center;padding:1rem">Sin adelantos</p>'; }
+    else { adelSorted.forEach(function(e){ html += '<div class="d-adel-row"><div class="d-adel-nm">'+e[0]+'</div><div class="d-adel-val">'+fmtPesos(e[1])+'</div></div>'; }); }
+    html += '</div></div>';
 
     el.innerHTML = html;
 
-    // Chart
     setTimeout(function(){
       var ctx = document.getElementById('d-chart');
       if (!ctx) return;
