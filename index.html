@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v62</title>
+<title>FG Conexiones v63</title>
 <style>
 :root{
   --bg:#0d1117;
@@ -35,9 +35,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .login-logo-wrap{text-align:center;margin-bottom:2rem}
 .login-logo-mark{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,#3b82f6,#06b6d4);margin:0 auto 1rem;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#fff;box-shadow:0 8px 32px rgba(59,130,246,.4)}
 .login-logo-wrap h1{font-size:28px;font-weight:800;color:#f1f5f9;letter-spacing:-.5px}
-.login-logo-wrap p{font-size:13px;color:#64748b;margin-top:5px}
+.login-logo-wrap p{font-size:13px;color:#8b9cb3;margin-top:5px}
 .login-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:2rem;box-shadow:0 24px 64px rgba(0,0,0,.5)}
-.login-ver{text-align:center;font-size:11px;color:#374151;margin-top:1.25rem;letter-spacing:2px;text-transform:uppercase}
+.login-ver{text-align:center;font-size:11px;color:#9ca3af;margin-top:1.25rem;letter-spacing:2px;text-transform:uppercase}
 
 /* ═══ SIDEBAR ═══ */
 #sidebar{position:fixed;top:0;left:0;bottom:0;width:230px;background:#0d1117;z-index:200;display:none;flex-direction:column;overflow-y:auto;border-right:1px solid var(--border2)}
@@ -47,25 +47,25 @@ body.app-ready #sidebar{display:flex}
 .sb-logo-inner{display:flex;align-items:center;gap:10px}
 .sb-mark{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#fff;flex-shrink:0}
 .sb-brand{font-size:14px;font-weight:700;color:#f1f5f9;line-height:1}
-.sb-brand-sub{font-size:10px;color:#374151;margin-top:3px}
+.sb-brand-sub{font-size:10px;color:#9ca3af;margin-top:3px}
 .sb-nav{flex:1;padding:.5rem 0;overflow-y:auto}
-.sb-section{font-size:9px;font-weight:700;color:#374151;letter-spacing:2.5px;text-transform:uppercase;padding:.75rem 1.25rem .3rem}
+.sb-section{font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:2.5px;text-transform:uppercase;padding:.75rem 1.25rem .3rem}
 .sb-item{display:flex;align-items:center;gap:10px;padding:.65rem 1.25rem;cursor:pointer;color:#4b5563;font-size:13px;font-weight:500;transition:all .15s;border-left:3px solid transparent;user-select:none}
 .sb-item:hover{color:#e2e8f0;background:rgba(255,255,255,.04)}
 .sb-item.active{color:#f8fafc;background:rgba(59,130,246,.12);border-left-color:#3b82f6}
 .sb-item-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
 .sb-sub{overflow:hidden;max-height:0;transition:max-height .3s ease}
 .sb-sub.open{max-height:300px}
-.sb-sub-item{display:flex;align-items:center;gap:8px;padding:.5rem 1.25rem .5rem 3.1rem;cursor:pointer;color:#374151;font-size:13px;transition:all .15s}
+.sb-sub-item{display:flex;align-items:center;gap:8px;padding:.5rem 1.25rem .5rem 3.1rem;cursor:pointer;color:#9ca3af;font-size:13px;transition:all .15s}
 .sb-sub-item:hover{color:#e2e8f0;background:rgba(255,255,255,.04)}
 .sb-sub-item.active{color:#60a5fa}
-.sb-chevron{margin-left:auto;font-size:10px;transition:transform .25s;color:#374151;flex-shrink:0}
+.sb-chevron{margin-left:auto;font-size:10px;transition:transform .25s;color:#9ca3af;flex-shrink:0}
 .sb-chevron.open{transform:rotate(180deg)}
 .sb-divider{height:1px;background:var(--border2);margin:.25rem 0}
 .sb-footer{padding:1rem 1.25rem;border-top:1px solid var(--border2);flex-shrink:0}
 .sb-user{font-size:14px;font-weight:600;color:#94a3b8}
-.sb-user-rol{font-size:11px;color:#374151;text-transform:capitalize;margin-top:2px}
-.sb-ver{font-size:10px;color:#374151;margin-top:5px;letter-spacing:1.5px}
+.sb-user-rol{font-size:11px;color:#9ca3af;text-transform:capitalize;margin-top:2px}
+.sb-ver{font-size:10px;color:#9ca3af;margin-top:5px;letter-spacing:1.5px}
 .sb-logout{width:100%;margin-top:.75rem;padding:.6rem;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#fca5a5;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;text-align:center;transition:all .15s;font-family:inherit}
 .sb-logout:hover{background:rgba(239,68,68,.15)}
 
@@ -379,7 +379,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v62</div>
+    <div class="login-ver">FG Conexiones · v63</div>
   </div>
 </div>
 
@@ -397,7 +397,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v62</div>
+    <div class="sb-ver">v63</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -411,7 +411,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v62</div>
+    <div id="mobile-ver">v63</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -508,15 +508,15 @@ tr:hover td{background:rgba(255,255,255,.02)}
           <div class="card-title">Resumen de la carga</div>
           <div class="card-inset" style="margin-bottom:.75rem">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <span style="font-size:13px;color:#64748b">Instalaciones equiv.</span>
-              <span style="font-size:20px;font-weight:800;color:#0f172a" id="pv-equiv">0.00</span>
+              <span style="font-size:13px;color:#8b9cb3">Instalaciones equiv.</span>
+              <span style="font-size:20px;font-weight:800;color:#f1f5f9" id="pv-equiv">0.00</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <span style="font-size:13px;color:#64748b">Estado semana</span>
-              <span style="font-size:13px;font-weight:600;color:#0f172a" id="pv-estado">—</span>
+              <span style="font-size:13px;color:#8b9cb3">Estado semana</span>
+              <span style="font-size:13px;font-weight:600;color:#f1f5f9" id="pv-estado">—</span>
             </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #e2e8f0">
-              <span style="font-size:13px;font-weight:700;color:#0f172a">Ganancia extras est.</span>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)">
+              <span style="font-size:13px;font-weight:700;color:#f1f5f9">Ganancia extras est.</span>
               <span style="font-size:16px;font-weight:800;color:#059669" id="pv-ganancia">$0</span>
             </div>
           </div>
@@ -593,7 +593,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1.5px solid #e2e8f0">
       <button class="btn btn-sm" onclick="volverResumen()" style="flex-shrink:0">← Volver</button>
       <div style="flex:1">
-        <div style="font-size:20px;font-weight:800;color:#0f172a;letter-spacing:-.3px" id="cuad-det-nombre"></div>
+        <div style="font-size:20px;font-weight:800;color:#f1f5f9;letter-spacing:-.3px" id="cuad-det-nombre"></div>
         <div style="font-size:13px;color:#94a3b8;margin-top:2px" id="cuad-det-tecs"></div>
       </div>
     </div>
@@ -605,9 +605,9 @@ tr:hover td{background:rgba(255,255,255,.02)}
         <div class="ntab" id="det-tab-rango" onclick="setDetPeriodo('rango',this)">Rango</div>
       </div>
       <div id="det-ctrl-rango" style="display:none;display:flex;gap:8px;align-items:center">
-        <input type="date" id="det-desde" onchange="recargarDetalle()" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit"/>
+        <input type="date" id="det-desde" onchange="recargarDetalle()" style="border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit"/>
         <span style="color:#94a3b8">—</span>
-        <input type="date" id="det-hasta" onchange="recargarDetalle()" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit"/>
+        <input type="date" id="det-hasta" onchange="recargarDetalle()" style="border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit"/>
       </div>
     </div>
     <div id="cuad-det-content"><div class="loading"><span class="spinner"></span>Cargando...</div></div>
@@ -702,7 +702,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <!-- Filtros de período -->
     <div class="card" style="margin-bottom:1rem;padding:.875rem 1.25rem">
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-        <span style="font-size:12px;font-weight:700;color:#64748b;flex-shrink:0">Período:</span>
+        <span style="font-size:12px;font-weight:700;color:#8b9cb3;flex-shrink:0">Período:</span>
         <div class="nav" style="margin:0;flex-wrap:wrap;gap:6px">
           <div class="ntab active" id="rk-tab-hist" onclick="setRankPeriodo('historico',this)">Histórico</div>
           <div class="ntab" id="rk-tab-mes" onclick="setRankPeriodo('mes',this)">Este mes</div>
@@ -710,7 +710,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
           <div class="ntab" id="rk-tab-rango" onclick="setRankPeriodo('rango',this)">Rango</div>
         </div>
         <div id="rk-ctrl-mes" style="display:none">
-          <select id="rk-mes-sel" onchange="renderAdmRanking()" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit">
+          <select id="rk-mes-sel" onchange="renderAdmRanking()" style="border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit">
             <option value="2026-03" selected>Marzo 2026</option>
             <option value="2026-02">Febrero 2026</option>
             <option value="2026-01">Enero 2026</option>
@@ -720,9 +720,9 @@ tr:hover td{background:rgba(255,255,255,.02)}
           </select>
         </div>
         <div id="rk-ctrl-rango" style="display:none;display:flex;gap:8px;align-items:center">
-          <input type="date" id="rk-desde" onchange="renderAdmRanking()" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit"/>
+          <input type="date" id="rk-desde" onchange="renderAdmRanking()" style="border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit"/>
           <span style="color:#94a3b8">—</span>
-          <input type="date" id="rk-hasta" onchange="renderAdmRanking()" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit"/>
+          <input type="date" id="rk-hasta" onchange="renderAdmRanking()" style="border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit"/>
         </div>
       </div>
     </div>
@@ -732,7 +732,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 
   <!-- COMBUSTIBLE -->
   <div id="at-combustible" style="display:none">
-    <div class="ph"><div class="ph-icon" style="background:#fff7ed">⛽</div><div><div class="ph-title">Combustible</div><div class="ph-sub">Control de cargas de nafta por cuadrilla</div></div></div>
+    <div class="ph"><div class="ph-icon" style="background:var(--bg2)7ed">⛽</div><div><div class="ph-title">Combustible</div><div class="ph-sub">Control de cargas de nafta por cuadrilla</div></div></div>
     <div class="form-2col">
       <div>
         <div class="card">
@@ -1470,15 +1470,15 @@ async function renderAdmRanking(){
         <canvas id="rank-chart-cuad" width="200" height="200"></canvas>
         <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none">
           <div style="font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Total</div>
-          <div style="font-size:22px;font-weight:900;color:#0f172a;letter-spacing:-.5px">${total.toFixed(0)}</div>
+          <div style="font-size:22px;font-weight:900;color:#f1f5f9;letter-spacing:-.5px">${total.toFixed(0)}</div>
           <div style="font-size:10px;color:#94a3b8">equiv.</div>
         </div>
       </div>
       <div>${rankCuad.map((r,i)=>`
-        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
           <div style="width:10px;height:10px;border-radius:50%;background:${clrs[i]||'#94a3b8'};flex-shrink:0"></div>
           <div style="flex:1;font-size:13px;font-weight:${i<3?700:500};color:${i<3?'#0f172a':'#475569'}">${medals[i]||''}${medals[i]?' ':''}${r.nombre}</div>
-          <div style="font-size:14px;font-weight:800;color:#0f172a">${r.total.toFixed(1)}</div>
+          <div style="font-size:14px;font-weight:800;color:#f1f5f9">${r.total.toFixed(1)}</div>
           <div style="font-size:10px;color:#94a3b8;width:32px;text-align:right">${total>0?(r.total/total*100).toFixed(0)+'%':''}</div>
         </div>`).join('')}
       </div>
@@ -1488,16 +1488,16 @@ async function renderAdmRanking(){
   // Barras individual
   const maxInd=rankInd[0]?.total||1;
   const indHtml=`<div>${rankInd.map((r,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9">
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
       <div style="font-size:16px;font-weight:900;color:${i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#92400e':'#cbd5e1'};width:28px;text-align:center;flex-shrink:0">${medals[i]||i+1}</div>
       <div style="width:130px;flex-shrink:0">
         <div style="font-size:13px;font-weight:${i<3?700:500};color:${i<3?'#0f172a':'#475569'}">${r.nombre}</div>
         <div style="font-size:10px;color:#94a3b8">${r.cuad}</div>
       </div>
-      <div style="flex:1;background:#f1f5f9;border-radius:99px;height:7px;overflow:hidden">
+      <div style="flex:1;background:rgba(255,255,255,.06);border-radius:99px;height:7px;overflow:hidden">
         <div style="height:100%;border-radius:99px;background:${i===0?'linear-gradient(90deg,#f59e0b,#fbbf24)':i<3?'linear-gradient(90deg,#3b82f6,#60a5fa)':'#cbd5e1'};width:${(r.total/maxInd*100).toFixed(0)}%;transition:width .7s ease"></div>
       </div>
-      <div style="font-size:14px;font-weight:800;color:#0f172a;width:50px;text-align:right">${r.total.toFixed(1)}</div>
+      <div style="font-size:14px;font-weight:800;color:#f1f5f9;width:50px;text-align:right">${r.total.toFixed(1)}</div>
     </div>`).join('')}
     <p style="font-size:11px;color:#94a3b8;text-align:center;margin-top:1rem">Más equiv. = elegís primero las vacaciones.</p>
   </div>`;
@@ -2106,7 +2106,7 @@ async function abrirDetalleCuad(cuadId,desde,hasta){
           <canvas id="det-comp-chart" width="180" height="180"></canvas>
           <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none">
             <div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase">Total</div>
-            <div style="font-size:20px;font-weight:900;color:#0f172a">${totalEquiv.toFixed(1)}</div>
+            <div style="font-size:20px;font-weight:900;color:#f1f5f9">${totalEquiv.toFixed(1)}</div>
           </div>
         </div>
         <div>${tecData.map((t,i)=>{
@@ -2115,17 +2115,17 @@ async function abrirDetalleCuad(cuadId,desde,hasta){
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
               <div style="display:flex;align-items:center;gap:8px">
                 <div style="width:10px;height:10px;border-radius:50%;background:${clr};flex-shrink:0"></div>
-                <span style="font-size:14px;font-weight:700;color:#0f172a">${t.tec}</span>
+                <span style="font-size:14px;font-weight:700;color:#f1f5f9">${t.tec}</span>
               </div>
               <div style="text-align:right">
-                <span style="font-size:16px;font-weight:900;color:#0f172a">${t.eqTotal.toFixed(2)}</span>
+                <span style="font-size:16px;font-weight:900;color:#f1f5f9">${t.eqTotal.toFixed(2)}</span>
                 <span style="font-size:11px;color:#94a3b8;margin-left:4px">${pct}%</span>
               </div>
             </div>
-            <div style="background:#f1f5f9;border-radius:99px;height:8px;overflow:hidden">
+            <div style="background:rgba(255,255,255,.06);border-radius:99px;height:8px;overflow:hidden">
               <div style="height:100%;border-radius:99px;background:${clr};width:${pct}%;transition:width .7s ease"></div>
             </div>
-            <div style="font-size:11px;color:#64748b;margin-top:3px">
+            <div style="font-size:11px;color:#8b9cb3;margin-top:3px">
               Pareja: ${t.eqPar.toFixed(2)}${t.eqSolo>0?` · Solo: ${t.eqSolo.toFixed(2)} (×2=${(t.eqSolo*2).toFixed(2)})` :''}
               <span style="margin-left:6px;font-weight:700;color:${t.ganTotal>=0?'#059669':'#ef4444'}">${t.ganTotal>=0?'+':''}${fmtPesos(t.ganTotal)}</span>
             </div>
@@ -2138,11 +2138,11 @@ async function abrirDetalleCuad(cuadId,desde,hasta){
     html+=`<div class="card" style="border-left:4px solid ${clrs[ti]||'#3b82f6'}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.875rem">
         <div>
-          <div style="font-size:16px;font-weight:800;color:#0f172a">${t.tec}</div>
-          <div style="font-size:12px;color:#64748b;margin-top:2px">Pareja: <strong>${t.eqPar.toFixed(2)}</strong>${t.eqSolo>0?` · Solo: <strong style="color:#7c3aed">${t.eqSolo.toFixed(2)}</strong> (×2 = <strong>${(t.eqSolo*2).toFixed(2)}</strong>)` :''}</div>
+          <div style="font-size:16px;font-weight:800;color:#f1f5f9">${t.tec}</div>
+          <div style="font-size:12px;color:#8b9cb3;margin-top:2px">Pareja: <strong>${t.eqPar.toFixed(2)}</strong>${t.eqSolo>0?` · Solo: <strong style="color:#7c3aed">${t.eqSolo.toFixed(2)}</strong> (×2 = <strong>${(t.eqSolo*2).toFixed(2)}</strong>)` :''}</div>
         </div>
         <div style="text-align:right">
-          <div style="font-size:22px;font-weight:900;color:#0f172a;letter-spacing:-.5px">${t.eqTotal.toFixed(2)}</div>
+          <div style="font-size:22px;font-weight:900;color:#f1f5f9;letter-spacing:-.5px">${t.eqTotal.toFixed(2)}</div>
           <div style="font-size:12px;font-weight:700;color:${t.ganTotal>=0?'#059669':'#ef4444'}">${t.ganTotal>=0?'+':''}${fmtPesos(t.ganTotal)}</div>
         </div>
       </div>`;
@@ -2150,19 +2150,19 @@ async function abrirDetalleCuad(cuadId,desde,hasta){
       const parTot=Object.values(diasPar).reduce((s,v)=>s+v,0),solTot=Object.values(diasSolo).reduce((s,v)=>s+v,0);
       if(parTot===0&&solTot===0)return;
       const domSem=new Date(sem+'T12:00:00');domSem.setDate(domSem.getDate()+6);
-      html+=`<div style="background:#f8fafc;border-radius:10px;padding:.75rem 1rem;margin-bottom:.5rem;border:1px solid #f1f5f9">
+      html+=`<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:.75rem 1rem;margin-bottom:.5rem;border:1px solid rgba(255,255,255,.06)">
         <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Semana ${fmtL(sem)} – ${fmtL(fmtD(domSem))}</div>`;
       if(Object.keys(diasPar).length){
         html+=`<div style="font-size:10px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">En pareja</div>`;
         Object.entries(diasPar).sort().forEach(([fecha,eq])=>{
           const de=esDiaEsp(fecha);const icons={lluvia:'🌧 ',feriado:'📅 ',vacaciones:'🏖 ',certificado:'🏥 '};
-          html+=`<div class="det-day-row"><span style="color:#475569">${de?(icons[de.tipo]||''):''}${fmtFull(fecha)}</span><span style="font-weight:600;color:#0f172a">${eq.toFixed(2)}</span></div>`;
+          html+=`<div class="det-day-row"><span style="color:#94a3b8">${de?(icons[de.tipo]||''):''}${fmtFull(fecha)}</span><span style="font-weight:600;color:#f1f5f9">${eq.toFixed(2)}</span></div>`;
         });
       }
       if(Object.keys(diasSolo).length){
         html+=`<div style="font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.06em;margin:.4rem 0 3px">Solo (×2)</div>`;
         Object.entries(diasSolo).sort().forEach(([fecha,eq])=>{
-          html+=`<div class="det-day-row"><span style="color:#475569">${fmtFull(fecha)} <span class="solo-badge">solo</span></span><span style="font-weight:700;color:#7c3aed">${eq.toFixed(2)} → ${(eq*2).toFixed(2)}</span></div>`;
+          html+=`<div class="det-day-row"><span style="color:#94a3b8">${fmtFull(fecha)} <span class="solo-badge">solo</span></span><span style="font-weight:700;color:#7c3aed">${eq.toFixed(2)} → ${(eq*2).toFixed(2)}</span></div>`;
         });
       }
       html+='</div>';
@@ -2291,12 +2291,12 @@ async function renderPagos(){
     <th></th>
   </tr></thead><tbody>`;
   rows.forEach(r=>{
-    const cls=r.saldo>500?'color:#059669':r.saldo<-500?'color:#ef4444':'color:#64748b';
+    const cls=r.saldo>500?'color:#059669':r.saldo<-500?'color:#ef4444':'color:#8b9cb3';
     html+=`<tr style="cursor:pointer" onclick="abrirDetallePagos('${r.cuadId}')">
       <td style="font-weight:600">${r.tec}</td>
-      <td style="color:#64748b">${r.cuad}</td>
-      <td style="text-align:right;color:#0f172a">${fmtPesos(r.totalExtras)}</td>
-      <td style="text-align:right;color:#64748b">${fmtPesos(r.pagado)}</td>
+      <td style="color:#8b9cb3">${r.cuad}</td>
+      <td style="text-align:right;color:#f1f5f9">${fmtPesos(r.totalExtras)}</td>
+      <td style="text-align:right;color:#8b9cb3">${fmtPesos(r.pagado)}</td>
       <td style="text-align:right;font-weight:800;${cls}">${r.saldo>=0?'+':''}${fmtPesos(r.saldo)}</td>
       <td style="text-align:right"><span style="font-size:11px;color:#94a3b8">→</span></td>
     </tr>`;
@@ -2553,7 +2553,7 @@ async function renderConfig(){
     <div id="cfg-tab-cuadrillas" style="display:none">
       <div class="card">
         <div class="card-title">Cuadrillas — nombres y grupos</div>
-        <p style="font-size:13px;color:#64748b;margin-bottom:.9rem">Para cambiar los técnicos usá la pestaña "Técnicos".</p>
+        <p style="font-size:13px;color:#8b9cb3;margin-bottom:.9rem">Para cambiar los técnicos usá la pestaña "Técnicos".</p>
         <div id="cfg-cuad-lista">
           ${CUADRILLAS.map(c=>`
             <div class="cuad-config-item">
@@ -2587,7 +2587,7 @@ async function renderConfig(){
     <!-- ROTACIÓN SÁBADOS -->
     <div id="cfg-tab-rotacion" style="display:none">
       <div class="card"><div class="card-title">🗓 Rotación sábados</div>
-        <p style="font-size:13px;color:#64748b;margin-bottom:.9rem">Definí qué grupo libra el sábado de una semana. Las siguientes rotan automáticamente.</p>
+        <p style="font-size:13px;color:#8b9cb3;margin-bottom:.9rem">Definí qué grupo libra el sábado de una semana. Las siguientes rotan automáticamente.</p>
         <div class="fg"><label>Semana</label><input type="date" id="cfg-rot-fecha"/></div>
         <div class="fg"><label>¿Qué grupo libra ese sábado?</label>
           <select id="cfg-rot-grupo">
@@ -2637,7 +2637,7 @@ async function renderCfgTecnicos(){
       const cuad=cuads.find(c=>c.id===t.cuadrilla_id);
       return`<tr>
         <td style="font-weight:600">${t.nombre}</td>
-        <td><select onchange="cambiarCuadTec('${t.id}',this.value)" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 8px;font-size:12px;font-family:inherit">
+        <td><select onchange="cambiarCuadTec('${t.id}',this.value)" style="border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:5px 8px;font-size:12px;font-family:inherit">
           <option value="">Sin cuadrilla</option>
           ${cuads.map(c=>`<option value="${c.id}"${c.id===t.cuadrilla_id?' selected':''}>${c.nombre}</option>`).join('')}
         </select></td>
@@ -2703,11 +2703,11 @@ async function renderCfgUsuarios(){
     </tr></thead><tbody>
     ${users.map(u=>`<tr>
       <td style="font-weight:600">${u.nombre}</td>
-      <td style="font-family:monospace;color:#64748b">${u.username}</td>
+      <td style="font-family:monospace;color:#8b9cb3">${u.username}</td>
       <td><span class="badge ${rolBadge[u.rol]||'b-gray'}">${u.rol}</span></td>
       <td>
         <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-family:monospace;font-size:12px;background:#f8fafc;padding:3px 8px;border-radius:6px;border:1px solid #e2e8f0" id="pw-${u.id}">${u.password_visible||u.password_hash||'—'}</span>
+          <span style="font-family:monospace;font-size:12px;background:rgba(255,255,255,.04);padding:3px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.1)" id="pw-${u.id}">${u.password_visible||u.password_hash||'—'}</span>
           ${CU.rol==='jefe'?`<button class="btn btn-sm" style="font-size:11px;padding:4px 8px" onclick="resetearPassword('${u.id}','${u.username}')">✏️</button>`:''}
         </div>
       </td>
@@ -2922,7 +2922,7 @@ async function renderDashboard() {
   var el = document.getElementById('dash-content');
   if (!el) return;
   if (!CU || CU.rol !== 'jefe') { el.innerHTML = ''; return; }
-  el.innerHTML = '<div style="text-align:center;padding:4rem;color:#1f2937;font-size:14px;letter-spacing:2px;text-transform:uppercase">Cargando panel...</div>';
+  el.innerHTML = '<div style="text-align:center;padding:4rem;color:#6b7280;font-size:14px;letter-spacing:2px;text-transform:uppercase">Cargando panel...</div>';
   try {
     var meta = parseInt(CONFIG.meta_semanal || 30);
     var precio = parseInt(CONFIG.precio_instalacion || 7000);
@@ -3147,7 +3147,7 @@ async function renderDashboard() {
 
     html += '<div class="d-card"><div class="d-card-t">⚠ Deudas activas</div>';
     if(!alertas.length){
-      html += '<div style="text-align:center;padding:2rem 0"><div style="font-size:32px">✅</div><div style="font-size:11px;color:#1f2937;letter-spacing:1px;margin-top:8px">SIN DEUDAS</div></div>';
+      html += '<div style="text-align:center;padding:2rem 0"><div style="font-size:32px">✅</div><div style="font-size:11px;color:#6b7280;letter-spacing:1px;margin-top:8px">SIN DEUDAS</div></div>';
     } else {
       alertas.slice(0,6).forEach(function(a){
         html += '<div class="d-alert"><div class="d-alert-nm">'+a.nm+'</div><div class="d-alert-cuad">'+a.cuad+'</div><div class="d-alert-val">Debe '+fmtPesos(Math.abs(a.sal))+'</div></div>';
@@ -3159,7 +3159,7 @@ async function renderDashboard() {
     html += '<div class="d-card"><div class="d-card-t">Últimas 4 semanas · Equiv. por cuadrilla</div><canvas id="d-chart" height="200"></canvas></div>';
 
     html += '<div class="d-card"><div class="d-card-t">Saldos por técnico</div>';
-    if(!sRows.length){ html += '<p style="font-size:12px;color:#374151;text-align:center;padding:1rem">Sin saldos</p>'; }
+    if(!sRows.length){ html += '<p style="font-size:12px;color:#9ca3af;text-align:center;padding:1rem">Sin saldos</p>'; }
     else { sRows.slice(0,7).forEach(function(s){
       html += '<div class="d-pago-row"><div><div class="d-pago-nm">'+s.nm+'</div><div class="d-pago-sub">'+s.cuad+'</div></div>';
       html += '<div class="d-pago-val '+(s.sal>0?'pos':'neg')+'">'+(s.sal>=0?'+':'')+fmtPesos(s.sal)+'</div></div>';
@@ -3171,13 +3171,13 @@ async function renderDashboard() {
       var rnc=['g1','g2','g3'];
       html += '<div class="d-rank-row"><div class="d-rn '+(rnc[idx]||'')+'">'+(idx+1)+'</div>';
       html += '<div style="flex:1"><div style="font-size:13px;font-weight:700;color:#9ca3af">'+t.nombre+'</div>';
-      html += '<div style="font-size:10px;color:#374151">'+t.cuad+'</div></div>';
+      html += '<div style="font-size:10px;color:#9ca3af">'+t.cuad+'</div></div>';
       html += '<div style="font-size:14px;font-weight:900;color:#10b981">'+t.total.toFixed(1)+'</div></div>';
     });
     html += '</div>';
 
     html += '<div class="d-card"><div class="d-card-t">💵 Adelantos sin descontar</div>';
-    if(!adelSorted.length){ html += '<p style="font-size:12px;color:#374151;text-align:center;padding:1rem">Sin adelantos</p>'; }
+    if(!adelSorted.length){ html += '<p style="font-size:12px;color:#9ca3af;text-align:center;padding:1rem">Sin adelantos</p>'; }
     else { adelSorted.forEach(function(e){ html += '<div class="d-adel-row"><div class="d-adel-nm">'+e[0]+'</div><div class="d-adel-val">'+fmtPesos(e[1])+'</div></div>'; }); }
     html += '</div></div>';
 
@@ -3420,7 +3420,7 @@ async function renderAdelantos(){
       return`<tr>
         <td style="font-weight:600">${d.tecnico_nombre}<div style="font-size:10px;color:#94a3b8">${c?c.nombre:''}</div></td>
         <td>${fmtFull(d.fecha)}</td>
-        <td style="color:#64748b">${d.descripcion||'—'}</td>
+        <td style="color:#8b9cb3">${d.descripcion||'—'}</td>
         <td style="text-align:right;font-weight:700;color:#7c3aed">${fmtPesos(d.monto)}</td>
         <td>${d.descontado?`<span class="badge b-gray">Descontado</span>${desInfo}`:'<span class="badge b-warn">Pendiente</span>'}</td>
         <td style="text-align:center;white-space:nowrap">
