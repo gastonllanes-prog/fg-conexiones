@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v52</title>
+<title>FG Conexiones v53</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f5f9;color:#0f172a;min-height:100vh}
@@ -373,7 +373,7 @@ tr:hover td{background:#f8fafc}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v52</div>
+    <div class="login-ver">FG Conexiones · v53</div>
   </div>
 </div>
 
@@ -391,7 +391,7 @@ tr:hover td{background:#f8fafc}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v52</div>
+    <div class="sb-ver">v53</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -405,7 +405,7 @@ tr:hover td{background:#f8fafc}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v52</div>
+    <div id="mobile-ver">v53</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1948,26 +1948,107 @@ async function eliminarPago(pagoId, cuadId){
 
 async function renderPagos(){
   const el=document.getElementById('at-pagos-content'),esJefe=CU.rol==='jefe';
-  let html='';
+  const MARZO2026='2026-03-01';
+  const meta=parseInt(CONFIG.meta_semanal||30);
+  const precio=parseInt(CONFIG.precio_instalacion||7000);
+  const precioUnit=precio/2;
+
+  // Layout 2 columnas: form + saldos
+  let formHtml='';
   if(esJefe){
-    html+=`<div class="card"><div class="card-title">Registrar pago</div>
+    formHtml=`<div class="card">
+      <div class="card-title">Registrar pago</div>
       <div class="fg"><label>Cuadrilla</label><select id="pag-cuad" onchange="renderPagTecs()">${CUADRILLAS.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('')}</select></div>
       <div class="fg"><label>Técnico</label><select id="pag-tec"></select></div>
-      <div class="fg"><label>Fecha del pago</label><input type="date" id="pag-fecha"/></div>
+      <div class="fg"><label>Fecha</label><input type="date" id="pag-fecha"/></div>
       <div class="fg"><label>Monto ($)</label><input type="number" id="pag-monto" placeholder="Ej: 35000"/></div>
       <div class="fg"><label>Descripción (opcional)</label><input type="text" id="pag-desc" placeholder="Extras semana del..."/></div>
       <button class="btn btn-dark btn-full" onclick="guardarPago()">Registrar pago</button>
       <p class="ok-msg" id="pag-ok"></p><p class="err-msg" id="pag-err"></p>
     </div>`;
-  }else{
-    html+=`<div class="msg msg-info" style="margin-bottom:.9rem">Solo el jefe (Gastón Llanes) puede registrar pagos.</div>`;
+  } else {
+    formHtml=`<div class="msg msg-info">Solo Gastón puede registrar pagos.</div>`;
   }
-  html+=`<div class="card"><div class="card-title">Saldos por técnico</div><div id="pag-saldos-lista"><div class="loading"><span class="spinner"></span></div></div></div>`;
-  el.innerHTML=html;
-  if(esJefe)setTimeout(()=>renderPagTecs(),100);
-  renderSaldosTodos();
+
+  el.innerHTML=`<div class="form-2col" style="align-items:start">
+    <div>${formHtml}</div>
+    <div><div class="card"><div class="card-title">Saldos por técnico</div><div id="pag-saldos-lista"><div class="loading"><span class="spinner"></span>Cargando...</div></div></div></div>
+  </div>`;
+
+  if(esJefe)setTimeout(()=>renderPagTecs(),50);
+
+  // Batch: cargar todo en paralelo
+  const [regsAll, allPagos, allDiasEsp] = await Promise.all([
+    sbGet('registros','?fecha=gte.'+MARZO2026+'&select=cuadrilla_id,fecha,tecnico_nombre,solo,registro_tareas(tipo_tarea_id,cantidad)'),
+    sbGet('pagos','?select=cuadrilla_id,tecnico_nombre,monto,fecha,descripcion,id'),
+    sbGet('dias_especiales','?select=fecha,tipo,cuadrilla_id,tecnico_nombre')
+  ]);
+
+  const lunesHoy=getLunesDesd(fmtD(new Date()));
+  // No tenemos semanas cerradas por cuad aquí, simplificamos: incluir semana actual también
+  const pagosPorTec={};
+  allPagos.forEach(p=>{
+    const k=p.cuadrilla_id+'_'+p.tecnico_nombre;
+    if(!pagosPorTec[k])pagosPorTec[k]=0;
+    pagosPorTec[k]+=parseFloat(p.monto);
+  });
+
+  const rows=[];
+  for(const cuad of CUADRILLAS){
+    for(const tec of getTecs(cuad.id)){
+      const k=cuad.id+'_'+tec;
+      let totalExtras=0;
+      const porSemana={};
+      regsAll.filter(r=>r.cuadrilla_id===cuad.id).forEach(reg=>{
+        const sem=getLunesDesd(reg.fecha);
+        if(!porSemana[sem])porSemana[sem]={par:0,sol:0};
+        let eq=0;(reg.registro_tareas||[]).forEach(rt=>eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));
+        if(reg.solo&&reg.tecnico_nombre===tec)porSemana[sem].sol+=eq;
+        else if(!reg.solo)porSemana[sem].par+=eq;
+      });
+      allDiasEsp.filter(d=>d.fecha>=MARZO2026).forEach(d=>{
+        const sem=getLunesDesd(d.fecha);
+        if(!porSemana[sem])porSemana[sem]={par:0,sol:0};
+        if(d.tipo==='vacaciones'&&d.tecnico_nombre===tec&&d.cuadrilla_id===cuad.id) porSemana[sem].par=meta;
+        else if(d.tipo==='certificado'&&d.tecnico_nombre===tec&&d.cuadrilla_id===cuad.id) porSemana[sem].par+=5;
+        else if(d.tipo==='feriado'&&(!d.cuadrilla_id||d.cuadrilla_id===cuad.id)) porSemana[sem].par+=5;
+      });
+      Object.values(porSemana).forEach(({par,sol})=>{
+        if(par===0&&sol===0)return;
+        totalExtras+=(par+sol*2-meta)*precioUnit;
+      });
+      const pagado=pagosPorTec[k]||0;
+      rows.push({tec,cuad:cuad.nombre,cuadId:cuad.id,totalExtras,pagado,saldo:totalExtras-pagado});
+    }
+  }
+  rows.sort((a,b)=>b.saldo-a.saldo);
+
+  const el2=document.getElementById('pag-saldos-lista');if(!el2)return;
+  // Tabla compacta
+  let html=`<table style="font-size:13px"><thead><tr>
+    <th>Técnico</th><th>Cuadrilla</th>
+    <th style="text-align:right">Extras</th>
+    <th style="text-align:right">Cobrado</th>
+    <th style="text-align:right">Saldo</th>
+    <th></th>
+  </tr></thead><tbody>`;
+  rows.forEach(r=>{
+    const cls=r.saldo>500?'color:#059669':r.saldo<-500?'color:#ef4444':'color:#64748b';
+    html+=`<tr style="cursor:pointer" onclick="abrirDetallePagos('${r.cuadId}')">
+      <td style="font-weight:600">${r.tec}</td>
+      <td style="color:#64748b">${r.cuad}</td>
+      <td style="text-align:right;color:#0f172a">${fmtPesos(r.totalExtras)}</td>
+      <td style="text-align:right;color:#64748b">${fmtPesos(r.pagado)}</td>
+      <td style="text-align:right;font-weight:800;${cls}">${r.saldo>=0?'+':''}${fmtPesos(r.saldo)}</td>
+      <td style="text-align:right"><span style="font-size:11px;color:#94a3b8">→</span></td>
+    </tr>`;
+  });
+  html+='</tbody></table>';
+  el2.innerHTML=html;
 }
+
 function renderPagTecs(){const c=document.getElementById('pag-cuad')?.value;if(!c)return;const el=document.getElementById('pag-tec');if(el)el.innerHTML=getTecs(c).map(t=>`<option>${t}</option>`).join('');}
+
 async function guardarPago(){
   if(CU.rol!=='jefe'){alert('Solo el jefe puede registrar pagos.');return;}
   const cuadId=document.getElementById('pag-cuad').value,tec=document.getElementById('pag-tec').value;
@@ -1979,36 +2060,11 @@ async function guardarPago(){
     await logAct('Pago',`${tec}·${fmtPesos(monto)}·${fecha}`,'pagos');
     document.getElementById('pag-ok').textContent='Pago registrado ✓';setTimeout(()=>document.getElementById('pag-ok').textContent='',2500);
     document.getElementById('pag-monto').value='';document.getElementById('pag-desc').value='';
-    renderSaldosTodos();
+    renderPagos();
   }catch(e){document.getElementById('pag-err').textContent='Error: '+e.message;}
 }
 
-async function renderSaldosTodos(){
-  const el=document.getElementById('pag-saldos-lista');if(!el)return;
-  el.innerHTML='<div class="loading"><span class="spinner"></span>Cargando...</div>';
-  let html='';
-  for(const cuad of CUADRILLAS){
-    html+=`<div class="tec-block" style="cursor:pointer" onclick="abrirDetallePagos('${cuad.id}')">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem">
-        <div style="font-size:12px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.05em">${cuad.nombre}</div>
-        <span style="font-size:11px;color:#aaa">Ver detalle →</span>
-      </div>`;
-    for(const tec of getTecs(cuad.id)){
-      const info=await calcSaldoTecnico(cuad.id,tec);
-      const saldo=info.saldo;
-      const saldoCls=saldo>0?'color:#1a7a3c':saldo<0?'color:#c0392b':'color:#888';
-      html+=`<div style="padding:8px 0;border-bottom:1px solid #f0f0f0">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div><div style="font-size:14px;font-weight:600">${tec}</div>
-          <div style="font-size:11px;color:#888">Extras: ${fmtPesos(info.totalExtras)} · Cobrado: ${fmtPesos(info.totalPagado)}</div></div>
-          <div style="font-size:16px;font-weight:800;${saldoCls}">${saldo>=0?'+':''}${fmtPesos(saldo)}</div>
-        </div>
-      </div>`;
-    }
-    html+='</div>';
-  }
-  el.innerHTML=html;
-}
+async function renderSaldosTodos(){renderPagos();}
 
 async function abrirDetallePagos(cuadId){
   const cuad=CUADRILLAS.find(c=>c.id===cuadId);
@@ -2427,7 +2483,7 @@ async function renderDashboard() {
     sRows.sort(function(a,b){ return b.sal - a.sal; });
     var totPend = 0;
     sRows.filter(function(s){ return s.sal>0; }).forEach(function(s){ totPend+=s.sal; });
-    var alertas = sRows.filter(function(s){ return s.sal<-5000; });
+    var alertas = sRows.filter(function(s){ return s.sal<-5000; }).sort(function(a,b){ return a.sal-b.sal; });
 
     // ═══ COMBUSTIBLE ═══
     var totComb = combustMes.reduce(function(s,d){ return s+parseFloat(d.monto); }, 0);
