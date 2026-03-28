@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v55</title>
+<title>FG Conexiones v54</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f5f9;color:#0f172a;min-height:100vh}
@@ -373,7 +373,7 @@ tr:hover td{background:#f8fafc}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v55</div>
+    <div class="login-ver">FG Conexiones · v54</div>
   </div>
 </div>
 
@@ -391,7 +391,7 @@ tr:hover td{background:#f8fafc}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v55</div>
+    <div class="sb-ver">v54</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -405,7 +405,7 @@ tr:hover td{background:#f8fafc}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v55</div>
+    <div id="mobile-ver">v54</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -675,36 +675,10 @@ tr:hover td{background:#f8fafc}
   <div id="at-dashboard" style="display:none">
     <div id="dash-content"><div class="loading"><span class="spinner"></span>Cargando...</div></div>
   </div>
-  <div id="at-ranking" style="display:none"><div class="ph"><div class="ph-icon yellow">🏆</div><div><div class="ph-title">Ranking</div><div class="ph-sub">Clasificación de cuadrillas y técnicos</div></div></div>
-    <!-- Filtros de período -->
-    <div class="card" style="margin-bottom:1rem;padding:.875rem 1.25rem">
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-        <span style="font-size:12px;font-weight:700;color:#64748b;flex-shrink:0">Período:</span>
-        <div class="nav" style="margin:0;flex-wrap:wrap;gap:6px">
-          <div class="ntab active" id="rk-tab-hist" onclick="setRankPeriodo('historico',this)">Histórico</div>
-          <div class="ntab" id="rk-tab-mes" onclick="setRankPeriodo('mes',this)">Este mes</div>
-          <div class="ntab" id="rk-tab-sem" onclick="setRankPeriodo('semana',this)">Esta semana</div>
-          <div class="ntab" id="rk-tab-rango" onclick="setRankPeriodo('rango',this)">Rango</div>
-        </div>
-        <div id="rk-ctrl-mes" style="display:none">
-          <select id="rk-mes-sel" onchange="renderAdmRanking()" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit">
-            <option value="2026-03" selected>Marzo 2026</option>
-            <option value="2026-02">Febrero 2026</option>
-            <option value="2026-01">Enero 2026</option>
-            <option value="2026-04">Abril 2026</option>
-            <option value="2026-05">Mayo 2026</option>
-            <option value="2026-06">Junio 2026</option>
-          </select>
-        </div>
-        <div id="rk-ctrl-rango" style="display:none;display:flex;gap:8px;align-items:center">
-          <input type="date" id="rk-desde" onchange="renderAdmRanking()" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit"/>
-          <span style="color:#94a3b8">—</span>
-          <input type="date" id="rk-hasta" onchange="renderAdmRanking()" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit"/>
-        </div>
-      </div>
-    </div>
+  <div id="at-ranking" style="display:none"><div class="ph"><div class="ph-icon yellow">🏆</div><div><div class="ph-title">Ranking</div><div class="ph-sub">Clasificación histórica de cuadrillas y técnicos</div></div></div>
     <div class="card"><div class="card-title">Ranking por cuadrilla</div><div id="adm-rank-cuad"><div class="loading"><span class="spinner"></span></div></div></div>
     <div class="card"><div class="card-title">Ranking individual</div><div id="adm-rank-ind"><div class="loading"><span class="spinner"></span></div></div></div>
+    <p style="font-size:12px;color:#999;text-align:center;margin-top:8px">Incluye histórico de enero y febrero. Más instalaciones equiv. = elegís primero las vacaciones.</p>
   </div>
 
   <!-- COMBUSTIBLE -->
@@ -1393,109 +1367,17 @@ async function calcSaldoTecnico(cuadId,tecNombre){
 async function renderTecRanking(){
   document.getElementById('t-rank-cuad').innerHTML='<div class="loading"><span class="spinner"></span></div>';
   document.getElementById('t-rank-ind').innerHTML='<div class="loading"><span class="spinner"></span></div>';
-  const hoy=fmtD(new Date());
-  const{rankCuad,rankInd}=await buildRankings('2026-01-01',hoy,true);
+  const{rankCuad,rankInd}=await buildRankings();
   document.getElementById('t-rank-cuad').innerHTML=buildRankHTML(rankCuad,'cuad');
   document.getElementById('t-rank-ind').innerHTML=buildRankHTML(rankInd,'ind');
 }
 
-var _rankPeriodo = 'historico';
-function setRankPeriodo(p, el){
-  _rankPeriodo = p;
-  document.querySelectorAll('#at-ranking .ntab').forEach(e=>e.classList.remove('active'));
-  if(el)el.classList.add('active');
-  // Show/hide controls
-  document.getElementById('rk-ctrl-mes').style.display = p==='mes'?'block':'none';
-  const rc=document.getElementById('rk-ctrl-rango');
-  if(rc)rc.style.display = p==='rango'?'flex':'none';
-  renderAdmRanking();
-}
-
-async function renderAdmRanking(){
-  const rc=document.getElementById('adm-rank-cuad'),ri=document.getElementById('adm-rank-ind');
-  if(rc)rc.innerHTML='<div class="loading"><span class="spinner"></span></div>';
-  if(ri)ri.innerHTML='<div class="loading"><span class="spinner"></span></div>';
-
-  // Calcular rango de fechas según periodo seleccionado
-  let desde=null, hasta=null, usarHistorico=false;
-  const hoy=fmtD(new Date());
-  if(_rankPeriodo==='historico'){ usarHistorico=true; desde='2026-01-01'; hasta=hoy; }
-  else if(_rankPeriodo==='mes'){
-    const mes=document.getElementById('rk-mes-sel')?.value||'2026-03';
-    const [y,mo]=mes.split('-');
-    const ult=new Date(parseInt(y),parseInt(mo),0).getDate();
-    desde=`${mes}-01`; hasta=`${mes}-${String(ult).padStart(2,'0')}`;
-  } else if(_rankPeriodo==='semana'){
-    desde=getLunes(0); const d=new Date(desde+'T12:00:00');d.setDate(d.getDate()+6);hasta=fmtD(d);
-  } else {
-    desde=document.getElementById('rk-desde')?.value||'2026-03-01';
-    hasta=document.getElementById('rk-hasta')?.value||hoy;
-  }
-
-  const {rankCuad, rankInd} = await buildRankings(desde, hasta, usarHistorico);
-  const total=rankCuad.reduce((s,c)=>s+c.total,0);
-  const clrs=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#ec4899'];
-  const medals=['🥇','🥈','🥉'];
-
-  // Donut cuadrillas
-  const cuadHtml=`
-    <div style="display:grid;grid-template-columns:200px 1fr;gap:1.5rem;align-items:center">
-      <div style="position:relative;width:200px;height:200px;flex-shrink:0">
-        <canvas id="rank-chart-cuad" width="200" height="200"></canvas>
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none">
-          <div style="font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Total</div>
-          <div style="font-size:22px;font-weight:900;color:#0f172a;letter-spacing:-.5px">${total.toFixed(0)}</div>
-          <div style="font-size:10px;color:#94a3b8">equiv.</div>
-        </div>
-      </div>
-      <div>${rankCuad.map((r,i)=>`
-        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9">
-          <div style="width:10px;height:10px;border-radius:50%;background:${clrs[i]||'#94a3b8'};flex-shrink:0"></div>
-          <div style="flex:1;font-size:13px;font-weight:${i<3?700:500};color:${i<3?'#0f172a':'#475569'}">${medals[i]||''}${medals[i]?' ':''}${r.nombre}</div>
-          <div style="font-size:14px;font-weight:800;color:#0f172a">${r.total.toFixed(1)}</div>
-          <div style="font-size:10px;color:#94a3b8;width:32px;text-align:right">${total>0?(r.total/total*100).toFixed(0)+'%':''}</div>
-        </div>`).join('')}
-      </div>
-    </div>`;
-  if(rc)rc.innerHTML=cuadHtml;
-
-  // Barras individual
-  const maxInd=rankInd[0]?.total||1;
-  const indHtml=`<div>${rankInd.map((r,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9">
-      <div style="font-size:16px;font-weight:900;color:${i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#92400e':'#cbd5e1'};width:28px;text-align:center;flex-shrink:0">${medals[i]||i+1}</div>
-      <div style="width:130px;flex-shrink:0">
-        <div style="font-size:13px;font-weight:${i<3?700:500};color:${i<3?'#0f172a':'#475569'}">${r.nombre}</div>
-        <div style="font-size:10px;color:#94a3b8">${r.cuad}</div>
-      </div>
-      <div style="flex:1;background:#f1f5f9;border-radius:99px;height:7px;overflow:hidden">
-        <div style="height:100%;border-radius:99px;background:${i===0?'linear-gradient(90deg,#f59e0b,#fbbf24)':i<3?'linear-gradient(90deg,#3b82f6,#60a5fa)':'#cbd5e1'};width:${(r.total/maxInd*100).toFixed(0)}%;transition:width .7s ease"></div>
-      </div>
-      <div style="font-size:14px;font-weight:800;color:#0f172a;width:50px;text-align:right">${r.total.toFixed(1)}</div>
-    </div>`).join('')}
-    <p style="font-size:11px;color:#94a3b8;text-align:center;margin-top:1rem">Más equiv. = elegís primero las vacaciones.</p>
-  </div>`;
-  if(ri)ri.innerHTML=indHtml;
-
-  setTimeout(()=>{
-    const ctx=document.getElementById('rank-chart-cuad');
-    if(!ctx)return;
-    if(window._rankChart)window._rankChart.destroy();
-    window._rankChart=new Chart(ctx,{
-      type:'doughnut',
-      data:{labels:rankCuad.map(r=>r.nombre),datasets:[{data:rankCuad.map(r=>r.total),backgroundColor:clrs.slice(0,rankCuad.length),borderWidth:0,hoverOffset:4}]},
-      options:{responsive:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return` ${c.label}: ${c.raw.toFixed(1)} equiv`;}}}}},
-    });
-  },100);
-}
-
-async function buildRankings(desde, hasta, usarHistorico){
-  desde = desde||'2026-01-01'; hasta = hasta||fmtD(new Date());
-  const queries = [
-    sbGet('registros','?fecha=gte.'+desde+'&fecha=lte.'+hasta+'&select=cuadrilla_id,tecnico_nombre,solo,registro_tareas(tipo_tarea_id,cantidad)')
-  ];
-  if(usarHistorico) queries.push(sbGet('historico_totales','?select=*'));
-  const [regs, hist=[]] = await Promise.all(queries);
+async function buildRankings(){
+  // Batch en paralelo
+  const [regs, hist] = await Promise.all([
+    sbGet('registros','?select=cuadrilla_id,tecnico_nombre,solo,registro_tareas(tipo_tarea_id,cantidad)'),
+    sbGet('historico_totales','?select=*')
+  ]);
   const totCuad={},totInd={};
   CUADRILLAS.forEach(c=>{
     totCuad[c.id]={nombre:c.nombre,total:0};
@@ -1954,8 +1836,8 @@ async function renderAdmResumen(){
         :`<button class="btn btn-sm btn-dark" style="font-size:11px;padding:6px 12px;white-space:nowrap" onclick="event.stopPropagation();cerrarSemana('${desde}','${cuad.id}')">🔒 Cerrar</button>`;
     }
 
-    cards.push([totalCuad, `<div class="rc${yaCerrada?' rc-closed':''}" onclick="abrirDetalleCuad('${cuad.id}','${desde}','${hasta}')">
-      <div class="rc-rank">__RANK__</div>
+    cards.push(`<div class="rc${yaCerrada?' rc-closed':''}" onclick="abrirDetalleCuad('${cuad.id}','${desde}','${hasta}')">
+      <div class="rc-rank">${cards.length+1}</div>
       <div class="rc-info">
         <div class="rc-name">${cuad.nombre}</div>
         <div class="rc-tecs-line">${tecs.join(' · ')}</div>
@@ -1975,11 +1857,10 @@ async function renderAdmResumen(){
         <span style="font-size:11px;color:#94a3b8">→</span>
       </div>
       ${actHtml?`<div class="rc-actions-col" onclick="event.stopPropagation()">${actHtml}</div>`:''}
-    </div>`]);
+    </div>`);
   }
 
-  cards.sort((a,b)=>b[0]-a[0]);
-  el.innerHTML=`<div class="rc-list">${cards.map((c,i)=>c[1].replace('__RANK__',i+1)).join('')}</div>`;
+  el.innerHTML=`<div class="rc-list">${cards.join('')}</div>`;
 }
 
 async function abrirDetalleCuad(cuadId,desde,hasta){
