@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v57</title>
+<title>FG Conexiones v58</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f5f9;color:#0f172a;min-height:100vh}
@@ -373,7 +373,7 @@ tr:hover td{background:#f8fafc}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v57</div>
+    <div class="login-ver">FG Conexiones · v58</div>
   </div>
 </div>
 
@@ -391,7 +391,7 @@ tr:hover td{background:#f8fafc}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v57</div>
+    <div class="sb-ver">v58</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -405,7 +405,7 @@ tr:hover td{background:#f8fafc}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v57</div>
+    <div id="mobile-ver">v58</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -812,12 +812,41 @@ tr:hover td{background:#f8fafc}
 
 <!-- MODAL EDITAR CUADRILLA -->
 <div class="modal-overlay hidden" id="cuad-modal">
-  <div class="modal">
+  <div class="modal" style="max-width:480px">
     <div class="modal-title" id="cuad-modal-title">Editar cuadrilla</div>
-    <div class="fg"><label>Nombre de la cuadrilla</label><input type="text" id="cuad-edit-nombre"/></div>
-    <div class="fg"><label>Técnico 1</label><input type="text" id="cuad-edit-tec1"/></div>
-    <div class="fg"><label>Técnico 2</label><input type="text" id="cuad-edit-tec2"/></div>
-    <p style="font-size:12px;color:#888;margin-bottom:1rem">⚠️ Si cambiás el nombre de un técnico, los registros anteriores quedan con el nombre viejo. Solo cambiá si hay un error de tipeo o cambio real de persona.</p>
+
+    <div class="fg">
+      <label>Nombre de la cuadrilla</label>
+      <input type="text" id="cuad-edit-nombre"/>
+    </div>
+
+    <div class="fg">
+      <label>Grupo sábados</label>
+      <select id="cuad-edit-grupo">
+        <option value="1">Grupo 1</option>
+        <option value="2">Grupo 2</option>
+      </select>
+    </div>
+
+    <div class="fg">
+      <label>Técnico 1</label>
+      <select id="cuad-edit-tec1-sel" onchange="validarCambioTec(1)">
+        <option value="">Sin técnico</option>
+      </select>
+      <div id="cuad-warn-tec1" style="display:none;margin-top:6px;padding:8px 10px;background:#fef3c7;border:1.5px solid #fde68a;border-radius:8px;font-size:12px;color:#92400e"></div>
+    </div>
+
+    <div class="fg">
+      <label>Técnico 2</label>
+      <select id="cuad-edit-tec2-sel" onchange="validarCambioTec(2)">
+        <option value="">Sin técnico</option>
+      </select>
+      <div id="cuad-warn-tec2" style="display:none;margin-top:6px;padding:8px 10px;background:#fef3c7;border:1.5px solid #fde68a;border-radius:8px;font-size:12px;color:#92400e"></div>
+    </div>
+
+    <div id="cuad-resumen-cambios" style="display:none;margin-bottom:.9rem;padding:10px 12px;background:#dbeafe;border:1.5px solid #bfdbfe;border-radius:8px;font-size:12px;color:#1e40af">
+    </div>
+
     <div class="modal-footer">
       <button class="btn btn-dark btn-full" onclick="guardarCuadrilla()">Guardar cambios</button>
       <button class="btn" onclick="cerrarCuadModal()">Cancelar</button>
@@ -2667,35 +2696,147 @@ async function agregarTipo(){
 async function elimTipo(id){await sbPatch('tipos_tarea',`?id=eq.${id}`,{activo:false});await cargarTipos();buildTareasInputs();renderConfig();}
 
 // EDITAR CUADRILLA
-function abrirCuadModal(cuadId){
+// Cache de técnicos para el modal
+var _tecnosCache = [];
+
+async function abrirCuadModal(cuadId){
   editCuadId=cuadId;
   const c=CUADRILLAS.find(x=>x.id===cuadId);if(!c)return;
+
   document.getElementById('cuad-modal-title').textContent=`Editar cuadrilla · Grupo ${c.grupo}`;
   document.getElementById('cuad-edit-nombre').value=c.nombre;
-  document.getElementById('cuad-edit-tec1').value=c.tec1||'';
-  document.getElementById('cuad-edit-tec2').value=c.tec2||'';
+  document.getElementById('cuad-edit-grupo').value=c.grupo||1;
   document.getElementById('cuad-modal-ok').textContent='';
   document.getElementById('cuad-modal-err').textContent='';
+  document.getElementById('cuad-warn-tec1').style.display='none';
+  document.getElementById('cuad-warn-tec2').style.display='none';
+  document.getElementById('cuad-resumen-cambios').style.display='none';
   document.getElementById('cuad-modal').classList.remove('hidden');
+
+  // Cargar técnicos desde BD
+  try{
+    _tecnosCache = await sbGet('tecnicos','?activo=eq.true&order=nombre.asc&select=*');
+  }catch(e){
+    // Si la tabla no existe aún, fallback a texto libre
+    _tecnosCache = [];
+  }
+
+  // Poblar selects
+  const buildOpts=(seleccionado)=>{
+    const base=`<option value="">Sin técnico</option>`;
+    if(!_tecnosCache.length){
+      // Fallback: mostrar solo los actuales
+      const opts=[c.tec1,c.tec2].filter(Boolean).map(n=>`<option value="${n}"${n===seleccionado?' selected':''}>${n}</option>`).join('');
+      return base+opts;
+    }
+    return base+_tecnosCache.map(t=>{
+      const cuadTec=CUADRILLAS.find(cc=>cc.id===t.cuadrilla_id);
+      const cuadNom=cuadTec?` (${cuadTec.nombre})`:'';
+      return`<option value="${t.nombre}"${t.nombre===seleccionado?' selected':''}>${t.nombre}${cuadNom}</option>`;
+    }).join('');
+  };
+
+  document.getElementById('cuad-edit-tec1-sel').innerHTML=buildOpts(c.tec1||'');
+  document.getElementById('cuad-edit-tec2-sel').innerHTML=buildOpts(c.tec2||'');
+}
+
+function validarCambioTec(slot){
+  const c=CUADRILLAS.find(x=>x.id===editCuadId);if(!c)return;
+  const sel=document.getElementById(`cuad-edit-tec${slot}-sel`);
+  const warnEl=document.getElementById(`cuad-warn-tec${slot}`);
+  const nombreSel=sel.value;
+
+  if(!nombreSel||!_tecnosCache.length){warnEl.style.display='none';actualizarResumenCambios();return;}
+
+  const tec=_tecnosCache.find(t=>t.nombre===nombreSel);
+  if(!tec||!tec.cuadrilla_id||tec.cuadrilla_id===editCuadId){
+    warnEl.style.display='none';
+  } else {
+    const cuadAnterior=CUADRILLAS.find(cc=>cc.id===tec.cuadrilla_id);
+    const otroTec=slot===1?document.getElementById('cuad-edit-tec2-sel').value:document.getElementById('cuad-edit-tec1-sel').value;
+    const cuadQuedan=cuadAnterior?[cuadAnterior.tec1,cuadAnterior.tec2].filter(t=>t&&t!==nombreSel):[];
+    warnEl.innerHTML=`⚠️ <strong>${nombreSel}</strong> pertenece actualmente a <strong>${cuadAnterior?cuadAnterior.nombre:'otra cuadrilla'}</strong>. Si lo movés, esa cuadrilla queda con ${cuadQuedan.length} técnico${cuadQuedan.length!==1?'s':''}: ${cuadQuedan.join(', ')||'ninguno'}.`;
+    warnEl.style.display='block';
+  }
+  actualizarResumenCambios();
+}
+
+function actualizarResumenCambios(){
+  const c=CUADRILLAS.find(x=>x.id===editCuadId);if(!c)return;
+  const nuevoNombre=document.getElementById('cuad-edit-nombre').value.trim();
+  const nuevoTec1=document.getElementById('cuad-edit-tec1-sel').value;
+  const nuevoTec2=document.getElementById('cuad-edit-tec2-sel').value;
+  const nuevoGrupo=parseInt(document.getElementById('cuad-edit-grupo').value);
+
+  const cambios=[];
+  if(nuevoNombre!==c.nombre)cambios.push(`Nombre: "${c.nombre}" → "${nuevoNombre}"`);
+  if(nuevoTec1!==(c.tec1||''))cambios.push(`Tec 1: ${c.tec1||'ninguno'} → ${nuevoTec1||'ninguno'}`);
+  if(nuevoTec2!==(c.tec2||''))cambios.push(`Tec 2: ${c.tec2||'ninguno'} → ${nuevoTec2||'ninguno'}`);
+  if(nuevoGrupo!==c.grupo)cambios.push(`Grupo: ${c.grupo} → ${nuevoGrupo}`);
+
+  const resEl=document.getElementById('cuad-resumen-cambios');
+  if(cambios.length){
+    resEl.innerHTML='📝 Cambios a aplicar:<br>• '+cambios.join('<br>• ');
+    resEl.style.display='block';
+  } else {
+    resEl.style.display='none';
+  }
 }
 
 async function guardarCuadrilla(){
   if(!editCuadId)return;
+  const c=CUADRILLAS.find(x=>x.id===editCuadId);if(!c)return;
   const nombre=document.getElementById('cuad-edit-nombre').value.trim();
-  const tec1=document.getElementById('cuad-edit-tec1').value.trim();
-  const tec2=document.getElementById('cuad-edit-tec2').value.trim();
-  if(!nombre||!tec1||!tec2){document.getElementById('cuad-modal-err').textContent='Completá todos los campos.';return;}
+  const nuevoGrupo=parseInt(document.getElementById('cuad-edit-grupo').value);
+  const tec1=document.getElementById('cuad-edit-tec1-sel')?.value||document.getElementById('cuad-edit-tec1')?.value||'';
+  const tec2=document.getElementById('cuad-edit-tec2-sel')?.value||document.getElementById('cuad-edit-tec2')?.value||'';
+  const errEl=document.getElementById('cuad-modal-err');
+  if(!nombre){errEl.textContent='El nombre no puede estar vacío.';return;}
+
+  // Verificar técnicos duplicados
+  if(tec1&&tec2&&tec1===tec2){errEl.textContent='No podés asignar el mismo técnico dos veces.';return;}
+
   try{
-    await sbPatch('cuadrillas',`?id=eq.${editCuadId}`,{nombre,tec1,tec2});
-    await logAct('Config cuadrilla',`${editCuadId}: ${nombre} · ${tec1} · ${tec2}`,'cuadrillas');
+    // 1. Actualizar cuadrilla
+    await sbPatch('cuadrillas',`?id=eq.${editCuadId}`,{nombre,tec1:tec1||null,tec2:tec2||null,grupo:nuevoGrupo});
+
+    // 2. Mover técnicos en tabla tecnicos si existe
+    if(_tecnosCache.length){
+      const tecsAMover=[tec1,tec2].filter(Boolean);
+      for(const nomTec of tecsAMover){
+        const tec=_tecnosCache.find(t=>t.nombre===nomTec);
+        if(tec&&tec.cuadrilla_id!==editCuadId){
+          // Sacar de cuadrilla anterior (dejar cuadrilla_id null en el registro del tec anterior)
+          // No: asignar a la nueva cuadrilla
+          await sbPatch('tecnicos',`?id=eq.${tec.id}`,{cuadrilla_id:editCuadId});
+        }
+      }
+      // Los técnicos que SE FUERON de esta cuadrilla quedan sin cuadrilla_id
+      const tecActuales=[c.tec1,c.tec2].filter(Boolean);
+      const tecNuevos=[tec1,tec2].filter(Boolean);
+      const tecQueSeVan=tecActuales.filter(n=>!tecNuevos.includes(n));
+      for(const nomTec of tecQueSeVan){
+        const tec=_tecnosCache.find(t=>t.nombre===nomTec&&t.cuadrilla_id===editCuadId);
+        if(tec) await sbPatch('tecnicos',`?id=eq.${tec.id}`,{cuadrilla_id:null});
+      }
+    }
+
+    await logAct('Config cuadrilla',`${nombre} G${nuevoGrupo} · ${tec1||'—'} · ${tec2||'—'}`,'cuadrillas');
+
     // Actualizar en memoria
     const idx=CUADRILLAS.findIndex(x=>x.id===editCuadId);
-    if(idx>=0){CUADRILLAS[idx].nombre=nombre;CUADRILLAS[idx].tec1=tec1;CUADRILLAS[idx].tec2=tec2;}
+    if(idx>=0){CUADRILLAS[idx].nombre=nombre;CUADRILLAS[idx].tec1=tec1||null;CUADRILLAS[idx].tec2=tec2||null;CUADRILLAS[idx].grupo=nuevoGrupo;}
+
     document.getElementById('cuad-modal-ok').textContent='Guardado ✓';
-    setTimeout(()=>{cerrarCuadModal();renderConfig();poblarSelects();},1000);
-  }catch(e){document.getElementById('cuad-modal-err').textContent='Error: '+e.message;}
+    setTimeout(()=>{cerrarCuadModal();renderConfig();poblarSelects();},900);
+  }catch(e){errEl.textContent='Error: '+e.message;}
 }
-function cerrarCuadModal(){document.getElementById('cuad-modal').classList.add('hidden');editCuadId=null;}
+
+function cerrarCuadModal(){
+  document.getElementById('cuad-modal').classList.add('hidden');
+  editCuadId=null;
+  _tecnosCache=[];
+}
 
 
 
