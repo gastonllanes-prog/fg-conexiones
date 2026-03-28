@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v59</title>
+<title>FG Conexiones v60</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f5f9;color:#0f172a;min-height:100vh}
@@ -373,7 +373,7 @@ tr:hover td{background:#f8fafc}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v59</div>
+    <div class="login-ver">FG Conexiones · v60</div>
   </div>
 </div>
 
@@ -391,7 +391,7 @@ tr:hover td{background:#f8fafc}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v59</div>
+    <div class="sb-ver">v60</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -405,7 +405,7 @@ tr:hover td{background:#f8fafc}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v59</div>
+    <div id="mobile-ver">v60</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -583,11 +583,28 @@ tr:hover td{background:#f8fafc}
 
   <!-- DETALLE CUADRILLA (panel deslizable) -->
   <div id="at-cuad-detalle" style="display:none">
-    <div class="topbar" style="margin-bottom:.7rem">
-      <button class="btn btn-sm" onclick="volverResumen()">← Volver</button>
-      <h2 id="cuad-det-nombre" style="font-size:15px"></h2>
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1.5px solid #e2e8f0">
+      <button class="btn btn-sm" onclick="volverResumen()" style="flex-shrink:0">← Volver</button>
+      <div style="flex:1">
+        <div style="font-size:20px;font-weight:800;color:#0f172a;letter-spacing:-.3px" id="cuad-det-nombre"></div>
+        <div style="font-size:13px;color:#94a3b8;margin-top:2px" id="cuad-det-tecs"></div>
+      </div>
     </div>
-    <div id="cuad-det-content"><div class="loading"><span class="spinner"></span></div></div>
+    <!-- Period selector -->
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1.25rem">
+      <div class="nav" style="margin:0">
+        <div class="ntab active" id="det-tab-sem" onclick="setDetPeriodo('semana',this)">Semana actual</div>
+        <div class="ntab" id="det-tab-mes" onclick="setDetPeriodo('mes',this)">Este mes</div>
+        <div class="ntab" id="det-tab-rango" onclick="setDetPeriodo('rango',this)">Rango</div>
+      </div>
+      <div id="det-ctrl-rango" style="display:none;display:flex;gap:8px;align-items:center">
+        <input type="date" id="det-desde" onchange="recargarDetalle()" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit"/>
+        <span style="color:#94a3b8">—</span>
+        <input type="date" id="det-hasta" onchange="recargarDetalle()" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit"/>
+      </div>
+    </div>
+    <div id="cuad-det-content"><div class="loading"><span class="spinner"></span>Cargando...</div></div>
   </div>
 
   <div id="at-pagos" style="display:none"><div class="ph"><div class="ph-icon yellow">💰</div><div><div class="ph-title">Pagos</div><div class="ph-sub">Registrá y consultá los pagos a técnicos</div></div></div><div id="at-pagos-content"></div></div>
@@ -1141,72 +1158,46 @@ async function renderTecSemana(){
   document.getElementById('t-wk-lbl').textContent=fmtL(lunes)+' – '+fmtL(fmtD(dom));
   const meta=parseInt(CONFIG.meta_semanal||30);
   document.getElementById('t-meta').textContent=meta;
-  const semConf=await getSemConf(lunes);
   const cuad=CUADRILLAS.find(x=>x.id===cuadId);
+
+  // Batch: todas las queries en paralelo
+  const [semConf, regsData, diasEspData, ferData, saldoData] = await Promise.all([
+    getSemConf(lunes),
+    sbGet('registros',`?cuadrilla_id=eq.${cuadId}&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=*,registro_tareas(*)`),
+    esInd?sbGet('dias_especiales',`?cuadrilla_id=eq.${cuadId}&tecnico_nombre=eq.${encodeURIComponent(CU.tecnico_ref)}&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=fecha,tipo`):Promise.resolve([]),
+    sbGet('dias_especiales',`?tipo=eq.feriado&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=fecha,cuadrilla_id`),
+    sbGet('saldos',esInd?`?cuadrilla_id=eq.${cuadId}&tecnico_nombre=eq.${encodeURIComponent(CU.tecnico_ref)}&semana_inicio=eq.${lunes}&select=valor`:`?cuadrilla_id=eq.${cuadId}&semana_inicio=eq.${lunes}&select=valor`)
+  ]);
+
   const libraS=semConf?cuad.grupo===semConf.grupo_libra:false;
   const dias=getDias(lunes,!libraS);
   const fechas=dias.map(d=>d.fecha);
-  const regs=await sbGet('registros',`?cuadrilla_id=eq.${cuadId}&fecha=gte.${fechas[0]}&fecha=lte.${fechas[fechas.length-1]}&select=*,registro_tareas(*)`);
+  const regs=regsData;
 
-  // SIN DIVISIÓN: cada técnico ve el total completo de la cuadrilla
-  // Si es individual y solo, solo cuenta sus registros solo
-  // Si es individual en pareja, cuenta el total completo (no la mitad)
   let totalSemana=0;const totPorDia={};dias.forEach(d=>totPorDia[d.fecha]=0);
   regs.forEach(reg=>{
     let eq=0;(reg.registro_tareas||[]).forEach(rt=>{eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad);});
     if(esInd){
-      if(reg.solo&&reg.tecnico_nombre===CU.tecnico_ref){
-        // Este técnico fue solo: vale DOBLE hacia la meta y en display
-        const eqDoble=eq*2;
-        totPorDia[reg.fecha]=(totPorDia[reg.fecha]||0)+eqDoble;
-        totalSemana+=eqDoble;
-      }else if(reg.solo&&reg.tecnico_nombre!==CU.tecnico_ref){
-        // Otro técnico fue solo: neutral para este
-      }else{
-        totPorDia[reg.fecha]=(totPorDia[reg.fecha]||0)+eq;
-        totalSemana+=eq;
-      }
-    }else{
-      totPorDia[reg.fecha]=(totPorDia[reg.fecha]||0)+eq;
-      totalSemana+=eq;
-    }
+      if(reg.solo&&reg.tecnico_nombre===CU.tecnico_ref){const eqDoble=eq*2;totPorDia[reg.fecha]=(totPorDia[reg.fecha]||0)+eqDoble;totalSemana+=eqDoble;}
+      else if(reg.solo&&reg.tecnico_nombre!==CU.tecnico_ref){}
+      else{totPorDia[reg.fecha]=(totPorDia[reg.fecha]||0)+eq;totalSemana+=eq;}
+    }else{totPorDia[reg.fecha]=(totPorDia[reg.fecha]||0)+eq;totalSemana+=eq;}
   });
 
-  // Vacaciones: si el técnico tiene vacaciones esta semana → suma meta equiv
+  // Días especiales (vacaciones/certificado)
   if(esInd){
-    try{
-      const vacData=await sbGet('dias_especiales',
-        `?cuadrilla_id=eq.${cuadId}&tecnico_nombre=eq.${encodeURIComponent(CU.tecnico_ref)}&tipo=eq.vacaciones&fecha=gte.${fechas[0]}&fecha=lte.${fechas[fechas.length-1]}&select=fecha`);
-      if(vacData&&vacData.length>0){
-        totalSemana=meta;
-        dias.forEach(d=>totPorDia[d.fecha]=0);
-        totPorDia[vacData[0].fecha]=meta;
-      }
-      // Certificado: días marcados = 5 equiv ese día
-      const certData=await sbGet('dias_especiales',
-        `?cuadrilla_id=eq.${cuadId}&tecnico_nombre=eq.${encodeURIComponent(CU.tecnico_ref)}&tipo=eq.certificado&fecha=gte.${fechas[0]}&fecha=lte.${fechas[fechas.length-1]}&select=fecha`);
-      certData.forEach(d=>{
-        totPorDia[d.fecha]=(totPorDia[d.fecha]||0)+5;
-        totalSemana+=5;
-      });
-    }catch(e){}
+    const vacData=diasEspData.filter(d=>d.tipo==='vacaciones');
+    if(vacData.length>0){totalSemana=meta;dias.forEach(d=>totPorDia[d.fecha]=0);totPorDia[vacData[0].fecha]=meta;}
+    diasEspData.filter(d=>d.tipo==='certificado').forEach(d=>{totPorDia[d.fecha]=(totPorDia[d.fecha]||0)+5;totalSemana+=5;});
   }
-  // Feriados: aplican a todos (cuadrilla_id null = todas, o esta cuadrilla)
-  try{
-    const ferData=await sbGet('dias_especiales',
-      `?tipo=eq.feriado&fecha=gte.${fechas[0]}&fecha=lte.${fechas[fechas.length-1]}&select=fecha,cuadrilla_id`);
-    ferData.forEach(d=>{
-      if(d.cuadrilla_id&&d.cuadrilla_id!==cuadId)return;
-      totPorDia[d.fecha]=(totPorDia[d.fecha]||0)+5;
-      totalSemana+=5;
-    });
-  }catch(e){}
+  // Feriados
+  ferData.forEach(d=>{
+    if(d.cuadrilla_id&&d.cuadrilla_id!==cuadId)return;
+    totPorDia[d.fecha]=(totPorDia[d.fecha]||0)+5;totalSemana+=5;
+  });
 
   let saldoTotal=0;
-  try{
-    const sp=esInd?`?cuadrilla_id=eq.${cuadId}&tecnico_nombre=eq.${encodeURIComponent(CU.tecnico_ref)}&semana_inicio=eq.${lunes}`:`?cuadrilla_id=eq.${cuadId}&semana_inicio=eq.${lunes}`;
-    (await sbGet('saldos',sp+'&select=valor')).forEach(s=>saldoTotal+=parseFloat(s.valor));
-  }catch(e){}
+  saldoData.forEach(s=>saldoTotal+=parseFloat(s.valor));
 
   const totalConS=totalSemana+saldoTotal,extras=Math.max(0,totalConS-meta),falta=Math.max(0,meta-totalConS),pct=Math.min(100,Math.round((totalConS/meta)*100));
   document.getElementById('t-total').textContent=totalConS.toFixed(2);
@@ -1222,12 +1213,12 @@ async function renderTecSemana(){
       card.style.background='#f0faf4';
       document.getElementById('t-acum-label').textContent='¡Meta cumplida!';
       const valEl=document.getElementById('t-acum-val');
-      valEl.textContent='✓';valEl.style.color='#1a7a3c';
+      valEl.textContent='✓';valEl.style.color='#059669';
     }else{
       card.style.background='#f8f8f5';
       document.getElementById('t-acum-label').textContent='equiv. para llegar a 30';
       const valEl=document.getElementById('t-acum-val');
-      valEl.textContent='Faltan '+faltaInst.toFixed(2);valEl.style.color='#c0392b';
+      valEl.textContent='Faltan '+faltaInst.toFixed(2);valEl.style.color='#ef4444';
     }
   }
   // Bloque 2: saldo neto acumulado (extras - pagos ya cobrados)
@@ -1250,14 +1241,14 @@ async function renderTecSemana(){
         cardDeuda.style.background='#fff5f5';
         cardDeuda.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center">
           <div><div style="font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em">Saldo pendiente</div>
-          <div style="font-size:13px;color:#c0392b">Debés ${Math.abs(equivAcum).toFixed(2)} equiv. (${fmtPesos(Math.abs(saldoNeto))})</div></div>
-          <div style="font-size:20px;font-weight:800;color:#c0392b">-${Math.abs(equivAcum).toFixed(2)}</div></div>`;
+          <div style="font-size:13px;color:#ef4444">Debés ${Math.abs(equivAcum).toFixed(2)} equiv. (${fmtPesos(Math.abs(saldoNeto))})</div></div>
+          <div style="font-size:20px;font-weight:800;color:#ef4444">-${Math.abs(equivAcum).toFixed(2)}</div></div>`;
       }else{
         cardDeuda.style.background='#f0faf4';
         cardDeuda.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center">
           <div><div style="font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em">Saldo pendiente</div>
-          <div style="font-size:13px;color:#1a7a3c">Te deben ${equivAcum.toFixed(2)} equiv. (${fmtPesos(saldoNeto)})</div></div>
-          <div style="font-size:20px;font-weight:800;color:#1a7a3c">+${equivAcum.toFixed(2)}</div></div>`;
+          <div style="font-size:13px;color:#059669">Te deben ${equivAcum.toFixed(2)} equiv. (${fmtPesos(saldoNeto)})</div></div>
+          <div style="font-size:20px;font-weight:800;color:#059669">+${equivAcum.toFixed(2)}</div></div>`;
       }
     }catch(e){cardDeuda.style.display='none';}
   }
@@ -1343,7 +1334,7 @@ async function renderTecCobros(){
         <div><div style="font-size:13px;font-weight:600">Sem. ${fmtL(d.sem)}</div>
         <div style="font-size:11px;color:#888">Efectivo: ${d.efectivo.toFixed(2)} equiv${soloInfo}</div></div>
         <div style="text-align:right">
-          <div style="font-size:14px;font-weight:700;color:${neg?'#c0392b':'#1a7a3c'}">${d.semTotal>=0?'+':''}${fmtPesos(d.semTotal)}</div>
+          <div style="font-size:14px;font-weight:700;color:${neg?'#ef4444':'#059669'}">${d.semTotal>=0?'+':''}${fmtPesos(d.semTotal)}</div>
           <div style="font-size:11px;color:#888">Acum: ${fmtPesos(d.acum)}</div>
         </div></div>`;
     });
@@ -1720,7 +1711,7 @@ async function renderAdmHoy(){
         </div>
       </div>`;
     }).join('');
-  }catch(e){el.innerHTML='<p style="font-size:13px;color:#c0392b">Error al cargar.</p>';}
+  }catch(e){el.innerHTML='<p style="font-size:13px;color:#ef4444">Error al cargar.</p>';}
 }
 
 // EDITAR/BORRAR
@@ -2025,109 +2016,172 @@ async function renderAdmResumen(){
   el.innerHTML=`<div class="rc-list">${cards.map((c,i)=>c[1].replace('__RANK__',i+1)).join('')}</div>`;
 }
 
+var _detCuadId=null, _detPeriodo='semana';
+
+function setDetPeriodo(p, el){
+  _detPeriodo=p;
+  document.querySelectorAll('#at-cuad-detalle .ntab').forEach(e=>e.classList.remove('active'));
+  if(el)el.classList.add('active');
+  const rc=document.getElementById('det-ctrl-rango');
+  if(rc)rc.style.display=p==='rango'?'flex':'none';
+  if(p!=='rango')recargarDetalle();
+}
+
+function recargarDetalle(){
+  if(!_detCuadId)return;
+  const lunes=getLunes(0);
+  const dom=new Date(lunes+'T12:00:00');dom.setDate(dom.getDate()+6);
+  let desde,hasta;
+  if(_detPeriodo==='semana'){desde=lunes;hasta=fmtD(dom);}
+  else if(_detPeriodo==='mes'){const m=fmtD(new Date()).slice(0,7);desde=m+'-01';const ult=new Date(parseInt(m.split('-')[0]),parseInt(m.split('-')[1]),0).getDate();hasta=m+'-'+String(ult).padStart(2,'0');}
+  else{desde=document.getElementById('det-desde')?.value||lunes;hasta=document.getElementById('det-hasta')?.value||fmtD(dom);}
+  abrirDetalleCuad(_detCuadId,desde,hasta);
+}
+
 async function abrirDetalleCuad(cuadId,desde,hasta){
+  _detCuadId=cuadId;
   document.getElementById('at-resumen').style.display='none';
   document.getElementById('at-cuad-detalle').style.display='block';
   const cuad=CUADRILLAS.find(c=>c.id===cuadId);
   document.getElementById('cuad-det-nombre').textContent=cuad?cuad.nombre:'';
+  const tecs=getTecs(cuadId);
+  const detTecsEl=document.getElementById('cuad-det-tecs');
+  if(detTecsEl)detTecsEl.textContent=tecs.join(' · ');
   const el=document.getElementById('cuad-det-content');
   el.innerHTML='<div class="loading"><span class="spinner"></span>Cargando...</div>';
-
   const meta=parseInt(CONFIG.meta_semanal||30);
   const precio=parseInt(CONFIG.precio_instalacion||7000);
   const precioUnit=precio/2;
-  const regs=await sbGet('registros',`?cuadrilla_id=eq.${cuadId}&fecha=gte.${desde}&fecha=lte.${hasta}&select=*,registro_tareas(*)`);
-  const diasEspCuad=await sbGet('dias_especiales',`?cuadrilla_id=eq.${cuadId}&select=*`);
-  const feriadosPer=await sbGet('dias_especiales',`?tipo=eq.feriado&fecha=gte.${desde}&fecha=lte.${hasta}&select=fecha,cuadrilla_id`);
+  const [regs, diasEspCuad, feriadosPer] = await Promise.all([
+    sbGet('registros',`?cuadrilla_id=eq.${cuadId}&fecha=gte.${desde}&fecha=lte.${hasta}&select=*,registro_tareas(*)`),
+    sbGet('dias_especiales',`?cuadrilla_id=eq.${cuadId}&select=*`),
+    sbGet('dias_especiales',`?tipo=eq.feriado&fecha=gte.${desde}&fecha=lte.${hasta}&select=fecha,cuadrilla_id`)
+  ]);
   const feriadosAplicables=feriadosPer.filter(f=>!f.cuadrilla_id||f.cuadrilla_id===cuadId);
-  const tecs=getTecs(cuadId);
-  let html='';
-
-  for(const tec of tecs){
-    // Agrupar por semana, separando días de pareja vs días solo
+  const tecData=tecs.map(tec=>{
     const porSemana={};
     regs.forEach(reg=>{
       const sem=getLunesDesd(reg.fecha);
       if(!porSemana[sem])porSemana[sem]={diasPar:{},diasSolo:{}};
       let eq=0;(reg.registro_tareas||[]).forEach(rt=>eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));
-      if(reg.solo&&reg.tecnico_nombre===tec){
-        // Día solo: se acumula separado
-        porSemana[sem].diasSolo[reg.fecha]=(porSemana[sem].diasSolo[reg.fecha]||0)+eq;
-      }else if(!reg.solo){
-        // Día en pareja
-        porSemana[sem].diasPar[reg.fecha]=(porSemana[sem].diasPar[reg.fecha]||0)+eq;
-      }
+      if(reg.solo&&reg.tecnico_nombre===tec) porSemana[sem].diasSolo[reg.fecha]=(porSemana[sem].diasSolo[reg.fecha]||0)+eq;
+      else if(!reg.solo) porSemana[sem].diasPar[reg.fecha]=(porSemana[sem].diasPar[reg.fecha]||0)+eq;
     });
-    // Días especiales → van a pareja
     diasEspCuad.filter(d=>d.tecnico_nombre===tec&&(d.tipo==='vacaciones'||d.tipo==='certificado')).forEach(d=>{
-      const sem=getLunesDesd(d.fecha);
-      if(!porSemana[sem])porSemana[sem]={diasPar:{},diasSolo:{}};
-      const v=d.tipo==='vacaciones'?meta:5;
-      porSemana[sem].diasPar[d.fecha]=(porSemana[sem].diasPar[d.fecha]||0)+v;
+      const sem=getLunesDesd(d.fecha);if(!porSemana[sem])porSemana[sem]={diasPar:{},diasSolo:{}};
+      porSemana[sem].diasPar[d.fecha]=(porSemana[sem].diasPar[d.fecha]||0)+(d.tipo==='vacaciones'?meta:5);
     });
     feriadosAplicables.forEach(d=>{
-      const sem=getLunesDesd(d.fecha);
-      if(!porSemana[sem])porSemana[sem]={diasPar:{},diasSolo:{}};
+      const sem=getLunesDesd(d.fecha);if(!porSemana[sem])porSemana[sem]={diasPar:{},diasSolo:{}};
       porSemana[sem].diasPar[d.fecha]=(porSemana[sem].diasPar[d.fecha]||0)+5;
     });
-
-    // Totales
     let eqPar=0,eqSolo=0,ganTotal=0;
     Object.values(porSemana).forEach(({diasPar,diasSolo})=>{
       const par=Object.values(diasPar).reduce((s,v)=>s+v,0);
       const sol=Object.values(diasSolo).reduce((s,v)=>s+v,0);
-      eqPar+=par; eqSolo+=sol;
-      ganTotal+=(par+(sol*2)-meta)*precioUnit;
+      eqPar+=par;eqSolo+=sol;ganTotal+=(par+sol*2-meta)*precioUnit;
     });
-    const eqDisplay=eqPar+(eqSolo*2);
-    const neg=ganTotal<0;
-
-    html+=`<div class="det-tec-block">
-      <div class="det-tec-header">
-        <span class="det-tec-name">${tec}</span>
-        <span class="det-tec-total">${eqDisplay.toFixed(2)} equiv.</span>
+    return{tec,porSemana,eqPar,eqSolo,eqTotal:eqPar+eqSolo*2,ganTotal};
+  });
+  const totalEquiv=tecData.reduce((s,t)=>s+t.eqTotal,0);
+  const totalGan=tecData.reduce((s,t)=>s+t.ganTotal,0);
+  const clrs=['#3b82f6','#10b981'];
+  let html='';
+  html+=`<div class="stat-row" style="margin-bottom:1.25rem">
+    <div class="stat-mini"><div class="sm-val">${totalEquiv.toFixed(1)}</div><div class="sm-lbl">Equiv. total</div></div>
+    <div class="stat-mini"><div class="sm-val" style="color:${totalGan>=0?'#059669':'#ef4444'}">${totalGan>=0?'+':''}${fmtPesos(totalGan)}</div><div class="sm-lbl">${totalGan>=0?'Extras':'Diferencia'}</div></div>
+    <div class="stat-mini"><div class="sm-val">${regs.length}</div><div class="sm-lbl">Registros</div></div>
+  </div>`;
+  if(tecs.length===2&&totalEquiv>0){
+    html+=`<div class="card" style="margin-bottom:1.25rem">
+      <div class="card-title">Comparativa de técnicos</div>
+      <div style="display:grid;grid-template-columns:180px 1fr;gap:1.5rem;align-items:center">
+        <div style="position:relative;width:180px;height:180px;flex-shrink:0">
+          <canvas id="det-comp-chart" width="180" height="180"></canvas>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none">
+            <div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase">Total</div>
+            <div style="font-size:20px;font-weight:900;color:#0f172a">${totalEquiv.toFixed(1)}</div>
+          </div>
+        </div>
+        <div>${tecData.map((t,i)=>{
+          const clr=clrs[i];const pct=totalEquiv>0?(t.eqTotal/totalEquiv*100).toFixed(0):0;
+          return`<div style="margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:10px;height:10px;border-radius:50%;background:${clr};flex-shrink:0"></div>
+                <span style="font-size:14px;font-weight:700;color:#0f172a">${t.tec}</span>
+              </div>
+              <div style="text-align:right">
+                <span style="font-size:16px;font-weight:900;color:#0f172a">${t.eqTotal.toFixed(2)}</span>
+                <span style="font-size:11px;color:#94a3b8;margin-left:4px">${pct}%</span>
+              </div>
+            </div>
+            <div style="background:#f1f5f9;border-radius:99px;height:8px;overflow:hidden">
+              <div style="height:100%;border-radius:99px;background:${clr};width:${pct}%;transition:width .7s ease"></div>
+            </div>
+            <div style="font-size:11px;color:#64748b;margin-top:3px">
+              Pareja: ${t.eqPar.toFixed(2)}${t.eqSolo>0?` · Solo: ${t.eqSolo.toFixed(2)} (×2=${(t.eqSolo*2).toFixed(2)})` :''}
+              <span style="margin-left:6px;font-weight:700;color:${t.ganTotal>=0?'#059669':'#ef4444'}">${t.ganTotal>=0?'+':''}${fmtPesos(t.ganTotal)}</span>
+            </div>
+          </div>`;}).join('')}
+        </div>
       </div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:#64748b;margin-bottom:10px">
-        <span>En pareja: <strong style="color:#0f172a">${eqPar.toFixed(2)}</strong></span>
-        ${eqSolo>0?`<span>Solo: <strong style="color:#7c3aed">${eqSolo.toFixed(2)}</strong> <span style="color:#94a3b8">(×2 = ${(eqSolo*2).toFixed(2)})</span></span>`:''}
-        <span style="color:${neg?'#ef4444':'#059669'};font-weight:700">${ganTotal>=0?'+':''}${fmtPesos(ganTotal)}</span>
+    </div>`;
+  }
+  tecData.forEach((t,ti)=>{
+    html+=`<div class="card" style="border-left:4px solid ${clrs[ti]||'#3b82f6'}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.875rem">
+        <div>
+          <div style="font-size:16px;font-weight:800;color:#0f172a">${t.tec}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px">Pareja: <strong>${t.eqPar.toFixed(2)}</strong>${t.eqSolo>0?` · Solo: <strong style="color:#7c3aed">${t.eqSolo.toFixed(2)}</strong> (×2 = <strong>${(t.eqSolo*2).toFixed(2)}</strong>)` :''}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:22px;font-weight:900;color:#0f172a;letter-spacing:-.5px">${t.eqTotal.toFixed(2)}</div>
+          <div style="font-size:12px;font-weight:700;color:${t.ganTotal>=0?'#059669':'#ef4444'}">${t.ganTotal>=0?'+':''}${fmtPesos(t.ganTotal)}</div>
+        </div>
       </div>`;
-
-    // Semanas
-    Object.entries(porSemana).sort().forEach(([sem,{diasPar,diasSolo}])=>{
-      const parTotal=Object.values(diasPar).reduce((s,v)=>s+v,0);
-      const solTotal=Object.values(diasSolo).reduce((s,v)=>s+v,0);
-      if(parTotal===0&&solTotal===0)return;
+    Object.entries(t.porSemana).sort().forEach(([sem,{diasPar,diasSolo}])=>{
+      const parTot=Object.values(diasPar).reduce((s,v)=>s+v,0),solTot=Object.values(diasSolo).reduce((s,v)=>s+v,0);
+      if(parTot===0&&solTot===0)return;
       const domSem=new Date(sem+'T12:00:00');domSem.setDate(domSem.getDate()+6);
-      html+=`<div style="background:#f8fafc;border-radius:10px;padding:.75rem 1rem;margin-bottom:.5rem;border:1px solid #f1f5f9">`;
-      html+=`<div style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Semana ${fmtL(sem)} – ${fmtL(fmtD(domSem))}</div>`;
-      // Días en pareja
-      if(Object.keys(diasPar).length>0){
-        html+=`<div style="font-size:11px;font-weight:600;color:#3b82f6;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em">En pareja</div>`;
+      html+=`<div style="background:#f8fafc;border-radius:10px;padding:.75rem 1rem;margin-bottom:.5rem;border:1px solid #f1f5f9">
+        <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Semana ${fmtL(sem)} – ${fmtL(fmtD(domSem))}</div>`;
+      if(Object.keys(diasPar).length){
+        html+=`<div style="font-size:10px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">En pareja</div>`;
         Object.entries(diasPar).sort().forEach(([fecha,eq])=>{
-          const de=esDiaEsp(fecha);
-          const icons={lluvia:'🌧 ',feriado:'📅 ',vacaciones:'🏖 ',certificado:'🏥 '};
-          const icon=de?(icons[de.tipo]||''):'';
-          html+=`<div class="det-day-row"><span style="color:#475569">${icon}${fmtFull(fecha)}</span><span style="font-weight:600;color:#0f172a">${eq.toFixed(2)}</span></div>`;
+          const de=esDiaEsp(fecha);const icons={lluvia:'🌧 ',feriado:'📅 ',vacaciones:'🏖 ',certificado:'🏥 '};
+          html+=`<div class="det-day-row"><span style="color:#475569">${de?(icons[de.tipo]||''):''}${fmtFull(fecha)}</span><span style="font-weight:600;color:#0f172a">${eq.toFixed(2)}</span></div>`;
         });
       }
-      // Días solo
-      if(Object.keys(diasSolo).length>0){
-        html+=`<div style="font-size:11px;font-weight:600;color:#7c3aed;margin-top:6px;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em">Solo (×2)</div>`;
+      if(Object.keys(diasSolo).length){
+        html+=`<div style="font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.06em;margin:.4rem 0 3px">Solo (×2)</div>`;
         Object.entries(diasSolo).sort().forEach(([fecha,eq])=>{
-          html+=`<div class="det-day-row"><span style="color:#475569">${fmtFull(fecha)} <span class="solo-badge">solo</span></span><span style="font-weight:700;color:#7c3aed">${eq.toFixed(2)} <span style="font-size:11px;color:#94a3b8">→ ${(eq*2).toFixed(2)} equiv.</span></span></div>`;
+          html+=`<div class="det-day-row"><span style="color:#475569">${fmtFull(fecha)} <span class="solo-badge">solo</span></span><span style="font-weight:700;color:#7c3aed">${eq.toFixed(2)} → ${(eq*2).toFixed(2)}</span></div>`;
         });
       }
       html+='</div>';
     });
     html+='</div>';
-  }
+  });
   el.innerHTML=html;
+  if(tecs.length===2&&totalEquiv>0){
+    setTimeout(()=>{
+      const ctx=document.getElementById('det-comp-chart');if(!ctx)return;
+      if(window._detChart)window._detChart.destroy();
+      window._detChart=new Chart(ctx,{
+        type:'doughnut',
+        data:{labels:tecs,datasets:[{data:tecData.map(t=>parseFloat(t.eqTotal.toFixed(2))),backgroundColor:clrs,borderWidth:0,hoverOffset:4}]},
+        options:{responsive:false,cutout:'70%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw.toFixed(1)} equiv`}}}}
+      });
+    },80);
+  }
 }
+
 function volverResumen(){
   document.getElementById('at-cuad-detalle').style.display='none';
   document.getElementById('at-resumen').style.display='block';
 }
+
 
 // PAGOS
 async function eliminarPago(pagoId, cuadId){
@@ -2281,7 +2335,7 @@ async function abrirDetallePagos(cuadId){
   for(const tec of tecs){
     const info=await calcSaldoTecnico(cuadId,tec);
     const saldo=info.saldo;
-    const saldoCls=saldo>0?'color:#1a7a3c':saldo<0?'color:#c0392b':'color:#888';
+    const saldoCls=saldo>0?'color:#059669':saldo<0?'color:#ef4444':'color:#888';
 
     html+=`<div class="card" style="margin-bottom:.9rem">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem">
@@ -2306,7 +2360,7 @@ async function abrirDetallePagos(cuadId){
             <div style="font-size:11px;color:#888">Cálculo: (${d.efectivo.toFixed(2)} - ${meta}) × $${precioUnit.toLocaleString('es-AR')}</div>
           </div>
           <div style="text-align:right">
-            <div style="font-size:14px;font-weight:700;color:${neg?'#c0392b':'#1a7a3c'}">${d.semTotal>=0?'+':''}${fmtPesos(d.semTotal)}</div>
+            <div style="font-size:14px;font-weight:700;color:${neg?'#ef4444':'#059669'}">${d.semTotal>=0?'+':''}${fmtPesos(d.semTotal)}</div>
             <div style="font-size:11px;color:#888">Acum: ${fmtPesos(d.acum)}</div>
           </div>
         </div>`;
@@ -2325,7 +2379,7 @@ async function abrirDetallePagos(cuadId){
             <div style="font-size:11px;color:#888">${p.descripcion||'Sin descripción'}</div>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
-            <div style="font-size:14px;font-weight:700;color:#c0392b">-${fmtPesos(p.monto)}</div>
+            <div style="font-size:14px;font-weight:700;color:#ef4444">-${fmtPesos(p.monto)}</div>
             <button class="btn btn-sm btn-red" onclick="eliminarPago('${p.id}','${cuadId}')">✕</button>
           </div>
         </div>`;
@@ -2441,7 +2495,7 @@ async function guardarRotacion(){
   await sbUpsert('semanas_config',{semana_inicio:lunes,grupo_libra:grupo,created_by:CU.username});
   await logAct('Config rotación',`Semana ${lunes}: Grupo ${grupo} libre el sábado`);
   msgEl.textContent='✓ Guardado. Semana del '+fmtL(lunes)+': Grupo '+grupo+' tiene el sábado libre.';
-  msgEl.style.color='#1a7a3c';
+  msgEl.style.color='#059669';
 }
 async function renderConfig(){
   const el=document.getElementById('at-config-content'),esJefe=CU.rol==='jefe';
@@ -3165,7 +3219,7 @@ async function renderLog(){
       if(!activos||!activos.length){
         elActivos.innerHTML='<p style="font-size:13px;color:#999">Nadie conectado en los últimos 15 minutos.</p>';
       }else{
-        const rolColor={jefe:'#8B5CF6',admin:'#2563EB',tecnico:'#1a7a3c'};
+        const rolColor={jefe:'#8B5CF6',admin:'#2563EB',tecnico:'#059669'};
         elActivos.innerHTML=activos.map(a=>{
           const hace=Math.round((ahora-new Date(a.ultimo_acceso))/60000);
           return`<div class="row">
@@ -3178,7 +3232,7 @@ async function renderLog(){
           </div>`;
         }).join('');
       }
-    }catch(e){elActivos.innerHTML='<p style="font-size:12px;color:#c0392b">Error.</p>';}
+    }catch(e){elActivos.innerHTML='<p style="font-size:12px;color:#ef4444">Error.</p>';}
   }
   const el=document.getElementById('log-lista');el.innerHTML='<div class="loading"><span class="spinner"></span></div>';
   const data=await sbGet('log_actividad','?order=created_at.desc&limit=60');
@@ -3233,7 +3287,7 @@ async function renderCombustibleResumen(){
       return`<div class="row"><span style="font-size:14px;font-weight:600">${c.nombre}</span><span style="font-size:15px;font-weight:700;color:#2980b9">${fmtPesos(tot)}</span></div>`;
     }).join('')+'<div class="row" style="border-top:2px solid #eee;margin-top:4px"><span style="font-size:13px;font-weight:700">TOTAL</span><span style="font-size:15px;font-weight:800;color:#111">${fmtPesos(Object.values(totales).reduce((a,b)=>a+b,0))}</span></div>'
       .replace('${fmtPesos(Object.values(totales).reduce((a,b)=>a+b,0))}', fmtPesos(Object.values(totales).reduce((a,b)=>a+b,0)));
-  }catch(e){el.innerHTML='<p style="font-size:13px;color:#c0392b">Error: '+e.message+'</p>';}
+  }catch(e){el.innerHTML='<p style="font-size:13px;color:#ef4444">Error: '+e.message+'</p>';}
 }
 
 async function renderCombustibleLista(){
@@ -3258,7 +3312,7 @@ async function renderCombustibleLista(){
         </div>
       </div>`;
     }).join('');
-  }catch(e){el.innerHTML='<p style="font-size:13px;color:#c0392b">Error: '+e.message+'</p>';}
+  }catch(e){el.innerHTML='<p style="font-size:13px;color:#ef4444">Error: '+e.message+'</p>';}
 }
 
 async function elimCombustible(id){
@@ -3437,7 +3491,7 @@ async function renderTecAdelantos(){
       el.innerHTML='<div class="card"><p style="font-size:13px;color:#999">No tenés adelantos registrados.</p></div>';
       return;
     }
-    const totalCls=pendiente>0?'#c0392b':'#1a7a3c';
+    const totalCls=pendiente>0?'#ef4444':'#059669';
     let html=`<div class="saldo-box ${pendiente>0?'saldo-rojo':'saldo-cero'}">
       <div class="saldo-titulo">Adelantos pendientes de descuento</div>
       <div class="saldo-monto" style="color:${totalCls}">${fmtPesos(pendiente)}</div>
@@ -3463,7 +3517,7 @@ async function renderTecAdelantos(){
     });
     html+='</div>';
     el.innerHTML=html;
-  }catch(e){el.innerHTML='<div class="card"><p style="font-size:13px;color:#c0392b">Error: '+e.message+'</p></div>';}
+  }catch(e){el.innerHTML='<div class="card"><p style="font-size:13px;color:#ef4444">Error: '+e.message+'</p></div>';}
 }
 // Vista técnico: combustible de su cuadrilla
 async function renderTecCombustible(){
@@ -3527,7 +3581,7 @@ async function renderTecCombustible(){
 
     el.innerHTML=html;
   }catch(e){
-    el.innerHTML='<div class="card"><p style="font-size:13px;color:#c0392b">Error: '+e.message+'</p></div>';
+    el.innerHTML='<div class="card"><p style="font-size:13px;color:#ef4444">Error: '+e.message+'</p></div>';
   }
 }
 </script>
