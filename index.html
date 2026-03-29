@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v67</title>
+<title>FG Conexiones v68</title>
 <style>
 :root{
   --bg:#0d1117;
@@ -379,7 +379,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v67</div>
+    <div class="login-ver">FG Conexiones · v68</div>
   </div>
 </div>
 
@@ -397,7 +397,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v67</div>
+    <div class="sb-ver">v68</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -411,7 +411,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v67</div>
+    <div id="mobile-ver">v68</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -3115,15 +3115,26 @@ async function renderDashboard() {
     html += '<button class="d-refresh" style="margin-left:8px" onclick="_dashWkOff=0;renderDashboard()">↻ HOY</button>';
     html += '</div></div></div>';
 
-    var kpiAccents = ['#3b82f6','#10b981','#f59e0b','#a78bfa','#ef4444','#06b6d4'];
+    // Build KPI click handler data
+    var kpiData = {
+      equiv: cRows,
+      pagos: sRows.filter(function(s){return s.sal>0;}),
+      alertas: alertas,
+      combustible: combustMes,
+      adelantos: adelPend
+    };
+    window._dashKpiData = kpiData;
+    window._dashCRows = cRows;
+    window._dashMeta = meta;
+
     html += '<div class="dk">';
-    html += '<div class="dk-card"><div class="dk-accent" style="background:'+kpiAccents[0]+'"></div><div class="dk-icon">📊</div><div class="dk-val">'+totGen.toFixed(1)+'</div><div class="dk-label">Equiv. totales</div><div class="dk-sub '+(cuadsOk===CUADRILLAS.length?'pos':cuadsOk>0?'warn':'neg')+'">'+cuadsOk+' / '+CUADRILLAS.length+' en meta</div></div>';
-    html += '<div class="dk-card"><div class="dk-accent" style="background:'+kpiAccents[1]+'"></div><div class="dk-icon">📈</div><div class="dk-val">'+(totGen/CUADRILLAS.length).toFixed(1)+'</div><div class="dk-label">Promedio / cuadrilla</div><div class="dk-sub">Meta: '+meta+' equiv.</div></div>';
+    html += '<div class="dk-card" style="cursor:pointer" onclick="dashKpiDetalle(\'equiv\')" title="Ver detalle por cuadrilla"><div class="dk-accent" style="background:'+kpiAccents[0]+'"></div><div class="dk-icon">📊</div><div class="dk-val">'+totGen.toFixed(1)+'</div><div class="dk-label">Equiv. totales</div><div class="dk-sub '+(cuadsOk===CUADRILLAS.length?'pos':cuadsOk>0?'warn':'neg')+'">'+cuadsOk+' / '+CUADRILLAS.length+' en meta</div><div style="font-size:9px;color:#374151;margin-top:4px">click p/ver</div></div>';
+    html += '<div class="dk-card" style="cursor:pointer" onclick="dashKpiDetalle(\'promedio\')" title="Ver desglose"><div class="dk-accent" style="background:'+kpiAccents[1]+'"></div><div class="dk-icon">📈</div><div class="dk-val">'+(totGen/CUADRILLAS.length).toFixed(1)+'</div><div class="dk-label">Promedio / cuadrilla</div><div class="dk-sub">Meta: '+meta+' equiv.</div><div style="font-size:9px;color:#374151;margin-top:4px">click p/ver</div></div>';
     var tecsPend = sRows.filter(function(s){return s.sal>0;}).length;
-    html += '<div class="dk-card"><div class="dk-accent" style="background:'+kpiAccents[2]+'"></div><div class="dk-icon">💰</div><div class="dk-val" style="font-size:22px;letter-spacing:-.5px">'+fmtPesos(totPend)+'</div><div class="dk-label">Pagos pendientes</div><div class="dk-sub '+(tecsPend>0?'warn':'pos')+'">'+tecsPend+' técnico'+(tecsPend!==1?'s':'')+' por cobrar</div></div>';
-    html += '<div class="dk-card"><div class="dk-accent" style="background:'+(alertas.length?kpiAccents[4]:kpiAccents[1])+'"></div><div class="dk-icon">'+(alertas.length?'⚠️':'✅')+'</div><div class="dk-val" style="color:'+(alertas.length?'#f87171':'#10b981')+'">'+alertas.length+'</div><div class="dk-label">Alertas deuda</div><div class="dk-sub '+(alertas.length?'neg':'pos')+'">'+(alertas.length?'Requieren atención':'Sin deudas')+'</div></div>';
-    html += '<div class="dk-card"><div class="dk-accent" style="background:'+kpiAccents[5]+'"></div><div class="dk-icon">⛽</div><div class="dk-val" style="font-size:22px;letter-spacing:-.5px;color:#38bdf8">'+fmtPesos(totComb)+'</div><div class="dk-label">Combustible este mes</div><div class="dk-sub">'+combustMes.length+' cargas registradas</div></div>';
-    html += '<div class="dk-card"><div class="dk-accent" style="background:'+kpiAccents[3]+'"></div><div class="dk-icon">💵</div><div class="dk-val" style="font-size:22px;letter-spacing:-.5px;color:#a78bfa">'+fmtPesos(totAdel)+'</div><div class="dk-label">Adelantos pendientes</div><div class="dk-sub">'+adelPend.length+' sin descontar</div></div>';
+    html += '<div class="dk-card" style="cursor:pointer" onclick="dashKpiDetalle(\'pagos\')" title="Ver quién tiene saldo pendiente"><div class="dk-accent" style="background:'+kpiAccents[2]+'"></div><div class="dk-icon">💰</div><div class="dk-val" style="font-size:22px;letter-spacing:-.5px">'+fmtPesos(totPend)+'</div><div class="dk-label">Pagos pendientes</div><div class="dk-sub '+(tecsPend>0?'warn':'pos')+'">'+tecsPend+' técnico'+(tecsPend!==1?'s':'')+' por cobrar</div><div style="font-size:9px;color:#374151;margin-top:4px">click p/ver</div></div>';
+    html += '<div class="dk-card" style="cursor:pointer" onclick="dashKpiDetalle(\'alertas\')" title="Ver deudas activas"><div class="dk-accent" style="background:'+(alertas.length?kpiAccents[4]:kpiAccents[1])+'"></div><div class="dk-icon">'+(alertas.length?'⚠️':'✅')+'</div><div class="dk-val" style="color:'+(alertas.length?'#f87171':'#10b981')+'">'+alertas.length+'</div><div class="dk-label">Alertas deuda</div><div class="dk-sub '+(alertas.length?'neg':'pos')+'">'+(alertas.length?'Requieren atención':'Sin deudas')+'</div><div style="font-size:9px;color:#374151;margin-top:4px">click p/ver</div></div>';
+    html += '<div class="dk-card" style="cursor:pointer" onclick="dashKpiDetalle(\'combustible\')" title="Ver cargas del mes"><div class="dk-accent" style="background:'+kpiAccents[5]+'"></div><div class="dk-icon">⛽</div><div class="dk-val" style="font-size:22px;letter-spacing:-.5px;color:#38bdf8">'+fmtPesos(totComb)+'</div><div class="dk-label">Combustible este mes</div><div class="dk-sub">'+combustMes.length+' cargas registradas</div><div style="font-size:9px;color:#374151;margin-top:4px">click p/ver</div></div>';
+    html += '<div class="dk-card" style="cursor:pointer" onclick="dashKpiDetalle(\'adelantos\')" title="Ver adelantos sin descontar"><div class="dk-accent" style="background:'+kpiAccents[3]+'"></div><div class="dk-icon">💵</div><div class="dk-val" style="font-size:22px;letter-spacing:-.5px;color:#a78bfa">'+fmtPesos(totAdel)+'</div><div class="dk-label">Adelantos pendientes</div><div class="dk-sub">'+adelPend.length+' sin descontar</div><div style="font-size:9px;color:#374151;margin-top:4px">click p/ver</div></div>';
     html += '</div>';
 
     html += '<div class="dg-main">';
@@ -3258,6 +3269,120 @@ async function renderDashboard() {
 // Dashboard interactivity
 var _dashPagoTec=null, _dashPagoCuadId=null;
 
+function dashKpiDetalle(tipo){
+  var panel=document.getElementById('dash-side-panel');
+  var titleEl=document.getElementById('dsp-title');
+  var contentEl=document.getElementById('dsp-content');
+  if(!panel||!contentEl)return;
+  panel.style.display='block';
+
+  var data=window._dashKpiData||{};
+  var cRows=window._dashCRows||[];
+  var meta=window._dashMeta||30;
+  var html='';
+
+  if(tipo==='equiv'||tipo==='promedio'){
+    if(titleEl)titleEl.textContent='📊 Equiv. por cuadrilla esta semana';
+    var total=cRows.reduce(function(s,c){return s+c.tot;},0);
+    html+='<div style="font-size:11px;color:#6b7280;margin-bottom:.75rem">Meta por cuadrilla: <strong style="color:#fff">'+meta+' equiv.</strong> · Total: <strong style="color:#fff">'+total.toFixed(1)+'</strong></div>';
+    cRows.forEach(function(c,i){
+      var pct=c.pct, clr=pct>=100?'#22c55e':pct>=70?'#f59e0b':'#ef4444';
+      html+='<div style="margin-bottom:1rem">';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
+      html+='<div><span style="font-size:13px;font-weight:700;color:#fff">'+(i+1)+'. '+c.cuad.nombre+'</span>';
+      html+='<div style="font-size:11px;color:#6b7280;margin-top:1px">'+(c.cuad.tec1||'')+(c.cuad.tec2?' · '+c.cuad.tec2:'')+'</div></div>';
+      html+='<div style="text-align:right"><span style="font-size:16px;font-weight:900;color:'+clr+'">'+c.tot.toFixed(1)+'</span>';
+      html+='<div style="font-size:10px;color:#6b7280">'+pct+'% de meta</div></div></div>';
+      html+='<div style="background:rgba(255,255,255,.06);border-radius:99px;height:6px;overflow:hidden">';
+      html+='<div style="height:100%;border-radius:99px;background:'+clr+';width:'+Math.min(100,pct)+'%;transition:width .7s ease"></div></div>';
+      html+='<div style="font-size:11px;color:#6b7280;margin-top:3px">';
+      html+=pct>=100?'✅ Meta cumplida':'Faltan '+(meta-c.tot).toFixed(1)+' equiv.';
+      html+='</div></div>';
+    });
+  }
+  else if(tipo==='pagos'){
+    if(titleEl)titleEl.textContent='💰 Saldos pendientes de cobro';
+    var positivos=data.pagos||[];
+    if(!positivos.length){html='<div style="text-align:center;padding:2rem;color:#22c55e">✅ Todos los técnicos tienen saldo al día</div>';}
+    else{
+      html+='<div style="font-size:11px;color:#6b7280;margin-bottom:.75rem">Técnicos con extras sin cobrar, ordenados de mayor a menor.</div>';
+      positivos.forEach(function(s){
+        html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
+        html+='<div><div style="font-size:13px;font-weight:700;color:#fff">'+s.nm+'</div>';
+        html+='<div style="font-size:11px;color:#6b7280">'+s.cuad+'</div></div>';
+        html+='<span style="font-size:14px;font-weight:900;color:#22c55e">+'+fmtPesos(s.sal)+'</span></div>';
+      });
+      var total=positivos.reduce(function(s,p){return s+p.sal;},0);
+      html+='<div style="margin-top:.75rem;padding:.75rem;background:rgba(255,255,255,.04);border-radius:10px;display:flex;justify-content:space-between">';
+      html+='<span style="font-size:12px;color:#6b7280;font-weight:700">TOTAL A PAGAR</span>';
+      html+='<span style="font-size:14px;font-weight:900;color:#22c55e">'+fmtPesos(total)+'</span></div>';
+    }
+  }
+  else if(tipo==='alertas'){
+    if(titleEl)titleEl.textContent='⚠️ Deudas activas';
+    var alertas=data.alertas||[];
+    if(!alertas.length){html='<div style="text-align:center;padding:2rem;color:#22c55e">✅ Sin deudas activas</div>';}
+    else{
+      html+='<div style="font-size:11px;color:#6b7280;margin-bottom:.75rem">Técnicos con saldo negativo (deben plata). Click en una deuda para registrar el pago.</div>';
+      alertas.forEach(function(a){
+        html+='<div onclick="dashPagoRapido(\''+a.nm+'\',\''+a.cuad+'\','+Math.abs(a.sal)+')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:10px 12px;margin-bottom:6px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;transition:background .15s" onmouseover="this.style.background=\'rgba(239,68,68,.14)\'" onmouseout="this.style.background=\'rgba(239,68,68,.08)\'">';
+        html+='<div><div style="font-size:13px;font-weight:700;color:#fca5a5">'+a.nm+'</div>';
+        html+='<div style="font-size:11px;color:#6b7280">'+a.cuad+'</div></div>';
+        html+='<div style="text-align:right"><div style="font-size:14px;font-weight:900;color:#f87171">Debe '+fmtPesos(Math.abs(a.sal))+'</div>';
+        html+='<div style="font-size:10px;color:#6b7280">click p/pagar</div></div></div>';
+      });
+    }
+  }
+  else if(tipo==='combustible'){
+    if(titleEl)titleEl.textContent='⛽ Combustible este mes';
+    var cargas=data.combustible||[];
+    if(!cargas.length){html='<div style="text-align:center;padding:2rem;color:#6b7280">Sin cargas registradas este mes</div>';}
+    else{
+      // Agrupar por cuadrilla
+      var porCuad={};
+      cargas.forEach(function(c){
+        var cuad=CUADRILLAS.find(function(x){return x.id===c.cuadrilla_id;});
+        var nm=cuad?cuad.nombre:c.cuadrilla_id;
+        if(!porCuad[nm])porCuad[nm]=0;
+        porCuad[nm]+=parseFloat(c.monto);
+      });
+      var total=cargas.reduce(function(s,c){return s+parseFloat(c.monto);},0);
+      html+='<div style="font-size:11px;color:#6b7280;margin-bottom:.75rem">'+cargas.length+' cargas registradas este mes · Total: <strong style="color:#38bdf8">'+fmtPesos(total)+'</strong></div>';
+      Object.entries(porCuad).sort(function(a,b){return b[1]-a[1];}).forEach(function(e){
+        var pct=total>0?(e[1]/total*100).toFixed(0):0;
+        html+='<div style="margin-bottom:.875rem">';
+        html+='<div style="display:flex;justify-content:space-between;margin-bottom:4px">';
+        html+='<span style="font-size:13px;font-weight:700;color:#fff">'+e[0]+'</span>';
+        html+='<span style="font-size:13px;font-weight:700;color:#38bdf8">'+fmtPesos(e[1])+'</span></div>';
+        html+='<div style="background:rgba(255,255,255,.06);border-radius:99px;height:6px;overflow:hidden">';
+        html+='<div style="height:100%;border-radius:99px;background:#38bdf8;width:'+pct+'%"></div></div>';
+        html+='<div style="font-size:10px;color:#6b7280;margin-top:2px">'+pct+'% del total</div></div>';
+      });
+    }
+  }
+  else if(tipo==='adelantos'){
+    if(titleEl)titleEl.textContent='💵 Adelantos pendientes';
+    var adels=data.adelantos||[];
+    if(!adels.length){html='<div style="text-align:center;padding:2rem;color:#6b7280">Sin adelantos pendientes</div>';}
+    else{
+      var porTec={};
+      adels.forEach(function(a){if(!porTec[a.tecnico_nombre])porTec[a.tecnico_nombre]=0;porTec[a.tecnico_nombre]+=parseFloat(a.monto);});
+      var totalAdel=Object.values(porTec).reduce(function(s,v){return s+v;},0);
+      html+='<div style="font-size:11px;color:#6b7280;margin-bottom:.75rem">'+adels.length+' adelantos sin descontar · Total: <strong style="color:#a78bfa">'+fmtPesos(totalAdel)+'</strong></div>';
+      Object.entries(porTec).sort(function(a,b){return b[1]-a[1];}).forEach(function(e){
+        var cuad=adels.find(function(a){return a.tecnico_nombre===e[0];});
+        var cuadNm=cuad&&cuad.cuadrilla_id?(CUADRILLAS.find(function(c){return c.id===cuad.cuadrilla_id;})||{}).nombre||'':'';
+        html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
+        html+='<div><div style="font-size:13px;font-weight:700;color:#fff">'+e[0]+'</div>';
+        html+='<div style="font-size:11px;color:#6b7280">'+cuadNm+'</div></div>';
+        html+='<span style="font-size:14px;font-weight:900;color:#a78bfa">'+fmtPesos(e[1])+'</span></div>';
+      });
+    }
+  }
+
+  contentEl.innerHTML=html;
+}
+
 async function dashVerCuad(cuadId, desde, hasta){
   var panel=document.getElementById('dash-side-panel');
   var titleEl=document.getElementById('dsp-title');
@@ -3361,7 +3486,7 @@ async function dashPagoRapido(tecNombre, cuadNombre, montoDeuda){
   var montoEl=document.getElementById('dpm-monto');
   var fechaEl=document.getElementById('dpm-fecha');
   if(!modal)return;
-  if(montoEl)montoEl.value=montoDeuda;
+  if(montoEl)montoEl.value=Math.round(montoDeuda);
   if(fechaEl)fechaEl.value=fmtD(new Date());
   document.getElementById('dpm-err').textContent='';
 
