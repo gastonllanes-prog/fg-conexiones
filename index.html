@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v64</title>
+<title>FG Conexiones v65</title>
 <style>
 :root{
   --bg:#0d1117;
@@ -379,7 +379,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v64</div>
+    <div class="login-ver">FG Conexiones · v65</div>
   </div>
 </div>
 
@@ -397,7 +397,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v64</div>
+    <div class="sb-ver">v65</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -411,7 +411,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v64</div>
+    <div id="mobile-ver">v65</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1495,7 +1495,7 @@ async function renderAdmRanking(){
         <div style="font-size:10px;color:#94a3b8">${r.cuad}</div>
       </div>
       <div style="flex:1;background:rgba(255,255,255,.06);border-radius:99px;height:7px;overflow:hidden">
-        <div style="height:100%;border-radius:99px;background:${i===0?'linear-gradient(90deg,#f59e0b,#fbbf24)':i<3?'linear-gradient(90deg,#3b82f6,#60a5fa)':'#334155'};width:${(r.total/maxInd*100).toFixed(0)}%;transition:width .7s ease"></div>
+        <div style="height:100%;border-radius:99px;background:${i===0?'linear-gradient(90deg,#f59e0b,#fbbf24)':i<3?'linear-gradient(90deg,#3b82f6,#60a5fa)':'linear-gradient(90deg,#475569,#64748b)'};width:${(r.total/maxInd*100).toFixed(0)}%;transition:width .7s ease"></div>
       </div>
       <div style="font-size:14px;font-weight:800;color:#f1f5f9;width:50px;text-align:right">${r.total.toFixed(1)}</div>
     </div>`).join('')}
