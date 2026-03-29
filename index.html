@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v68</title>
+<title>FG Conexiones v69</title>
 <style>
 :root{
   --bg:#0d1117;
@@ -379,7 +379,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v68</div>
+    <div class="login-ver">FG Conexiones · v69</div>
   </div>
 </div>
 
@@ -397,7 +397,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v68</div>
+    <div class="sb-ver">v69</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -411,7 +411,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v68</div>
+    <div id="mobile-ver">v69</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -3116,6 +3116,7 @@ async function renderDashboard() {
     html += '</div></div></div>';
 
     // Build KPI click handler data
+    var kpiAccents = ['#3b82f6','#10b981','#f59e0b','#a78bfa','#ef4444','#06b6d4'];
     var kpiData = {
       equiv: cRows,
       pagos: sRows.filter(function(s){return s.sal>0;}),
