@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v71</title>
+<title>FG Conexiones v72</title>
 <style>
 :root{
   --bg:#0d1117;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v71</div>
+    <div class="login-ver">FG Conexiones · v72</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v71</div>
+    <div class="sb-ver">v72</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v71</div>
+    <div id="mobile-ver">v72</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -718,12 +718,60 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div id="rep-content"></div>
   </div>
 
-  <div id="at-log" style="display:none"><div class="ph"><div class="ph-icon gray">📜</div><div><div class="ph-title">Log de actividad</div><div class="ph-sub">Historial de accesos y acciones</div></div></div>
-    <div class="card" id="log-activos-card" style="display:none;margin-bottom:.7rem">
+  <div id="at-log" style="display:none">
+    <div class="ph"><div class="ph-icon gray">📜</div><div><div class="ph-title">Log de actividad</div><div class="ph-sub">Accesos, acciones y actividad del sistema</div></div></div>
+
+    <!-- Conectados ahora -->
+    <div class="card" id="log-activos-card" style="display:none;margin-bottom:1rem">
       <div class="card-title">🟢 Ahora conectados</div>
       <div id="log-activos"></div>
     </div>
-    <div class="card"><div class="card-title">Historial de accesos</div><div id="log-lista"><div class="loading"><span class="spinner"></span></div></div></div>
+
+    <!-- Filtros -->
+    <div class="card" style="margin-bottom:1rem">
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end">
+        <div class="fg" style="margin-bottom:0;flex:1;min-width:150px">
+          <label>Usuario</label>
+          <select id="log-fil-user" onchange="renderLog()">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div class="fg" style="margin-bottom:0;flex:1;min-width:130px">
+          <label>Acción</label>
+          <select id="log-fil-accion" onchange="renderLog()">
+            <option value="">Todas</option>
+            <option value="Login">Login</option>
+            <option value="Cargar">Cargar tareas</option>
+            <option value="Pago">Pagos</option>
+            <option value="Adelanto">Adelantos</option>
+            <option value="Config">Configuración</option>
+          </select>
+        </div>
+        <div class="fg" style="margin-bottom:0;flex:1;min-width:130px">
+          <label>Fecha</label>
+          <input type="date" id="log-fil-fecha" onchange="renderLog()"/>
+        </div>
+        <button class="btn btn-sm" onclick="document.getElementById('log-fil-user').value='';document.getElementById('log-fil-accion').value='';document.getElementById('log-fil-fecha').value='';renderLog()">Limpiar</button>
+      </div>
+    </div>
+
+    <!-- Resumen por usuario (expandible) -->
+    <div class="card" style="margin-bottom:1rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleLogResumen()">
+        <div class="card-title" style="margin-bottom:0">👤 Actividad por usuario</div>
+        <span id="log-res-chevron" style="font-size:12px;color:#6b7280">▼</span>
+      </div>
+      <div id="log-resumen-content" style="margin-top:.875rem"></div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.875rem">
+        <div class="card-title" style="margin-bottom:0">Historial de actividad</div>
+        <span id="log-count" style="font-size:11px;color:#6b7280"></span>
+      </div>
+      <div id="log-lista"><div class="loading"><span class="spinner"></span></div></div>
+    </div>
   </div>
   <div id="at-dashboard" style="display:none">
     <div id="dash-content"><div class="loading"><span class="spinner"></span>Cargando...</div></div>
@@ -3879,8 +3927,10 @@ function imprimirReporte(){
   win.document.close();win.focus();setTimeout(()=>win.print(),300);
 }
 
+var _logData=[], _logResumenOpen=true;
+
 async function renderLog(){
-  // Ahora conectados (últimos 15 minutos)
+  // Activos
   const cardActivos=document.getElementById('log-activos-card');
   if(cardActivos)cardActivos.style.display=CU&&CU.rol==='jefe'?'block':'none';
   const elActivos=document.getElementById('log-activos');
@@ -3889,31 +3939,140 @@ async function renderLog(){
       const ahora=new Date();
       const hace15=new Date(ahora-15*60*1000).toISOString();
       const activos=await sbGet('sesiones_activas',`?ultimo_acceso=gte.${hace15}&order=ultimo_acceso.desc&select=*`);
+      const rolColor={jefe:'#a78bfa',admin:'#60a5fa',tecnico:'#22c55e'};
       if(!activos||!activos.length){
         elActivos.innerHTML='<p style="font-size:13px;color:#6b7280">Nadie conectado en los últimos 15 minutos.</p>';
       }else{
-        const rolColor={jefe:'#8B5CF6',admin:'#2563EB',tecnico:'#059669'};
         elActivos.innerHTML=activos.map(a=>{
           const hace=Math.round((ahora-new Date(a.ultimo_acceso))/60000);
           return`<div class="row">
-            <div style="display:flex;align-items:center;gap:8px">
-              <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;flex-shrink:0"></span>
-              <div><div style="font-size:14px;font-weight:600">${a.nombre}</div>
-              <div style="font-size:11px;color:#8b9cb3">@${a.username} · <span style="color:${rolColor[a.rol]||'#888'}">${a.rol}</span></div></div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0;box-shadow:0 0 6px #22c55e"></div>
+              <div><div style="font-size:14px;font-weight:600;color:var(--text1)">${a.nombre}</div>
+              <div style="font-size:11px;color:#8b9cb3">@${a.username} · <span style="color:${rolColor[a.rol]||'#8b9cb3'}">${a.rol}</span></div></div>
             </div>
-            <div style="font-size:12px;color:#8b9cb3">hace ${hace<1?'menos de 1':hace} min</div>
+            <div style="font-size:12px;color:#6b7280">hace ${hace<1?'<1':hace} min</div>
           </div>`;
         }).join('');
       }
-    }catch(e){elActivos.innerHTML='<p style="font-size:12px;color:#ef4444">Error.</p>';}
+    }catch(e){if(elActivos)elActivos.innerHTML='';}
   }
-  const el=document.getElementById('log-lista');el.innerHTML='<div class="loading"><span class="spinner"></span></div>';
-  const data=await sbGet('log_actividad','?order=created_at.desc&limit=60');
-  if(!data.length){el.innerHTML='<p style="font-size:13px;color:#6b7280">Sin actividad.</p>';return;}
-  el.innerHTML=data.map(l=>{
-    const fecha=new Date(l.created_at).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-    return`<div style="padding:9px 0;border-bottom:1px solid #f0f0f0"><div style="font-size:13px;font-weight:600">${l.accion}</div><div style="font-size:12px;color:#8b9cb3">${l.detalle||''}</div><div style="font-size:11px;color:#6b7280">${l.usuario} · ${fecha}</div></div>`;
-  }).join('');
+
+  // Cargar log completo si no está en cache
+  const el=document.getElementById('log-lista');
+  if(!_logData.length){
+    el.innerHTML='<div class="loading"><span class="spinner"></span></div>';
+    try{
+      _logData=await sbGet('log_actividad','?order=created_at.desc&limit=200');
+    }catch(e){el.innerHTML='<p style="color:#f87171">Error cargando log.</p>';return;}
+  }
+
+  // Poblar filtro de usuarios si está vacío
+  const selUser=document.getElementById('log-fil-user');
+  if(selUser&&selUser.options.length<=1){
+    const usuarios=[...new Set(_logData.map(l=>l.usuario).filter(Boolean))].sort();
+    usuarios.forEach(u=>{const o=document.createElement('option');o.value=u;o.textContent=u;selUser.appendChild(o);});
+  }
+
+  // Aplicar filtros
+  const filUser=document.getElementById('log-fil-user')?.value||'';
+  const filAccion=document.getElementById('log-fil-accion')?.value||'';
+  const filFecha=document.getElementById('log-fil-fecha')?.value||'';
+
+  let filtered=_logData;
+  if(filUser) filtered=filtered.filter(l=>l.usuario===filUser);
+  if(filAccion) filtered=filtered.filter(l=>(l.accion||'').toLowerCase().includes(filAccion.toLowerCase()));
+  if(filFecha) filtered=filtered.filter(l=>(l.created_at||'').startsWith(filFecha));
+
+  // Contador
+  const countEl=document.getElementById('log-count');
+  if(countEl)countEl.textContent=`${filtered.length} registros${filtered.length<_logData.length?' (filtrado)':''}`;
+
+  // Resumen por usuario
+  const resEl=document.getElementById('log-resumen-content');
+  if(resEl&&_logResumenOpen){
+    const porUser={};
+    _logData.forEach(l=>{
+      if(!l.usuario)return;
+      if(!porUser[l.usuario])porUser[l.usuario]={total:0,ultimo:null,acciones:{}};
+      porUser[l.usuario].total++;
+      if(!porUser[l.usuario].ultimo||l.created_at>porUser[l.usuario].ultimo) porUser[l.usuario].ultimo=l.created_at;
+      const acc=(l.accion||'Otro').split(' ')[0];
+      porUser[l.usuario].acciones[acc]=(porUser[l.usuario].acciones[acc]||0)+1;
+    });
+    const rows=Object.entries(porUser).sort((a,b)=>b[1].total-a[1].total);
+    resEl.innerHTML=`<table style="font-size:12px"><thead><tr>
+      <th>Usuario</th><th style="text-align:right">Acciones</th><th>Último acceso</th><th>Top acciones</th><th></th>
+    </tr></thead><tbody>${rows.map(([u,v])=>{
+      const topAcc=Object.entries(v.acciones).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,n])=>`${k}(${n})`).join(' · ');
+      const ult=v.ultimo?new Date(v.ultimo).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+      const isFiltered=filUser===u;
+      return`<tr>
+        <td style="font-weight:700">${u}</td>
+        <td style="text-align:right;font-weight:700;color:#60a5fa">${v.total}</td>
+        <td style="color:#8b9cb3">${ult}</td>
+        <td style="color:#6b7280;font-size:11px">${topAcc}</td>
+        <td><button class="btn btn-sm" style="font-size:11px;padding:3px 8px;${isFiltered?'background:rgba(59,130,246,.2);color:#60a5fa':''}" 
+          onclick="filtrarLogPorUser('${u}')">${isFiltered?'✕ Quitar':'Ver solo'}</button></td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+  } else if(resEl){resEl.innerHTML='';}
+
+  // Timeline
+  if(!filtered.length){el.innerHTML='<p style="font-size:13px;color:#6b7280;padding:1rem 0">Sin actividad para los filtros seleccionados.</p>';return;}
+
+  // Agrupar por fecha
+  const porFecha={};
+  filtered.forEach(l=>{
+    const d=(l.created_at||'').slice(0,10);
+    if(!porFecha[d])porFecha[d]=[];
+    porFecha[d].push(l);
+  });
+
+  const accionIcono={'Login':'🔑','Logout':'🚪','Cargar':'📋','Pago':'💰','Adelanto':'💵','Combustible':'⛽','Config':'⚙️','ABM':'🔧','Ranking':'🏆','Reset':'🔒','default':'📌'};
+  const getIcon=a=>{const k=Object.keys(accionIcono).find(k=>a&&a.toLowerCase().includes(k.toLowerCase()));return accionIcono[k]||accionIcono.default;};
+
+  let html='';
+  Object.entries(porFecha).sort((a,b)=>b[0].localeCompare(a[0])).forEach(([fecha,items])=>{
+    const fechaFmt=new Date(fecha+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'2-digit',month:'long'});
+    html+=`<div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;padding:10px 0 6px;margin-top:4px">${fechaFmt} <span style="color:#475569;font-weight:500">(${items.length})</span></div>`;
+    items.forEach(l=>{
+      const hora=new Date(l.created_at).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+      const icon=getIcon(l.accion||'');
+      const isLogin=(l.accion||'').toLowerCase().includes('login');
+      const accionColor=isLogin?'#22c55e':'var(--text1)';
+      html+=`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);align-items:flex-start">
+        <div style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-top:1px">${icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <div>
+              <span style="font-size:13px;font-weight:700;color:${accionColor}">${l.accion||'—'}</span>
+              ${l.detalle?`<div style="font-size:11px;color:#6b7280;margin-top:2px">${l.detalle}</div>`:''}
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-size:12px;color:#8b9cb3;font-weight:600">${hora}</div>
+              <div style="font-size:11px;color:#475569">${l.usuario||''}</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    });
+  });
+  el.innerHTML=html;
+}
+
+function filtrarLogPorUser(user){
+  const sel=document.getElementById('log-fil-user');
+  if(!sel)return;
+  sel.value=sel.value===user?'':user;
+  renderLog();
+}
+
+function toggleLogResumen(){
+  _logResumenOpen=!_logResumenOpen;
+  const ch=document.getElementById('log-res-chevron');
+  if(ch)ch.textContent=_logResumenOpen?'▼':'▶';
+  renderLog();
 }
 // =============================================
 // COMBUSTIBLE
