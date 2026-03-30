@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v69</title>
+<title>FG Conexiones v71</title>
 <style>
 :root{
   --bg:#0d1117;
@@ -362,6 +362,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 @media(max-width:768px){.dk{grid-template-columns:1fr 1fr}.dg-bot{grid-template-columns:1fr}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -379,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v69</div>
+    <div class="login-ver">FG Conexiones · v71</div>
   </div>
 </div>
 
@@ -397,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v69</div>
+    <div class="sb-ver">v71</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -411,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v69</div>
+    <div id="mobile-ver">v71</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -687,6 +688,35 @@ tr:hover td{background:rgba(255,255,255,.02)}
   </div>
 
   <div id="at-config" style="display:none"><div class="ph"><div class="ph-icon gray">⚙️</div><div><div class="ph-title">Configuración</div><div class="ph-sub">Tipos de tarea, cuadrillas y ajustes generales</div></div></div><div id="at-config-content"><div class="loading"><span class="spinner"></span></div></div></div>
+
+  <div id="at-reporte" style="display:none">
+    <div class="ph"><div class="ph-icon" style="background:rgba(16,185,129,.15)">📋</div><div><div class="ph-title">Reporte de tareas</div><div class="ph-sub">Resumen de trabajo por rango de fechas</div></div></div>
+    <!-- Filtros -->
+    <div class="card" style="margin-bottom:1.25rem">
+      <div style="display:flex;align-items:flex-end;gap:1rem;flex-wrap:wrap">
+        <div class="fg" style="margin-bottom:0;flex:1;min-width:140px"><label>Desde</label><input type="date" id="rep-desde"/></div>
+        <div class="fg" style="margin-bottom:0;flex:1;min-width:140px"><label>Hasta</label><input type="date" id="rep-hasta"/></div>
+        <div class="fg" style="margin-bottom:0;flex:1;min-width:160px"><label>Cuadrilla</label>
+          <select id="rep-cuad">
+            <option value="">Todas las cuadrillas</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0">
+          <button class="btn btn-dark" onclick="generarReporte()">🔍 Generar</button>
+          <button class="btn" onclick="exportarExcel()" id="rep-excel-btn" style="display:none">📊 Excel</button>
+          <button class="btn" onclick="imprimirReporte()" id="rep-print-btn" style="display:none">🖨 PDF/Imprimir</button>
+        </div>
+      </div>
+      <!-- Shortcuts -->
+      <div style="display:flex;gap:6px;margin-top:.75rem;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="setRepPeriodo('semana')">Esta semana</button>
+        <button class="btn btn-sm" onclick="setRepPeriodo('mes')">Este mes</button>
+        <button class="btn btn-sm" onclick="setRepPeriodo('marzo')">Marzo 2026</button>
+        <button class="btn btn-sm" onclick="setRepPeriodo('todo')">Todo el período</button>
+      </div>
+    </div>
+    <div id="rep-content"></div>
+  </div>
 
   <div id="at-log" style="display:none"><div class="ph"><div class="ph-icon gray">📜</div><div><div class="ph-title">Log de actividad</div><div class="ph-sub">Historial de accesos y acciones</div></div></div>
     <div class="card" id="log-activos-card" style="display:none;margin-bottom:.7rem">
@@ -1012,6 +1042,7 @@ function buildSidebar(){
     nav+=sbItem('combustible','⛽','Combustible',`admTab('combustible',this)`);
     if(esJefe){nav+=sbItem('adelantos','💵','Adelantos',`admTab('adelantos',this)`);}
     nav+=`<div class="sb-divider"></div><div class="sb-section">Sistema</div>`;
+    if(esJefe){nav+=sbItem('reporte','📋','Reporte de tareas',`admTab('reporte',this)`);}
     nav+=sbItem('log','📜','Log de actividad',`admTab('log',this)`);
     // Gestión submenu
     nav+=`<div class="sb-item" id="sb-gestion-toggle" onclick="toggleGestion()">
@@ -1587,7 +1618,7 @@ function poblarSelects(){
 }
 
 function admTabShow(tab){
-  ['cargar','resumen','pagos','historico','dias','saldos','config','log','ranking','dashboard','combustible','adelantos'].forEach(t=>{
+  ['cargar','resumen','pagos','historico','dias','saldos','config','log','ranking','dashboard','combustible','adelantos','reporte'].forEach(t=>{
     const e=document.getElementById('at-'+t);if(e)e.style.display=t===tab?'block':'none';
   });
   const det=document.getElementById('at-cuad-detalle');if(det)det.style.display='none';
@@ -1604,6 +1635,7 @@ function admTab(tab,el){
   if(tab==='dias')renderDiasEsp();
   if(tab==='config')renderConfig();
   if(tab==='log')renderLog();
+  if(tab==='reporte')initReporte();
   if(tab==='historico')renderHistLista();
   if(tab==='ranking')renderAdmRanking();
   if(tab==='dashboard')renderDashboard();
@@ -3603,6 +3635,250 @@ async function confirmarDashPago(){
 }
 
 // LOG
+// ═══ REPORTE DE TAREAS ═══
+function initReporte(){
+  const sel=document.getElementById('rep-cuad');
+  if(sel&&sel.options.length<=1){
+    CUADRILLAS.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.nombre;sel.appendChild(o);});
+  }
+  if(!document.getElementById('rep-desde').value) setRepPeriodo('mes');
+}
+
+function setRepPeriodo(p){
+  const hoy=fmtD(new Date());
+  const m=hoy.slice(0,7);
+  const ult=new Date(parseInt(m.split('-')[0]),parseInt(m.split('-')[1]),0).getDate();
+  if(p==='semana'){
+    const l=getLunes(0);const d=new Date(l+'T12:00:00');d.setDate(d.getDate()+6);
+    document.getElementById('rep-desde').value=l;
+    document.getElementById('rep-hasta').value=fmtD(d);
+  } else if(p==='mes'){
+    document.getElementById('rep-desde').value=m+'-01';
+    document.getElementById('rep-hasta').value=m+'-'+String(ult).padStart(2,'0');
+  } else if(p==='marzo'){
+    document.getElementById('rep-desde').value='2026-03-01';
+    document.getElementById('rep-hasta').value='2026-03-31';
+  } else {
+    document.getElementById('rep-desde').value='2026-03-01';
+    document.getElementById('rep-hasta').value=hoy;
+  }
+}
+
+async function generarReporte(){
+  const el=document.getElementById('rep-content');
+  const desde=document.getElementById('rep-desde').value;
+  const hasta=document.getElementById('rep-hasta').value;
+  const cuadFil=document.getElementById('rep-cuad').value;
+  if(!desde||!hasta){el.innerHTML='<div class="msg msg-warn">Seleccioná un rango de fechas.</div>';return;}
+  el.innerHTML='<div class="loading"><span class="spinner"></span>Generando reporte...</div>';
+  try{
+    let params='?fecha=gte.'+desde+'&fecha=lte.'+hasta+'&select=cuadrilla_id,fecha,tecnico_nombre,solo,registro_tareas(tipo_tarea_id,cantidad)';
+    if(cuadFil) params+='&cuadrilla_id=eq.'+cuadFil;
+    const regs=await sbGet('registros',params);
+    if(!regs.length){el.innerHTML='<div class="msg msg-info">Sin registros para ese período.</div>';return;}
+
+    const porTipo={};
+    TIPOS.forEach(t=>{porTipo[t.id]={nombre:t.nombre,cantidad:0,equiv:0,soloReg:t.solo_registra};});
+    const porCuad={};
+    CUADRILLAS.forEach(c=>{porCuad[c.id]={nombre:c.nombre,equiv:0,regs:0};});
+    const porTec={};
+    const porSemana={};
+    let totalEquiv=0;
+
+    regs.forEach(reg=>{
+      let eqReg=0;
+      (reg.registro_tareas||[]).forEach(rt=>{
+        const eq=calcEquiv(rt.tipo_tarea_id,rt.cantidad);
+        eqReg+=eq;
+        if(porTipo[rt.tipo_tarea_id]){porTipo[rt.tipo_tarea_id].cantidad+=parseFloat(rt.cantidad||0);porTipo[rt.tipo_tarea_id].equiv+=eq;}
+      });
+      const eqFinal=reg.solo?eqReg*2:eqReg;
+      if(porCuad[reg.cuadrilla_id]){porCuad[reg.cuadrilla_id].equiv+=eqFinal;porCuad[reg.cuadrilla_id].regs++;}
+      totalEquiv+=eqFinal;
+      // Por técnico individual
+      const cuad=CUADRILLAS.find(c=>c.id===reg.cuadrilla_id);
+      const tecs=reg.solo?[reg.tecnico_nombre]:getTecs(reg.cuadrilla_id);
+      tecs.forEach(tec=>{
+        if(!tec)return;
+        const k=reg.cuadrilla_id+'_'+tec;
+        if(!porTec[k])porTec[k]={nombre:tec,cuad:cuad?cuad.nombre:'',equiv:0,regs:0};
+        porTec[k].equiv+=reg.solo?eqReg*2:eqReg;
+        if(reg.solo&&reg.tecnico_nombre===tec) porTec[k].regs++;
+        else if(!reg.solo) porTec[k].regs++;
+      });
+      const sem=getLunesDesd(reg.fecha);
+      if(!porSemana[sem])porSemana[sem]={equiv:0,regs:0};
+      porSemana[sem].equiv+=eqFinal;porSemana[sem].regs++;
+    });
+
+    const meta=parseInt(CONFIG.meta_semanal||30);
+    const precio=parseInt(CONFIG.precio_instalacion||7000);
+    const precioUnit=precio/2;
+    const nSems=Object.keys(porSemana).length;
+    const cuads=cuadFil?1:CUADRILLAS.length;
+    const metaTotal=meta*cuads*nSems;
+    const totalRegs=regs.length;
+
+    let html=`<div id="rep-printable">`;
+    // Header
+    html+=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border)">
+      <div><div style="font-size:18px;font-weight:800;color:var(--text1)">Reporte de tareas</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:3px">${fmtFull(desde)} → ${fmtFull(hasta)}${cuadFil?' · '+(CUADRILLAS.find(c=>c.id===cuadFil)?.nombre||''):' · Todas las cuadrillas'}</div></div>
+      <div style="text-align:right"><div style="font-size:11px;color:var(--text3)">Generado</div>
+      <div style="font-size:12px;color:var(--text2)">${new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div></div>
+    </div>`;
+    // KPIs
+    html+=`<div class="stat-row" style="margin-bottom:1.5rem">
+      <div class="stat-mini"><div class="sm-val">${totalEquiv.toFixed(1)}</div><div class="sm-lbl">Equiv. total</div></div>
+      <div class="stat-mini"><div class="sm-val">${totalRegs}</div><div class="sm-lbl">Registros</div></div>
+      <div class="stat-mini"><div class="sm-val">${nSems}</div><div class="sm-lbl">Semanas</div></div>
+      <div class="stat-mini"><div class="sm-val" style="color:${totalEquiv>=metaTotal?'#22c55e':'#f59e0b'}">${metaTotal>0?Math.round(totalEquiv/metaTotal*100):0}%</div><div class="sm-lbl">vs meta</div></div>
+    </div>`;
+    // Por tipo de tarea
+    const tiposUsados=Object.values(porTipo).filter(t=>t.cantidad>0).sort((a,b)=>b.equiv-a.equiv);
+    if(tiposUsados.length){
+      html+=`<div class="card" style="margin-bottom:1rem"><div class="card-title">📋 Por tipo de tarea</div>
+        <table><thead><tr><th>Tarea</th><th style="text-align:right">Cantidad</th><th style="text-align:right">Equiv.</th><th style="text-align:right">% total</th></tr></thead><tbody>`;
+      tiposUsados.forEach(t=>{
+        const pct=totalEquiv>0?(t.equiv/totalEquiv*100).toFixed(1):0;
+        html+=`<tr><td style="font-weight:600">${t.nombre}</td><td style="text-align:right">${t.cantidad.toFixed(t.soloReg?0:2)}</td>
+          <td style="text-align:right;font-weight:700;color:#22c55e">${t.equiv.toFixed(2)}</td>
+          <td style="text-align:right;color:var(--text2)">${pct}%</td></tr>`;
+      });
+      html+=`<tr style="border-top:1px solid var(--border)"><td style="font-weight:800">TOTAL</td><td></td>
+        <td style="text-align:right;font-weight:900;color:#22c55e">${totalEquiv.toFixed(2)}</td><td style="text-align:right">100%</td></tr>`;
+      html+=`</tbody></table></div>`;
+    }
+    // Por cuadrilla
+    const cuadsUsadas=Object.values(porCuad).filter(c=>c.equiv>0).sort((a,b)=>b.equiv-a.equiv);
+    if(cuadsUsadas.length){
+      html+=`<div class="card" style="margin-bottom:1rem"><div class="card-title">🚗 Por cuadrilla</div>
+        <table><thead><tr><th>#</th><th>Cuadrilla</th><th style="text-align:right">Registros</th><th style="text-align:right">Equiv.</th><th style="text-align:right">Extras est.</th></tr></thead><tbody>`;
+      cuadsUsadas.forEach((c,i)=>{
+        const extrasEst=(c.equiv-meta*nSems)*precioUnit;
+        html+=`<tr><td style="color:var(--text3);font-weight:700">${i+1}</td><td style="font-weight:700">${c.nombre}</td>
+          <td style="text-align:right;color:var(--text2)">${c.regs}</td>
+          <td style="text-align:right;font-weight:800">${c.equiv.toFixed(2)}</td>
+          <td style="text-align:right;font-weight:700;color:${extrasEst>=0?'#22c55e':'#f87171'}">${extrasEst>=0?'+':''}${fmtPesos(extrasEst)}</td></tr>`;
+      });
+      html+=`</tbody></table></div>`;
+    }
+    // Por técnico individual
+    const tecsUsados=Object.values(porTec).filter(t=>t.equiv>0).sort((a,b)=>b.equiv-a.equiv);
+    if(tecsUsados.length){
+      html+=`<div class="card" style="margin-bottom:1rem"><div class="card-title">🧑‍🔧 Por técnico individual</div>
+        <table><thead><tr><th>#</th><th>Técnico</th><th>Cuadrilla</th><th style="text-align:right">Registros</th><th style="text-align:right">Equiv.</th></tr></thead><tbody>`;
+      tecsUsados.forEach((t,i)=>{
+        html+=`<tr><td style="color:var(--text3);font-weight:700">${i+1}</td>
+          <td style="font-weight:700">${t.nombre}</td>
+          <td style="color:var(--text2)">${t.cuad}</td>
+          <td style="text-align:right;color:var(--text2)">${t.regs}</td>
+          <td style="text-align:right;font-weight:800">${t.equiv.toFixed(2)}</td></tr>`;
+      });
+      html+=`</tbody></table></div>`;
+    }
+    // Por semana
+    const semsOrdenadas=Object.entries(porSemana).sort();
+    if(semsOrdenadas.length>1){
+      html+=`<div class="card"><div class="card-title">📅 Evolución semanal</div>
+        <table><thead><tr><th>Semana</th><th style="text-align:right">Registros</th><th style="text-align:right">Equiv.</th><th style="text-align:right">Prom./cuadrilla</th></tr></thead><tbody>`;
+      semsOrdenadas.forEach(([sem,v])=>{
+        const dom=new Date(sem+'T12:00:00');dom.setDate(dom.getDate()+6);
+        const prom=(v.equiv/cuads).toFixed(2);
+        const ok=parseFloat(prom)>=meta;
+        html+=`<tr><td>${fmtL(sem)} – ${fmtL(fmtD(dom))}</td>
+          <td style="text-align:right;color:var(--text2)">${v.regs}</td>
+          <td style="text-align:right;font-weight:700">${v.equiv.toFixed(2)}</td>
+          <td style="text-align:right;font-weight:700;color:${ok?'#22c55e':'#f87171'}">${prom}${ok?' ✅':' ⚠️'}</td></tr>`;
+      });
+      html+=`</tbody></table></div>`;
+    }
+    html+=`</div>`;
+    el.innerHTML=html;
+    document.getElementById('rep-print-btn').style.display='inline-flex';
+    document.getElementById('rep-excel-btn').style.display='inline-flex';
+    // Store data for Excel export
+    window._repData={desde,hasta,cuadFil,tiposUsados:Object.values(porTipo).filter(t=>t.cantidad>0).sort((a,b)=>b.equiv-a.equiv),
+      cuadsUsadas:Object.values(porCuad).filter(c=>c.equiv>0).sort((a,b)=>b.equiv-a.equiv),
+      tecsUsados:Object.values(porTec).filter(t=>t.equiv>0).sort((a,b)=>b.equiv-a.equiv),
+      semsOrdenadas:Object.entries(porSemana).sort(),totalEquiv,totalRegs,nSems,cuads,meta,precioUnit};
+  }catch(e){el.innerHTML='<div class="msg msg-warn">Error: '+e.message+'</div>';}
+}
+
+function exportarExcel(){
+  const d=window._repData;if(!d)return;
+  const wb=XLSX.utils.book_new();
+  const cuadNm=d.cuadFil?(CUADRILLAS.find(c=>c.id===d.cuadFil)?.nombre||''):null;
+  const titulo=`Reporte ${d.desde} al ${d.hasta}${cuadNm?' - '+cuadNm:''}`;
+
+  // Hoja 1: Resumen
+  const resumen=[
+    ['REPORTE DE TAREAS - FG Conexiones'],
+    ['Período',d.desde+' al '+d.hasta],
+    ['Cuadrilla',cuadNm||'Todas'],
+    [],
+    ['Equiv. total',d.totalEquiv.toFixed(2)],
+    ['Total registros',d.totalRegs],
+    ['Semanas',d.nSems],
+    ['% vs meta',d.totalEquiv>0?Math.round(d.totalEquiv/(d.meta*d.cuads*d.nSems)*100)+'%':'-'],
+  ];
+  const ws1=XLSX.utils.aoa_to_sheet(resumen);
+  XLSX.utils.book_append_sheet(wb,ws1,'Resumen');
+
+  // Hoja 2: Por tipo de tarea
+  const tareas=[['Tarea','Cantidad','Equiv.','% del total']];
+  d.tiposUsados.forEach(t=>{
+    const pct=d.totalEquiv>0?(t.equiv/d.totalEquiv*100).toFixed(1)+'%':'-';
+    tareas.push([t.nombre,parseFloat(t.cantidad.toFixed(2)),parseFloat(t.equiv.toFixed(2)),pct]);
+  });
+  tareas.push(['TOTAL','',parseFloat(d.totalEquiv.toFixed(2)),'100%']);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(tareas),'Por tarea');
+
+  // Hoja 3: Por cuadrilla
+  const cuads=[['#','Cuadrilla','Registros','Equiv.','Extras est. ($)']];
+  d.cuadsUsadas.forEach((c,i)=>{
+    const ext=(c.equiv-d.meta*d.nSems)*d.precioUnit;
+    cuads.push([i+1,c.nombre,c.regs,parseFloat(c.equiv.toFixed(2)),Math.round(ext)]);
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(cuads),'Por cuadrilla');
+
+  // Hoja 4: Por técnico
+  const tecs=[['#','Técnico','Cuadrilla','Registros','Equiv.']];
+  d.tecsUsados.forEach((t,i)=>tecs.push([i+1,t.nombre,t.cuad,t.regs,parseFloat(t.equiv.toFixed(2))]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(tecs),'Por técnico');
+
+  // Hoja 5: Por semana
+  if(d.semsOrdenadas.length>1){
+    const sems=[['Semana','Hasta','Registros','Equiv.','Prom./cuadrilla']];
+    d.semsOrdenadas.forEach(([sem,v])=>{
+      const dom=new Date(sem+'T12:00:00');dom.setDate(dom.getDate()+6);
+      const prom=(v.equiv/d.cuads).toFixed(2);
+      sems.push([fmtL(sem),fmtL(fmtD(dom)),v.regs,parseFloat(v.equiv.toFixed(2)),parseFloat(prom)]);
+    });
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sems),'Por semana');
+  }
+
+  XLSX.writeFile(wb,`Reporte_FGConexiones_${d.desde}_${d.hasta}.xlsx`);
+}
+
+function imprimirReporte(){
+  const content=document.getElementById('rep-printable');
+  if(!content)return;
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Reporte FG Conexiones</title>
+  <style>body{font-family:-apple-system,sans-serif;color:#0f172a;padding:2rem;font-size:13px}
+  table{width:100%;border-collapse:collapse;margin-bottom:1rem}
+  th{background:#f1f5f9;padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#64748b}
+  td{padding:8px 10px;border-bottom:1px solid #f1f5f9}
+  .card{border:1px solid #e2e8f0;border-radius:12px;padding:1rem;margin-bottom:1rem}
+  .card-title{font-size:10px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:.75rem}
+  .stat-row{display:flex;gap:.75rem;margin-bottom:1.5rem}
+  .stat-mini{flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:.75rem;text-align:center}
+  .sm-val{font-size:22px;font-weight:800;color:#0f172a}.sm-lbl{font-size:10px;color:#94a3b8;margin-top:3px;text-transform:uppercase}
+  @media print{body{padding:.5rem}}</style></head><body>`+content.innerHTML+`</body></html>`);
+  win.document.close();win.focus();setTimeout(()=>win.print(),300);
+}
+
 async function renderLog(){
   // Ahora conectados (últimos 15 minutos)
   const cardActivos=document.getElementById('log-activos-card');
