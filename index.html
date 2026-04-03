@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v72</title>
+<title>FG Conexiones v73</title>
 <style>
 :root{
   --bg:#0d1117;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v72</div>
+    <div class="login-ver">FG Conexiones · v73</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v72</div>
+    <div class="sb-ver">v73</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v72</div>
+    <div id="mobile-ver">v73</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -817,7 +817,11 @@ tr:hover td{background:rgba(255,255,255,.02)}
           <div class="card-title">Registrar carga</div>
           <div class="fg"><label>Cuadrilla</label><select id="comb-cuad"></select></div>
           <div class="fg"><label>Fecha</label><input type="date" id="comb-fecha"/></div>
-          <div class="fg"><label>Monto ($)</label><input type="number" id="comb-monto" placeholder="Ej: 15000"/></div>
+          <div class="fg"><label>Monto ($)</label><input type="number" id="comb-monto" placeholder="Ej: 15000" oninput="calcCombPrecio100()"/></div>
+          <div class="fg"><label>Kilómetros cargados (opcional)</label><input type="number" id="comb-km" placeholder="Ej: 500" oninput="calcCombPrecio100()"/></div>
+          <div id="comb-c100" style="display:none;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.2);border-radius:10px;padding:10px 12px;margin-bottom:.75rem;font-size:13px;color:#38bdf8">
+            <span style="font-weight:700" id="comb-c100-val"></span> cada 100 km
+          </div>
           <div class="fg"><label>Descripción (opcional)</label><input type="text" id="comb-desc" placeholder="Ej: YPF Ruta 9"/></div>
           <button class="btn btn-dark btn-full" onclick="guardarCombustible()">Guardar carga</button>
           <p class="ok-msg" id="comb-ok"></p><p class="err-msg" id="comb-err"></p>
@@ -830,17 +834,25 @@ tr:hover td{background:rgba(255,255,255,.02)}
         </div>
         <div class="card">
           <div class="card-title">Historial de cargas</div>
-          <div class="fg" style="margin-bottom:.5rem">
-            <label>Filtrar por mes</label>
-            <select id="comb-mes-fil" onchange="renderCombustibleLista()">
-              <option value="">Todos</option>
-              <option value="2026-01">Enero 2026</option><option value="2026-02">Febrero 2026</option>
-              <option value="2026-03" selected>Marzo 2026</option><option value="2026-04">Abril 2026</option>
-              <option value="2026-05">Mayo 2026</option><option value="2026-06">Junio 2026</option>
-              <option value="2026-07">Julio 2026</option><option value="2026-08">Agosto 2026</option>
-              <option value="2026-09">Septiembre 2026</option><option value="2026-10">Octubre 2026</option>
-              <option value="2026-11">Noviembre 2026</option><option value="2026-12">Diciembre 2026</option>
-            </select>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.75rem">
+            <div class="fg" style="margin-bottom:0">
+              <label>Mes</label>
+              <select id="comb-mes-fil" onchange="renderCombustibleLista()">
+                <option value="">Todos</option>
+                <option value="2026-01">Enero 2026</option><option value="2026-02">Febrero 2026</option>
+                <option value="2026-03">Marzo 2026</option><option value="2026-04">Abril 2026</option>
+                <option value="2026-05">Mayo 2026</option><option value="2026-06">Junio 2026</option>
+                <option value="2026-07">Julio 2026</option><option value="2026-08">Agosto 2026</option>
+                <option value="2026-09">Septiembre 2026</option><option value="2026-10">Octubre 2026</option>
+                <option value="2026-11">Noviembre 2026</option><option value="2026-12">Diciembre 2026</option>
+              </select>
+            </div>
+            <div class="fg" style="margin-bottom:0">
+              <label>Cuadrilla</label>
+              <select id="comb-cuad-fil" onchange="renderCombustibleLista()">
+                <option value="">Todas</option>
+              </select>
+            </div>
           </div>
           <div id="comb-lista"><div class="loading"><span class="spinner"></span></div></div>
         </div>
@@ -4077,27 +4089,59 @@ function toggleLogResumen(){
 // =============================================
 // COMBUSTIBLE
 // =============================================
+function calcCombPrecio100(){
+  const monto=parseFloat(document.getElementById('comb-monto')?.value||0);
+  const km=parseFloat(document.getElementById('comb-km')?.value||0);
+  const el=document.getElementById('comb-c100');
+  const valEl=document.getElementById('comb-c100-val');
+  if(monto>0&&km>0){
+    const c100=monto/km*100;
+    if(valEl)valEl.textContent=fmtPesos(Math.round(c100));
+    if(el)el.style.display='block';
+  } else {
+    if(el)el.style.display='none';
+  }
+}
+
 async function guardarCombustible(){
   const cuadId=document.getElementById('comb-cuad').value;
   const fecha=document.getElementById('comb-fecha').value;
   const monto=parseFloat(document.getElementById('comb-monto').value);
+  const km=parseFloat(document.getElementById('comb-km')?.value||0);
   const desc=document.getElementById('comb-desc').value.trim();
   const ok=document.getElementById('comb-ok'),err=document.getElementById('comb-err');
   err.textContent='';ok.textContent='';
   if(!fecha||isNaN(monto)||monto<=0){err.textContent='Completá fecha y monto.';return;}
+  // Armar descripción incluyendo km si se ingresó
+  let descFinal=desc;
+  if(km>0){
+    const c100=Math.round(monto/km*100);
+    const kmStr=`${km.toFixed(0)} km · $${c100.toLocaleString('es-AR')}/100km`;
+    descFinal=desc?`${desc} · ${kmStr}`:kmStr;
+  }
   try{
-    await sbPost('combustible',{cuadrilla_id:cuadId,fecha,monto,descripcion:desc||null,created_by:CU.username});
+    await sbPost('combustible',{cuadrilla_id:cuadId,fecha,monto,descripcion:descFinal||null,created_by:CU.username});
     await logAct('Combustible',`${CUADRILLAS.find(c=>c.id===cuadId)?.nombre||cuadId} · ${fmtPesos(monto)} · ${fecha}`,'combustible');
     ok.textContent='Carga registrada ✓';setTimeout(()=>ok.textContent='',2500);
-    document.getElementById('comb-monto').value='';document.getElementById('comb-desc').value='';
+    document.getElementById('comb-monto').value='';
+    document.getElementById('comb-km').value='';
+    document.getElementById('comb-desc').value='';
+    document.getElementById('comb-c100').style.display='none';
     renderCombustibleLista();renderCombustibleResumen();
   }catch(e){err.textContent='Error: '+e.message;}
 }
 
 async function renderCombustible(){
-  // init fecha
   const hoy=fmtD(new Date());
   const cf=document.getElementById('comb-fecha');if(cf&&!cf.value)cf.value=hoy;
+  // Poblar filtro de cuadrilla en historial
+  const sel=document.getElementById('comb-cuad-fil');
+  if(sel&&sel.options.length<=1){
+    CUADRILLAS.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.nombre;sel.appendChild(o);});
+  }
+  // Seleccionar mes actual por defecto
+  const mesSel=document.getElementById('comb-mes-fil');
+  if(mesSel&&!mesSel.value){const m=hoy.slice(0,7);mesSel.value=m;}
   renderCombustibleResumen();
   renderCombustibleLista();
 }
@@ -4107,43 +4151,70 @@ async function renderCombustibleResumen(){
   el.innerHTML='<div class="loading"><span class="spinner"></span></div>';
   try{
     const data=await sbGet('combustible','?order=fecha.desc');
-    // Acumulado por cuadrilla
     const totales={};
     data.forEach(d=>{
       if(!totales[d.cuadrilla_id])totales[d.cuadrilla_id]=0;
       totales[d.cuadrilla_id]+=parseFloat(d.monto);
     });
     if(!data.length){el.innerHTML='<p style="font-size:13px;color:#6b7280">Sin registros aún.</p>';return;}
+    const totalGen=Object.values(totales).reduce((a,b)=>a+b,0);
     el.innerHTML=CUADRILLAS.map(c=>{
       const tot=totales[c.id]||0;if(!tot)return'';
-      return`<div class="row"><span style="font-size:14px;font-weight:600">${c.nombre}</span><span style="font-size:15px;font-weight:700;color:#2980b9">${fmtPesos(tot)}</span></div>`;
-    }).join('')+'<div class="row" style="border-top:2px solid #eee;margin-top:4px"><span style="font-size:13px;font-weight:700">TOTAL</span><span style="font-size:15px;font-weight:800;color:#111">${fmtPesos(Object.values(totales).reduce((a,b)=>a+b,0))}</span></div>'
-      .replace('${fmtPesos(Object.values(totales).reduce((a,b)=>a+b,0))}', fmtPesos(Object.values(totales).reduce((a,b)=>a+b,0)));
+      return`<div class="row" style="cursor:pointer" onclick="filtrarCombPorCuad('${c.id}')">
+        <span style="font-size:14px;font-weight:600">${c.nombre}</span>
+        <span style="font-size:15px;font-weight:700;color:#38bdf8">${fmtPesos(tot)}</span>
+      </div>`;
+    }).join('')+`<div class="row" style="border-top:1px solid rgba(255,255,255,.1);margin-top:4px">
+      <span style="font-size:13px;font-weight:800">TOTAL</span>
+      <span style="font-size:15px;font-weight:900;color:#38bdf8">${fmtPesos(totalGen)}</span>
+    </div>`;
   }catch(e){el.innerHTML='<p style="font-size:13px;color:#ef4444">Error: '+e.message+'</p>';}
+}
+
+function filtrarCombPorCuad(cuadId){
+  const sel=document.getElementById('comb-cuad-fil');
+  if(sel)sel.value=sel.value===cuadId?'':cuadId;
+  renderCombustibleLista();
 }
 
 async function renderCombustibleLista(){
   const el=document.getElementById('comb-lista');if(!el)return;
   el.innerHTML='<div class="loading"><span class="spinner"></span></div>';
   const mes=document.getElementById('comb-mes-fil')?.value||'';
+  const cuadFil=document.getElementById('comb-cuad-fil')?.value||'';
   try{
-    let params='?order=fecha.desc&limit=60';
-    if(mes)params+=`&fecha=gte.${mes}-01&fecha=lte.${mes}-31`;
+    let params='?order=fecha.desc&limit=100';
+    if(mes){
+      // Fix: calcular último día real del mes
+      const [y,mo]=mes.split('-');
+      const ultDia=new Date(parseInt(y),parseInt(mo),0).getDate();
+      params+=`&fecha=gte.${mes}-01&fecha=lte.${mes}-${String(ultDia).padStart(2,'0')}`;
+    }
+    if(cuadFil)params+=`&cuadrilla_id=eq.${cuadFil}`;
     const data=await sbGet('combustible',params);
-    if(!data.length){el.innerHTML='<p style="font-size:13px;color:#6b7280">Sin registros para este período.</p>';return;}
-    el.innerHTML=data.map(d=>{
+    if(!data.length){el.innerHTML='<p style="font-size:13px;color:#6b7280">Sin registros para los filtros seleccionados.</p>';return;}
+    // Total del período filtrado
+    const totalFil=data.reduce((s,d)=>s+parseFloat(d.monto),0);
+    let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:1px solid rgba(255,255,255,.06)">
+      <span style="font-size:11px;color:#6b7280">${data.length} cargas</span>
+      <span style="font-size:14px;font-weight:800;color:#38bdf8">${fmtPesos(totalFil)}</span>
+    </div>`;
+    html+=data.map(d=>{
       const c=CUADRILLAS.find(x=>x.id===d.cuadrilla_id);
+      // Detectar si tiene km en descripción
+      const hasKm=d.descripcion&&d.descripcion.includes('km');
       return`<div class="row">
         <div>
           <div style="font-size:14px;font-weight:600">${c?c.nombre:d.cuadrilla_id}</div>
           <div style="font-size:12px;color:#8b9cb3">${fmtFull(d.fecha)}${d.descripcion?' · '+d.descripcion:''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:15px;font-weight:700;color:#2980b9">${fmtPesos(d.monto)}</span>
-          <button class="btn btn-sm btn-red" onclick="elimCombustible('${d.id}')">✕</button>
+          <span style="font-size:15px;font-weight:700;color:#38bdf8">${fmtPesos(d.monto)}</span>
+          ${CU.rol==='jefe'?`<button class="btn btn-sm btn-red" style="font-size:11px;padding:4px 8px" onclick="elimCombustible('${d.id}')">✕</button>`:''}
         </div>
       </div>`;
     }).join('');
+    el.innerHTML=html;
   }catch(e){el.innerHTML='<p style="font-size:13px;color:#ef4444">Error: '+e.message+'</p>';}
 }
 
