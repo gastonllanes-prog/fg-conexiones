@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v74</title>
+<title>FG Conexiones v75</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v74</div>
+    <div class="login-ver">FG Conexiones · v75</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v74</div>
+    <div class="sb-ver">v75</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v74</div>
+    <div id="mobile-ver">v75</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -815,12 +815,19 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <div>
         <div class="card">
           <div class="card-title">Registrar carga</div>
-          <div class="fg"><label>Cuadrilla</label><select id="comb-cuad"></select></div>
+          <div class="fg"><label>Cuadrilla</label><select id="comb-cuad" onchange="onCombCuadChange()"></select></div>
           <div class="fg"><label>Fecha</label><input type="date" id="comb-fecha"/></div>
-          <div class="fg"><label>Monto ($)</label><input type="number" id="comb-monto" placeholder="Ej: 15000" oninput="calcCombPrecio100()"/></div>
-          <div class="fg"><label>Kilómetros cargados (opcional)</label><input type="number" id="comb-km" placeholder="Ej: 500" oninput="calcCombPrecio100()"/></div>
-          <div id="comb-c100" style="display:none;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.2);border-radius:10px;padding:10px 12px;margin-bottom:.75rem;font-size:13px;color:#38bdf8">
-            <span style="font-weight:700" id="comb-c100-val"></span> cada 100 km
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="fg"><label>Monto ($)</label><input type="number" id="comb-monto" placeholder="Ej: 15000" oninput="calcCombPreview()"/></div>
+            <div class="fg"><label>Litros cargados</label><input type="number" id="comb-litros" placeholder="Ej: 30" step="0.1" oninput="calcCombPreview()"/></div>
+          </div>
+          <div class="fg"><label>Km odómetro actual</label><input type="number" id="comb-odometro" placeholder="Ej: 45320" oninput="calcCombPreview()"/></div>
+          <div id="comb-prev-chip" style="display:none;border-radius:10px;padding:10px 13px;margin-bottom:.75rem;font-size:13px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.2)">
+            <div id="comb-prev-km" style="color:#0891b2;font-weight:600;margin-bottom:3px"></div>
+            <div id="comb-prev-l100" style="color:#0e7490;font-size:12px"></div>
+          </div>
+          <div id="comb-last-chip" style="display:none;border-radius:10px;padding:9px 13px;margin-bottom:.75rem;font-size:12px;color:#64748b;background:rgba(30,80,160,.04);border:1px solid rgba(30,80,160,.08)">
+            <span id="comb-last-txt"></span>
           </div>
           <div class="fg"><label>Descripción (opcional)</label><input type="text" id="comb-desc" placeholder="Ej: YPF Ruta 9"/></div>
           <button class="btn btn-dark btn-full" onclick="guardarCombustible()">Guardar carga</button>
@@ -4136,133 +4143,233 @@ function toggleLogResumen(){
 // =============================================
 // COMBUSTIBLE
 // =============================================
-function calcCombPrecio100(){
-  const monto=parseFloat(document.getElementById('comb-monto')?.value||0);
-  const km=parseFloat(document.getElementById('comb-km')?.value||0);
-  const el=document.getElementById('comb-c100');
-  const valEl=document.getElementById('comb-c100-val');
-  if(monto>0&&km>0){
-    const c100=monto/km*100;
-    if(valEl)valEl.textContent=fmtPesos(Math.round(c100));
-    if(el)el.style.display='block';
-  } else {
-    if(el)el.style.display='none';
-  }
+// =============================================
+// COMBUSTIBLE
+// =============================================
+var _combLastOdo = null; // {km_odometro, fecha} del último registro de la cuadrilla actual
+
+async function onCombCuadChange(){
+  _combLastOdo = null;
+  const cuadId = document.getElementById('comb-cuad')?.value;
+  if(!cuadId) return;
+  try{
+    const data = await sbGet('combustible',`?cuadrilla_id=eq.${cuadId}&km_odometro=not.is.null&order=fecha.desc,id.desc&limit=1`);
+    if(data && data.length){
+      _combLastOdo = {km: parseFloat(data[0].km_odometro), fecha: data[0].fecha};
+      const chip = document.getElementById('comb-last-chip');
+      const txt = document.getElementById('comb-last-txt');
+      if(chip && txt){
+        txt.textContent = `Último odómetro registrado: ${_combLastOdo.km.toLocaleString('es-AR')} km (${fmtFull(_combLastOdo.fecha)})`;
+        chip.style.display = 'block';
+      }
+    } else {
+      const chip = document.getElementById('comb-last-chip');
+      if(chip) chip.style.display = 'none';
+    }
+  } catch(e){}
+  calcCombPreview();
 }
 
-async function guardarCombustible(){
-  const cuadId=document.getElementById('comb-cuad').value;
-  const fecha=document.getElementById('comb-fecha').value;
-  const monto=parseFloat(document.getElementById('comb-monto').value);
-  const km=parseFloat(document.getElementById('comb-km')?.value||0);
-  const desc=document.getElementById('comb-desc').value.trim();
-  const ok=document.getElementById('comb-ok'),err=document.getElementById('comb-err');
-  err.textContent='';ok.textContent='';
-  if(!fecha||isNaN(monto)||monto<=0){err.textContent='Completá fecha y monto.';return;}
-  // Armar descripción incluyendo km si se ingresó
-  let descFinal=desc;
-  if(km>0){
-    const c100=Math.round(monto/km*100);
-    const kmStr=`${km.toFixed(0)} km · $${c100.toLocaleString('es-AR')}/100km`;
-    descFinal=desc?`${desc} · ${kmStr}`:kmStr;
+function calcCombPreview(){
+  const litros = parseFloat(document.getElementById('comb-litros')?.value||0);
+  const odo = parseFloat(document.getElementById('comb-odometro')?.value||0);
+  const chip = document.getElementById('comb-prev-chip');
+  const kmEl = document.getElementById('comb-prev-km');
+  const l100El = document.getElementById('comb-prev-l100');
+  if(!chip) return;
+  const kmRec = (_combLastOdo && odo > 0 && odo > _combLastOdo.km) ? (odo - _combLastOdo.km) : null;
+  const parts = [];
+  if(kmRec !== null) parts.push(`📍 ${kmRec.toLocaleString('es-AR')} km recorridos desde la última carga`);
+  if(litros > 0 && kmRec > 0){
+    const l100 = (litros / kmRec * 100).toFixed(1);
+    if(l100El) l100El.textContent = `⛽ Consumo: ${l100} L/100km`;
+  } else {
+    if(l100El) l100El.textContent = '';
   }
+  if(kmEl) kmEl.textContent = parts.join(' · ');
+  chip.style.display = (kmRec !== null || litros > 0) ? 'block' : 'none';
+}
+
+// legacy alias por si queda referencia
+function calcCombPrecio100(){ calcCombPreview(); }
+
+async function guardarCombustible(){
+  const cuadId = document.getElementById('comb-cuad').value;
+  const fecha = document.getElementById('comb-fecha').value;
+  const monto = parseFloat(document.getElementById('comb-monto').value);
+  const litros = parseFloat(document.getElementById('comb-litros')?.value||0)||null;
+  const odo = parseFloat(document.getElementById('comb-odometro')?.value||0)||null;
+  const desc = document.getElementById('comb-desc').value.trim();
+  const ok = document.getElementById('comb-ok'), err = document.getElementById('comb-err');
+  err.textContent=''; ok.textContent='';
+  if(!fecha||isNaN(monto)||monto<=0){err.textContent='Completá fecha y monto.';return;}
   try{
-    await sbPost('combustible',{cuadrilla_id:cuadId,fecha,monto,descripcion:descFinal||null,created_by:CU.username});
-    await logAct('Combustible',`${CUADRILLAS.find(c=>c.id===cuadId)?.nombre||cuadId} · ${fmtPesos(monto)} · ${fecha}`,'combustible');
-    ok.textContent='Carga registrada ✓';setTimeout(()=>ok.textContent='',2500);
+    await sbPost('combustible',{cuadrilla_id:cuadId,fecha,monto,litros,km_odometro:odo,descripcion:desc||null,created_by:CU.username});
+    await logAct('Combustible',`${CUADRILLAS.find(c=>c.id===cuadId)?.nombre||cuadId} · ${fmtPesos(monto)}${litros?' · '+litros+'L':''}${odo?' · odo:'+odo:''}  · ${fecha}`,'combustible');
+    ok.textContent='Carga registrada ✓'; setTimeout(()=>ok.textContent='',2500);
     document.getElementById('comb-monto').value='';
-    document.getElementById('comb-km').value='';
+    document.getElementById('comb-litros').value='';
+    document.getElementById('comb-odometro').value='';
     document.getElementById('comb-desc').value='';
-    document.getElementById('comb-c100').style.display='none';
-    renderCombustibleLista();renderCombustibleResumen();
+    document.getElementById('comb-prev-chip').style.display='none';
+    _combLastOdo = odo ? {km:odo, fecha} : _combLastOdo;
+    if(_combLastOdo && document.getElementById('comb-last-txt')){
+      document.getElementById('comb-last-txt').textContent=`Último odómetro registrado: ${_combLastOdo.km.toLocaleString('es-AR')} km (${fmtFull(_combLastOdo.fecha)})`;
+      document.getElementById('comb-last-chip').style.display='block';
+    }
+    renderCombustibleLista(); renderCombustibleResumen();
   }catch(e){err.textContent='Error: '+e.message;}
 }
 
 async function renderCombustible(){
-  const hoy=fmtD(new Date());
-  const cf=document.getElementById('comb-fecha');if(cf&&!cf.value)cf.value=hoy;
-  // Poblar filtro de cuadrilla en historial
-  const sel=document.getElementById('comb-cuad-fil');
-  if(sel&&sel.options.length<=1){
+  const hoy = fmtD(new Date());
+  const cf = document.getElementById('comb-fecha'); if(cf&&!cf.value) cf.value=hoy;
+  // poblar select cuadrilla
+  const sel = document.getElementById('comb-cuad');
+  if(sel && sel.options.length===0){
     CUADRILLAS.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.nombre;sel.appendChild(o);});
   }
-  // Seleccionar mes actual por defecto
-  const mesSel=document.getElementById('comb-mes-fil');
+  // poblar filtro historial
+  const sel2 = document.getElementById('comb-cuad-fil');
+  if(sel2 && sel2.options.length<=1){
+    CUADRILLAS.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.nombre;sel2.appendChild(o);});
+  }
+  const mesSel = document.getElementById('comb-mes-fil');
   if(mesSel&&!mesSel.value){const m=hoy.slice(0,7);mesSel.value=m;}
+  // cargar último odómetro para la cuadrilla por defecto
+  await onCombCuadChange();
   renderCombustibleResumen();
   renderCombustibleLista();
 }
 
 async function renderCombustibleResumen(){
-  const el=document.getElementById('comb-resumen');if(!el)return;
+  const el = document.getElementById('comb-resumen'); if(!el) return;
   el.innerHTML='<div class="loading"><span class="spinner"></span></div>';
   try{
-    const data=await sbGet('combustible','?order=fecha.desc');
-    const totales={};
+    const data = await sbGet('combustible','?order=fecha.asc&select=*');
+    if(!data.length){el.innerHTML='<p style="font-size:13px;color:#64748b">Sin registros aún.</p>';return;}
+    // Agrupar por cuadrilla
+    const byCuad = {};
     data.forEach(d=>{
-      if(!totales[d.cuadrilla_id])totales[d.cuadrilla_id]=0;
-      totales[d.cuadrilla_id]+=parseFloat(d.monto);
+      if(!byCuad[d.cuadrilla_id]) byCuad[d.cuadrilla_id]={monto:0,litros:0,registros:[],kmTotal:null};
+      byCuad[d.cuadrilla_id].monto += parseFloat(d.monto);
+      if(d.litros) byCuad[d.cuadrilla_id].litros += parseFloat(d.litros);
+      if(d.km_odometro) byCuad[d.cuadrilla_id].registros.push({odo:parseFloat(d.km_odometro),fecha:d.fecha});
     });
-    if(!data.length){el.innerHTML='<p style="font-size:13px;color:#6b7280">Sin registros aún.</p>';return;}
-    const totalGen=Object.values(totales).reduce((a,b)=>a+b,0);
-    el.innerHTML=CUADRILLAS.map(c=>{
-      const tot=totales[c.id]||0;if(!tot)return'';
-      return`<div class="row" style="cursor:pointer" onclick="filtrarCombPorCuad('${c.id}')">
-        <span style="font-size:14px;font-weight:600">${c.nombre}</span>
-        <span style="font-size:15px;font-weight:700;color:#38bdf8">${fmtPesos(tot)}</span>
+    // Calcular km totales y eficiencia por cuadrilla
+    Object.values(byCuad).forEach(g=>{
+      const odos = g.registros.sort((a,b)=>a.odo-b.odo);
+      if(odos.length>=2) g.kmTotal = odos[odos.length-1].odo - odos[0].odo;
+    });
+    const totalGen = Object.values(byCuad).reduce((s,g)=>s+g.monto,0);
+    let html = CUADRILLAS.map(c=>{
+      const g = byCuad[c.id]; if(!g) return '';
+      const l100 = g.litros>0 && g.kmTotal>0 ? (g.litros/g.kmTotal*100).toFixed(1) : null;
+      return`<div class="row" style="cursor:pointer;align-items:flex-start" onclick="filtrarCombPorCuad('${c.id}')">
+        <div>
+          <div style="font-size:14px;font-weight:600">${c.nombre}</div>
+          <div style="font-size:12px;color:#5a7a9a;margin-top:2px">
+            ${g.litros>0?`${g.litros.toFixed(1)} L cargados`:''}
+            ${g.kmTotal?` · ${g.kmTotal.toLocaleString('es-AR')} km registrados`:''}
+            ${l100?` · <strong style="color:#0891b2">${l100} L/100km</strong>`:''}
+          </div>
+        </div>
+        <span style="font-size:15px;font-weight:700;color:#0891b2">${fmtPesos(g.monto)}</span>
       </div>`;
-    }).join('')+`<div class="row" style="border-top:1px solid rgba(255,255,255,.1);margin-top:4px">
+    }).join('');
+    html += `<div class="row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:8px">
       <span style="font-size:13px;font-weight:800">TOTAL</span>
-      <span style="font-size:15px;font-weight:900;color:#38bdf8">${fmtPesos(totalGen)}</span>
+      <span style="font-size:15px;font-weight:900;color:#0891b2">${fmtPesos(totalGen)}</span>
     </div>`;
-  }catch(e){el.innerHTML='<p style="font-size:13px;color:#ef4444">Error: '+e.message+'</p>';}
+    el.innerHTML = html;
+  }catch(e){el.innerHTML='<p style="font-size:13px;color:#dc2626">Error: '+e.message+'</p>';}
 }
 
 function filtrarCombPorCuad(cuadId){
-  const sel=document.getElementById('comb-cuad-fil');
-  if(sel)sel.value=sel.value===cuadId?'':cuadId;
+  const sel = document.getElementById('comb-cuad-fil');
+  if(sel) sel.value = sel.value===String(cuadId)?'':cuadId;
   renderCombustibleLista();
 }
 
 async function renderCombustibleLista(){
-  const el=document.getElementById('comb-lista');if(!el)return;
+  const el = document.getElementById('comb-lista'); if(!el) return;
   el.innerHTML='<div class="loading"><span class="spinner"></span></div>';
-  const mes=document.getElementById('comb-mes-fil')?.value||'';
-  const cuadFil=document.getElementById('comb-cuad-fil')?.value||'';
+  const mes = document.getElementById('comb-mes-fil')?.value||'';
+  const cuadFil = document.getElementById('comb-cuad-fil')?.value||'';
   try{
-    let params='?order=fecha.desc&limit=100';
+    // Para calcular km entre cargas necesitamos todos los registros de la cuadrilla (con odo), no solo los del mes
+    // Primero traemos TODO para esa cuadrilla (para el cálculo de diffs), luego filtramos para mostrar
+    let paramsTodos = '?order=fecha.asc&select=*';
+    if(cuadFil) paramsTodos += `&cuadrilla_id=eq.${cuadFil}`;
+    else paramsTodos += '&order=fecha.asc';
+
+    let paramsFil = '?order=fecha.desc&limit=100';
     if(mes){
-      // Fix: calcular último día real del mes
-      const [y,mo]=mes.split('-');
-      const ultDia=new Date(parseInt(y),parseInt(mo),0).getDate();
-      params+=`&fecha=gte.${mes}-01&fecha=lte.${mes}-${String(ultDia).padStart(2,'0')}`;
+      const [y,mo] = mes.split('-');
+      const ultDia = new Date(parseInt(y),parseInt(mo),0).getDate();
+      paramsFil += `&fecha=gte.${mes}-01&fecha=lte.${mes}-${String(ultDia).padStart(2,'0')}`;
     }
-    if(cuadFil)params+=`&cuadrilla_id=eq.${cuadFil}`;
-    const data=await sbGet('combustible',params);
-    if(!data.length){el.innerHTML='<p style="font-size:13px;color:#6b7280">Sin registros para los filtros seleccionados.</p>';return;}
-    // Total del período filtrado
-    const totalFil=data.reduce((s,d)=>s+parseFloat(d.monto),0);
-    let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:1px solid rgba(255,255,255,.06)">
-      <span style="font-size:11px;color:#6b7280">${data.length} cargas</span>
-      <span style="font-size:14px;font-weight:800;color:#38bdf8">${fmtPesos(totalFil)}</span>
+    if(cuadFil) paramsFil += `&cuadrilla_id=eq.${cuadFil}`;
+
+    const [todos, filtrados] = await Promise.all([
+      sbGet('combustible', paramsTodos),
+      mes ? sbGet('combustible', paramsFil) : null
+    ]);
+
+    const data = mes ? filtrados : [...todos].reverse(); // mostrar desc
+
+    if(!data||!data.length){el.innerHTML='<p style="font-size:13px;color:#64748b">Sin registros para los filtros seleccionados.</p>';return;}
+
+    // Construir mapa odo → km_recorridos por cuadrilla (usando todos los registros ASC)
+    const kmDiff = {}; // id → km_recorridos
+    const porCuad = {};
+    todos.forEach(d=>{
+      if(!d.km_odometro) return;
+      const cid = d.cuadrilla_id;
+      if(!porCuad[cid]) porCuad[cid] = [];
+      porCuad[cid].push(d);
+    });
+    Object.values(porCuad).forEach(regs=>{
+      regs.sort((a,b)=>a.fecha.localeCompare(b.fecha)||(a.id-b.id));
+      regs.forEach((r,i)=>{
+        if(i===0) return; // primera carga sin diff
+        const prev = regs[i-1];
+        if(r.km_odometro && prev.km_odometro){
+          kmDiff[r.id] = parseFloat(r.km_odometro) - parseFloat(prev.km_odometro);
+        }
+      });
+    });
+
+    const totalFil = data.reduce((s,d)=>s+parseFloat(d.monto),0);
+    const totalLitros = data.reduce((s,d)=>s+(d.litros?parseFloat(d.litros):0),0);
+    let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)">
+      <span style="font-size:11px;color:#64748b">${data.length} cargas${totalLitros>0?' · '+totalLitros.toFixed(1)+' L':''}</span>
+      <span style="font-size:14px;font-weight:800;color:#0891b2">${fmtPesos(totalFil)}</span>
     </div>`;
-    html+=data.map(d=>{
-      const c=CUADRILLAS.find(x=>x.id===d.cuadrilla_id);
-      // Detectar si tiene km en descripción
-      const hasKm=d.descripcion&&d.descripcion.includes('km');
+    html += data.map(d=>{
+      const c = CUADRILLAS.find(x=>x.id===d.cuadrilla_id);
+      const km = kmDiff[d.id];
+      const l100 = d.litros && km && km>0 ? (parseFloat(d.litros)/km*100).toFixed(1) : null;
+      const infoLine = [
+        d.km_odometro ? `Odo: ${parseFloat(d.km_odometro).toLocaleString('es-AR')} km` : null,
+        km ? `↔ ${km.toLocaleString('es-AR')} km recorridos` : null,
+        d.litros ? `${parseFloat(d.litros).toFixed(1)} L` : null,
+        l100 ? `<strong style="color:#0891b2">${l100} L/100km</strong>` : null,
+        d.descripcion ? d.descripcion : null,
+      ].filter(Boolean).join(' · ');
       return`<div class="row">
         <div>
           <div style="font-size:14px;font-weight:600">${c?c.nombre:d.cuadrilla_id}</div>
-          <div style="font-size:12px;color:#5a7a9a">${fmtFull(d.fecha)}${d.descripcion?' · '+d.descripcion:''}</div>
+          <div style="font-size:12px;color:#5a7a9a;margin-top:2px">${fmtFull(d.fecha)}${infoLine?' · '+infoLine:''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:15px;font-weight:700;color:#38bdf8">${fmtPesos(d.monto)}</span>
+          <span style="font-size:15px;font-weight:700;color:#0891b2">${fmtPesos(d.monto)}</span>
           ${CU.rol==='jefe'?`<button class="btn btn-sm btn-red" style="font-size:11px;padding:4px 8px" onclick="elimCombustible('${d.id}')">✕</button>`:''}
         </div>
       </div>`;
     }).join('');
-    el.innerHTML=html;
-  }catch(e){el.innerHTML='<p style="font-size:13px;color:#ef4444">Error: '+e.message+'</p>';}
+    el.innerHTML = html;
+  }catch(e){el.innerHTML='<p style="font-size:13px;color:#dc2626">Error: '+e.message+'</p>';}
 }
 
 async function elimCombustible(id){
@@ -4270,7 +4377,7 @@ async function elimCombustible(id){
   try{
     await sbDelete('combustible',`?id=eq.${id}`);
     await logAct('Eliminar combustible',`ID ${id}`,'combustible');
-    renderCombustibleLista();renderCombustibleResumen();
+    renderCombustibleLista(); renderCombustibleResumen();
   }catch(e){alert('Error: '+e.message);}
 }
 
