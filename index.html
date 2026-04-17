@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v80</title>
+<title>FG Conexiones v81</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v80</div>
+    <div class="login-ver">FG Conexiones · v81</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v80</div>
+    <div class="sb-ver">v81</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v80</div>
+    <div id="mobile-ver">v81</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -2535,41 +2535,18 @@ async function renderSaldosTecs(tab){
 
 async function _renderSaldosResumen(){
   const el=document.getElementById('st-tab-content');if(!el)return;
-  const MARZO2026='2026-03-01';
-  const meta=parseInt(CONFIG.meta_semanal||30);
   const precio=parseInt(CONFIG.precio_instalacion||7000);
   const precioUnit=precio/2;
-  const [regsAll,allPagos,allDiasEsp]=await Promise.all([
-    sbGet('registros','?fecha=gte.'+MARZO2026+'&select=cuadrilla_id,fecha,tecnico_nombre,solo,registro_tareas(tipo_tarea_id,cantidad)'),
-    sbGet('pagos','?select=cuadrilla_id,tecnico_nombre,monto,fecha,descripcion,id'),
-    sbGet('dias_especiales','?select=fecha,tipo,cuadrilla_id,tecnico_nombre')
-  ]);
-  const pagosPorTec={};
-  allPagos.forEach(p=>{const k=p.cuadrilla_id+'_'+p.tecnico_nombre;if(!pagosPorTec[k])pagosPorTec[k]=0;pagosPorTec[k]+=parseFloat(p.monto);});
+  el.innerHTML='<div class="loading"><span class="spinner"></span>Calculando saldos...</div>';
+  // Usar calcSaldoTecnico (mismo cálculo que detalle y vista técnico - respeta semanas cerradas)
   const rows=[];
   for(const cuad of CUADRILLAS){
     for(const tec of getTecs(cuad.id)){
-      const k=cuad.id+'_'+tec;
-      let totalExtras=0;const porSemana={};
-      regsAll.filter(r=>r.cuadrilla_id===cuad.id).forEach(reg=>{
-        const sem=getLunesDesd(reg.fecha);if(!porSemana[sem])porSemana[sem]={par:0,sol:0};
-        let eq=0;(reg.registro_tareas||[]).forEach(rt=>eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));
-        if(reg.solo&&reg.tecnico_nombre===tec)porSemana[sem].sol+=eq;
-        else if(!reg.solo)porSemana[sem].par+=eq;
-      });
-      allDiasEsp.filter(d=>d.fecha>=MARZO2026).forEach(d=>{
-        const sem=getLunesDesd(d.fecha);if(!porSemana[sem])porSemana[sem]={par:0,sol:0};
-        if(d.tipo==='vacaciones'&&d.tecnico_nombre===tec&&d.cuadrilla_id===cuad.id)porSemana[sem].par=meta;
-        else if(d.tipo==='certificado'&&d.tecnico_nombre===tec&&d.cuadrilla_id===cuad.id)porSemana[sem].par+=5;
-        else if(d.tipo==='feriado'&&(!d.cuadrilla_id||d.cuadrilla_id===cuad.id))porSemana[sem].par+=5;
-      });
-      Object.values(porSemana).forEach(({par,sol})=>{if(par===0&&sol===0)return;totalExtras+=(par+sol*2-meta)*precioUnit;});
-      const pagado=pagosPorTec[k]||0;
-      rows.push({tec,cuad:cuad.nombre,cuadId:cuad.id,totalExtras,pagado,saldo:totalExtras-pagado});
+      const info=await calcSaldoTecnico(cuad.id,tec);
+      rows.push({tec,cuad:cuad.nombre,cuadId:cuad.id,totalExtras:info.totalExtras,pagado:info.totalPagado,saldo:info.saldo});
     }
   }
   rows.sort((a,b)=>a.saldo-b.saldo);
-  // Agrupar por cuadrilla
   const porCuad={};
   rows.forEach(r=>{if(!porCuad[r.cuadId])porCuad[r.cuadId]={nombre:r.cuad,cuadId:r.cuadId,tecs:[]};porCuad[r.cuadId].tecs.push(r);});
   let html='';
@@ -2588,7 +2565,6 @@ async function _renderSaldosResumen(){
       const clr=esPos?'#16a34a':esNeg?'#dc2626':'#5a7a9a';
       const bg=esNeg?'rgba(220,38,38,.04)':esPos?'rgba(22,163,74,.04)':'transparent';
       const label=esPos?'A cobrar':esNeg?'Instalaciones pendientes':'Al día';
-      const icon=esPos?'✅':esNeg?'⏳':'✓';
       html+=`<div style="padding:12px 14px;border-radius:12px;background:${bg};border:1px solid rgba(30,80,160,.08);margin-bottom:6px;cursor:pointer" onclick="abrirSaldoTecDet('${r.cuadId}','${r.tec}')">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div>
@@ -2606,16 +2582,17 @@ async function _renderSaldosResumen(){
           </div>
           <div style="background:rgba(30,80,160,.05);border-radius:10px;padding:10px 12px;border:1px solid rgba(30,80,160,.1)">
             <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">En pesos</div>
-            <div style="font-size:18px;font-weight:900;color:${clr};line-height:1">${fmtPesos(Math.abs(r.saldo))}</div>
+            <div style="font-size:22px;font-weight:900;color:${clr};line-height:1">${fmtPesos(Math.abs(r.saldo))}</div>
             <div style="font-size:10px;color:#94a3b8;margin-top:2px">${fmtPesos(precioUnit)}/equiv</div>
           </div>
         </div>`}
       </div>`;
     });
-    html+='</div>';
+    html+=`</div>`;
   });
   el.innerHTML=html;
 }
+
 
 async function _renderHistorialMensual(){
   const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
