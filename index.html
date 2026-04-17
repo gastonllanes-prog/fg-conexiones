@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v76</title>
+<title>FG Conexiones v78</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v76</div>
+    <div class="login-ver">FG Conexiones · v78</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v76</div>
+    <div class="sb-ver">v78</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v76</div>
+    <div id="mobile-ver">v78</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1336,57 +1336,6 @@ async function renderTecSemana(){
       cardDeuda.style.display='block';
       const meta2=parseInt(CONFIG.meta_semanal||30);
       // ── Helper: construir el desglose completo ──
-      function buildSaldoDetalle(info, precioUn, metaN){
-        // Semanas
-        let semsHtml='';
-        if(info.detalles&&info.detalles.length){
-          semsHtml+=`<div style="margin-bottom:10px">
-            <div style="font-size:11px;font-weight:700;color:#5a7a9a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">📅 Semanas trabajadas (desde marzo)</div>`;
-          info.detalles.forEach(d=>{
-            const neg=d.semTotal<0;
-            const clr=neg?'#dc2626':'#16a34a';
-            const soloInfo=d.solo>0?` + solo×2: ${(d.solo*2).toFixed(2)}`:'';
-            semsHtml+=`<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:7px 10px;border-radius:8px;background:${neg?'rgba(220,38,38,.06)':'rgba(22,163,74,.06)'};margin-bottom:4px">
-              <div>
-                <div style="font-size:13px;font-weight:600;color:#1e293b">Sem. ${fmtL(d.sem)}</div>
-                <div style="font-size:11px;color:#64748b;margin-top:2px">${d.efectivo.toFixed(2)} equiv${soloInfo} — meta ${metaN} — diferencia: <strong>${(d.efectivo-metaN>=0?'+':'')+(d.efectivo-metaN).toFixed(2)}</strong></div>
-                <div style="font-size:11px;color:#64748b">(${d.efectivo-metaN>=0?'+':''}${(d.efectivo-metaN).toFixed(2)} × $${precioUn.toLocaleString('es-AR')}/equiv)</div>
-              </div>
-              <div style="font-size:14px;font-weight:800;color:${clr};margin-left:10px;white-space:nowrap">${d.semTotal>=0?'+':''}${fmtPesos(d.semTotal)}</div>
-            </div>`;
-          });
-          semsHtml+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-top:1px solid rgba(30,80,160,.1);margin-top:2px">
-            <span style="font-size:12px;font-weight:700;color:#334155">Subtotal generado</span>
-            <span style="font-size:14px;font-weight:800;color:${info.totalExtras>=0?'#16a34a':'#dc2626'}">${info.totalExtras>=0?'+':''}${fmtPesos(info.totalExtras)}</span>
-          </div>`;
-          semsHtml+='</div>';
-        }
-        // Pagos
-        let pagosHtml='';
-        if(info.pagos&&info.pagos.length){
-          pagosHtml+=`<div style="margin-bottom:8px">
-            <div style="font-size:11px;font-weight:700;color:#5a7a9a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">💳 Pagos recibidos</div>`;
-          info.pagos.forEach(p=>{
-            pagosHtml+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-radius:8px;background:rgba(22,163,74,.06);margin-bottom:3px">
-              <span style="font-size:13px;color:#334155">${fmtFull(p.fecha)}${p.descripcion?' · <span style="color:#64748b">'+p.descripcion+'</span>':''}</span>
-              <span style="font-size:13px;font-weight:700;color:#16a34a">- ${fmtPesos(p.monto)}</span>
-            </div>`;
-          });
-          pagosHtml+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-top:1px solid rgba(30,80,160,.1);margin-top:2px">
-            <span style="font-size:12px;font-weight:700;color:#334155">Total cobrado</span>
-            <span style="font-size:14px;font-weight:800;color:#16a34a">- ${fmtPesos(info.totalPagado)}</span>
-          </div>`;
-          pagosHtml+='</div>';
-        }else{
-          pagosHtml=`<div style="font-size:12px;color:#64748b;padding:6px 0">💳 Sin pagos registrados aún.</div>`;
-        }
-        // Fórmula resumen
-        const formula=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:8px;border:1px dashed rgba(30,80,160,.2);margin-top:6px;background:rgba(30,80,160,.03)">
-          <span style="font-size:12px;color:#5a7a9a">Generado − Pagado</span>
-          <span style="font-size:13px;font-weight:700;color:#334155">${fmtPesos(info.totalExtras)} − ${fmtPesos(info.totalPagado)} = <strong style="color:${info.saldo>=0?'#16a34a':'#dc2626'}">${info.saldo>=0?'+':''}${fmtPesos(info.saldo)}</strong></span>
-        </div>`;
-        return semsHtml+pagosHtml+formula;
-      }
       if(Math.abs(saldoNeto)<1){
         cardDeuda.style.background='#f8f8f5';
         cardDeuda.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center">
@@ -1489,6 +1438,75 @@ function toggleSaldoDet(){
   const open=body.style.display!=='none';
   body.style.display=open?'none':'block';
   if(chev)chev.style.transform=open?'':'rotate(180deg)';
+}
+
+// ── Desglose de saldo: reutilizable en vista técnico Y admin ──────────────────
+function buildSaldoDetalle(info, precioUn, metaN){
+  const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  let semsHtml='';
+  if(info.detalles&&info.detalles.length){
+    const porMes={};
+    info.detalles.forEach(d=>{
+      const mesKey=d.sem.slice(0,7);
+      if(!porMes[mesKey])porMes[mesKey]=[];
+      porMes[mesKey].push(d);
+    });
+    semsHtml+=`<div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:#5a7a9a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">📅 Semanas trabajadas (desde marzo)</div>`;
+    Object.entries(porMes).sort().forEach(([mesKey,sems])=>{
+      const [y,m]=mesKey.split('-');
+      const mesNombre=MESES[parseInt(m)-1]+' '+y;
+      const subTot=sems.reduce((s,d)=>s+d.semTotal,0);
+      const subClr=subTot>=0?'#16a34a':'#dc2626';
+      semsHtml+=`<div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-radius:6px;background:rgba(30,80,160,.06);margin-bottom:5px">
+          <span style="font-size:12px;font-weight:800;color:#334155;letter-spacing:.03em">${mesNombre}</span>
+          <span style="font-size:12px;font-weight:800;color:${subClr}">${subTot>=0?'+':''}${fmtPesos(subTot)}</span>
+        </div>`;
+      sems.forEach(d=>{
+        const neg=d.semTotal<0;const clr=neg?'#dc2626':'#16a34a';
+        const diff=d.efectivo-metaN;
+        const soloInfo=d.solo>0?` · solo×2 incl.`:'';
+        semsHtml+=`<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:7px 10px 7px 16px;border-radius:8px;background:${neg?'rgba(220,38,38,.05)':'rgba(22,163,74,.05)'};margin-bottom:3px;border-left:3px solid ${clr}">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#1e293b">Sem. ${fmtL(d.sem)}${soloInfo}</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px">${d.efectivo.toFixed(2)} equiv — meta ${metaN} = <strong style="color:${clr}">${diff>=0?'+':''}${diff.toFixed(2)}</strong></div>
+            <div style="font-size:11px;color:#94a3b8">${diff>=0?'+':''}${diff.toFixed(2)} × $${precioUn.toLocaleString('es-AR')}/equiv</div>
+          </div>
+          <div style="font-size:14px;font-weight:800;color:${clr};margin-left:10px;white-space:nowrap">${d.semTotal>=0?'+':''}${fmtPesos(d.semTotal)}</div>
+        </div>`;
+      });
+      semsHtml+='</div>';
+    });
+    semsHtml+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-top:1px solid rgba(30,80,160,.12);margin-top:2px">
+      <span style="font-size:12px;font-weight:700;color:#334155">Total generado</span>
+      <span style="font-size:14px;font-weight:800;color:${info.totalExtras>=0?'#16a34a':'#dc2626'}">${info.totalExtras>=0?'+':''}${fmtPesos(info.totalExtras)}</span>
+    </div>`;
+    semsHtml+='</div>';
+  }
+  let pagosHtml='';
+  if(info.pagos&&info.pagos.length){
+    pagosHtml+=`<div style="margin-bottom:8px">
+      <div style="font-size:11px;font-weight:700;color:#5a7a9a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">💳 Pagos recibidos</div>`;
+    info.pagos.forEach(p=>{
+      pagosHtml+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-radius:8px;background:rgba(22,163,74,.06);margin-bottom:3px">
+        <span style="font-size:13px;color:#334155">${fmtFull(p.fecha)}${p.descripcion?' · <span style="color:#64748b">'+p.descripcion+'</span>':''}</span>
+        <span style="font-size:13px;font-weight:700;color:#16a34a">- ${fmtPesos(p.monto)}</span>
+      </div>`;
+    });
+    pagosHtml+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-top:1px solid rgba(30,80,160,.1);margin-top:2px">
+      <span style="font-size:12px;font-weight:700;color:#334155">Total cobrado</span>
+      <span style="font-size:14px;font-weight:800;color:#16a34a">- ${fmtPesos(info.totalPagado)}</span>
+    </div>`;
+    pagosHtml+='</div>';
+  }else{
+    pagosHtml=`<div style="font-size:12px;color:#64748b;padding:6px 0">💳 Sin pagos registrados aún.</div>`;
+  }
+  const formula=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:8px;border:1px dashed rgba(30,80,160,.2);margin-top:6px;background:rgba(30,80,160,.03)">
+    <span style="font-size:12px;color:#5a7a9a">Generado − Pagado</span>
+    <span style="font-size:13px;font-weight:700;color:#334155">${fmtPesos(info.totalExtras)} − ${fmtPesos(info.totalPagado)} = <strong style="color:${info.saldo>=0?'#16a34a':'#dc2626'}">${info.saldo>=0?'+':''}${fmtPesos(info.saldo)}</strong></span>
+  </div>`;
+  return semsHtml+pagosHtml+formula;
 }
 
 async function renderTecCobros(){
@@ -2496,29 +2514,42 @@ async function renderPagos(){
       rows.push({tec,cuad:cuad.nombre,cuadId:cuad.id,totalExtras,pagado,saldo:totalExtras-pagado});
     }
   }
-  rows.sort((a,b)=>b.saldo-a.saldo);
+  rows.sort((a,b)=>a.saldo-b.saldo); // más negativos primero
 
   const el2=document.getElementById('pag-saldos-lista');if(!el2)return;
-  // Tabla compacta
-  let html=`<table style="font-size:13px"><thead><tr>
-    <th>Técnico</th><th>Cuadrilla</th>
-    <th style="text-align:right">Extras</th>
-    <th style="text-align:right">Cobrado</th>
-    <th style="text-align:right">Saldo</th>
-    <th></th>
-  </tr></thead><tbody>`;
+
+  // Agrupar por cuadrilla
+  const porCuad={};
   rows.forEach(r=>{
-    const cls=r.saldo>500?'color:#059669':r.saldo<-500?'color:#ef4444':'color:#5a7a9a';
-    html+=`<tr style="cursor:pointer" onclick="abrirDetallePagos('${r.cuadId}')">
-      <td style="font-weight:600">${r.tec}</td>
-      <td style="color:#5a7a9a">${r.cuad}</td>
-      <td style="text-align:right;color:#1e293b">${fmtPesos(r.totalExtras)}</td>
-      <td style="text-align:right;color:#5a7a9a">${fmtPesos(r.pagado)}</td>
-      <td style="text-align:right;font-weight:800;${cls}">${r.saldo>=0?'+':''}${fmtPesos(r.saldo)}</td>
-      <td style="text-align:right"><span style="font-size:11px;color:#64748b">→</span></td>
-    </tr>`;
+    if(!porCuad[r.cuadId])porCuad[r.cuadId]={nombre:r.cuad,cuadId:r.cuadId,tecs:[]};
+    porCuad[r.cuadId].tecs.push(r);
   });
-  html+='</tbody></table>';
+
+  let html='';
+  Object.values(porCuad).forEach(cg=>{
+    const totSaldo=cg.tecs.reduce((s,t)=>s+t.saldo,0);
+    const totClr=totSaldo>=0?'#16a34a':'#dc2626';
+    html+=`<div style="margin-bottom:1.25rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-radius:8px;background:rgba(30,80,160,.06);margin-bottom:6px;cursor:pointer" onclick="abrirDetallePagos('${cg.cuadId}')">
+        <span style="font-size:13px;font-weight:800;color:#1e293b">🚐 ${cg.nombre}</span>
+        <span style="font-size:12px;font-weight:700;color:${totClr}">${totSaldo>=0?'+':''}${fmtPesos(totSaldo)} neto · <span style="color:#64748b;font-weight:500">ver cuadrilla →</span></span>
+      </div>`;
+    cg.tecs.forEach(r=>{
+      const clr=r.saldo>500?'#16a34a':r.saldo<-500?'#dc2626':'#5a7a9a';
+      const bg=r.saldo<-500?'rgba(220,38,38,.04)':r.saldo>500?'rgba(22,163,74,.04)':'transparent';
+      html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:10px;background:${bg};border:1px solid rgba(30,80,160,.07);margin-bottom:4px;cursor:pointer" onclick="abrirDetallePagos('${r.cuadId}','${r.tec}')">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#1e293b">${r.tec}</div>
+          <div style="font-size:11px;color:#64748b;margin-top:2px">Generado: ${fmtPesos(r.totalExtras)} · Cobrado: ${fmtPesos(r.pagado)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="font-size:16px;font-weight:800;color:${clr}">${r.saldo>=0?'+':''}${fmtPesos(r.saldo)}</div>
+          <span style="font-size:11px;color:#94a3b8">▶</span>
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+  });
   el2.innerHTML=html;
 }
 
@@ -2541,12 +2572,13 @@ async function guardarPago(){
 
 async function renderSaldosTodos(){renderPagos();}
 
-async function abrirDetallePagos(cuadId){
+async function abrirDetallePagos(cuadId, tecFocus){
   const cuad=CUADRILLAS.find(c=>c.id===cuadId);
   const el=document.getElementById('pag-saldos-lista');
   el.innerHTML=`
-    <button class="btn btn-sm" onclick="renderSaldosTodos()" style="margin-bottom:1rem">← Volver</button>
-    <div style="font-size:15px;font-weight:700;margin-bottom:1rem">${cuad?cuad.nombre:''}</div>
+    <button class="btn btn-sm" onclick="renderSaldosTodos()" style="margin-bottom:1rem">← Volver a todos</button>
+    <div style="font-size:16px;font-weight:800;color:#1e293b;margin-bottom:.25rem">${cuad?cuad.nombre:''}</div>
+    <div style="font-size:13px;color:#64748b;margin-bottom:1.25rem">${cuad?getTecs(cuadId).join(' · '):''}</div>
     <div id="pag-det-content"><div class="loading"><span class="spinner"></span>Cargando...</div></div>`;
 
   const tecs=getTecs(cuadId);
@@ -2558,63 +2590,77 @@ async function abrirDetallePagos(cuadId){
   for(const tec of tecs){
     const info=await calcSaldoTecnico(cuadId,tec);
     const saldo=info.saldo;
-    const saldoCls=saldo>0?'color:#059669':saldo<0?'color:#ef4444':'color:#5a7a9a';
+    const esNeg=saldo<0, esPos=saldo>0, esOk=Math.abs(saldo)<1;
+    const clr=esPos?'#16a34a':esNeg?'#dc2626':'#5a7a9a';
+    const bg=esPos?'#f0faf4':esNeg?'#fff5f5':'#f8f8f8';
+    const signo=esPos?'+':esNeg?'-':'';
+    const detId=`pag-det-${cuadId}-${tec.replace(/\s/g,'_')}`;
+    const autoOpen=tecFocus===tec;
 
-    html+=`<div class="card" style="margin-bottom:.9rem">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem">
-        <span style="font-size:16px;font-weight:700">${tec}</span>
-        <span style="font-size:20px;font-weight:800;${saldoCls}">${saldo>=0?'+':''}${fmtPesos(saldo)}</span>
+    html+=`<div class="card" style="margin-bottom:.9rem;border-left:4px solid ${clr}">
+      <!-- Cabecera del técnico -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem">
+        <div>
+          <div style="font-size:17px;font-weight:800;color:#1e293b">${tec}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:3px">
+            Generado: <strong>${fmtPesos(info.totalExtras)}</strong> · Cobrado: <strong>${fmtPesos(info.totalPagado)}</strong>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:22px;font-weight:900;color:${clr}">${esOk?'✓ Al día':signo+fmtPesos(Math.abs(saldo))}</div>
+          ${esNeg&&CU.rol==='jefe'?`<button class="btn btn-sm btn-dark" style="margin-top:6px;font-size:12px" onclick="abrirPagoRapidoAdm('${cuadId}','${tec}',${Math.abs(saldo)})">💸 Registrar pago</button>`:''}
+        </div>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;color:#5a7a9a;margin-bottom:.9rem;padding-bottom:.7rem;border-bottom:1px solid #f0f0f0">
-        <span>Extras acumuladas: <strong style="color:#111">${fmtPesos(info.totalExtras)}</strong></span>
-        <span>Cobrado: <strong style="color:#111">${fmtPesos(info.totalPagado)}</strong></span>
-      </div>`;
-
-    // Detalle por semana
-    html+=`<div class="card-title">Detalle por semana</div>`;
-    if(info.detalles&&info.detalles.length){
-      info.detalles.forEach(d=>{
-        const neg=d.semTotal<0;
-        const soloInfo=d.solo>0?` (incl. solo×2: ${(d.solo*2).toFixed(2)})`:'';
-        html+=`<div class="row">
-          <div>
-            <div style="font-size:13px;font-weight:600">Sem. ${fmtL(d.sem)}</div>
-            <div style="font-size:11px;color:#5a7a9a">Efectivo: ${d.efectivo.toFixed(2)} equiv${soloInfo}</div>
-            <div style="font-size:11px;color:#5a7a9a">Cálculo: (${d.efectivo.toFixed(2)} - ${meta}) × $${precioUnit.toLocaleString('es-AR')}</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:14px;font-weight:700;color:${neg?'#ef4444':'#059669'}">${d.semTotal>=0?'+':''}${fmtPesos(d.semTotal)}</div>
-            <div style="font-size:11px;color:#5a7a9a">Acum: ${fmtPesos(d.acum)}</div>
-          </div>
-        </div>`;
-      });
-    } else {
-      html+=`<p style="font-size:13px;color:#6b7280">Sin semanas con actividad desde marzo.</p>`;
-    }
-
-    // Pagos realizados
-    html+=`<div class="card-title" style="margin-top:1rem">Pagos realizados</div>`;
-    if(info.pagos&&info.pagos.length){
-      info.pagos.forEach(p=>{
-        html+=`<div class="row">
-          <div>
-            <div style="font-size:13px;font-weight:600">${fmtFull(p.fecha)}</div>
-            <div style="font-size:11px;color:#5a7a9a">${p.descripcion||'Sin descripción'}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <div style="font-size:14px;font-weight:700;color:#ef4444">-${fmtPesos(p.monto)}</div>
-            <button class="btn btn-sm btn-red" onclick="eliminarPago('${p.id}','${cuadId}')">✕</button>
-          </div>
-        </div>`;
-      });
-    } else {
-      html+=`<p style="font-size:13px;color:#6b7280">Sin pagos registrados.</p>`;
-    }
-
-    html+='</div>';
+      <!-- Toggle desglose -->
+      <div style="cursor:pointer;display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:8px;background:rgba(30,80,160,.05);border:1px solid rgba(30,80,160,.1)" onclick="togglePagDet('${detId}')">
+        <span style="font-size:12px;font-weight:700;color:#334155">¿DE DÓNDE SALE ESTE NÚMERO?</span>
+        <span id="${detId}-chev" style="font-size:11px;color:#5a7a9a;margin-left:auto;transition:transform .2s">${autoOpen?'▲':'▼'}</span>
+      </div>
+      <div id="${detId}" style="display:${autoOpen?'block':'none'};margin-top:12px;padding-top:12px;border-top:1px solid rgba(30,80,160,.08)">
+        <div style="font-size:11px;font-weight:700;color:#334155;margin-bottom:10px;letter-spacing:.03em">DESGLOSE COMPLETO</div>
+        ${buildSaldoDetalle(info, precioUnit, meta)}
+        ${info.pagos&&info.pagos.length?`<div style="margin-top:10px">
+          <div style="font-size:11px;font-weight:700;color:#5a7a9a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">🗑 Gestionar pagos</div>
+          ${info.pagos.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-radius:8px;background:rgba(22,163,74,.05);margin-bottom:3px">
+            <span style="font-size:13px;color:#334155">${fmtFull(p.fecha)}${p.descripcion?' · '+p.descripcion:''}</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:13px;font-weight:700;color:#16a34a">- ${fmtPesos(p.monto)}</span>
+              ${CU.rol==='jefe'?`<button class="btn btn-sm btn-red" style="font-size:11px;padding:3px 7px" onclick="eliminarPago('${p.id}','${cuadId}')">✕</button>`:''}
+            </div>
+          </div>`).join('')}
+        </div>`:''}
+      </div>
+    </div>`;
   }
 
   document.getElementById('pag-det-content').innerHTML=html;
+}
+
+function togglePagDet(detId){
+  const el=document.getElementById(detId);
+  const chev=document.getElementById(detId+'-chev');
+  if(!el)return;
+  const open=el.style.display!=='none';
+  el.style.display=open?'none':'block';
+  if(chev)chev.textContent=open?'▼':'▲';
+}
+
+function abrirPagoRapidoAdm(cuadId, tecNombre, deuda){
+  // Pre-llenar el form de pagos y hacer scroll
+  const selCuad=document.getElementById('pag-cuad');
+  if(selCuad){selCuad.value=cuadId;renderPagTecs();}
+  setTimeout(()=>{
+    const selTec=document.getElementById('pag-tec');
+    if(selTec){
+      [...selTec.options].forEach(o=>{if(o.value===tecNombre||o.text===tecNombre)selTec.value=o.value;});
+    }
+    const mEl=document.getElementById('pag-monto');
+    if(mEl)mEl.value=Math.round(Math.abs(deuda));
+    const fEl=document.getElementById('pag-fecha');
+    if(fEl&&!fEl.value)fEl.value=fmtD(new Date());
+    // Scroll al form
+    document.querySelector('#pag-cuad')?.scrollIntoView({behavior:'smooth',block:'center'});
+  },100);
 }
 
 // HISTÓRICO
