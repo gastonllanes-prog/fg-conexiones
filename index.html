@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v81</title>
+<title>FG Conexiones v82</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v81</div>
+    <div class="login-ver">FG Conexiones · v82</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v81</div>
+    <div class="sb-ver">v82</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v81</div>
+    <div id="mobile-ver">v82</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -3110,7 +3110,10 @@ async function renderCfgTecnicos(){
       sbGet('tecnicos','?order=nombre.asc&select=*'),
       Promise.resolve(CUADRILLAS)
     ]);
-    if(!tecs.length){
+    // Excluir entradas cuyo nombre coincide con un ID de cuadrilla (son usuarios de cuadrilla, no técnicos reales)
+    const cuadIds = cuads.map(c=>c.id);
+    const tecsFiltrados = tecs.filter(t => !cuadIds.includes(t.nombre));
+    if(!tecsFiltrados.length){
       el.innerHTML=`<p style="font-size:13px;color:#64748b;text-align:center;padding:1rem">Sin técnicos cargados. Ejecutá el SQL de migración primero.</p>
         <button class="btn btn-dark btn-sm btn-full" onclick="migrarTecnicosDesde Cuadrillas()">Migrar desde cuadrillas</button>`;
       return;
@@ -3118,7 +3121,7 @@ async function renderCfgTecnicos(){
     el.innerHTML=`<table style="font-size:13px"><thead><tr>
       <th>Nombre</th><th>Cuadrilla</th><th>Estado</th><th style="text-align:center">Acciones</th>
     </tr></thead><tbody>
-    ${tecs.map(t=>{
+    ${tecsFiltrados.map(t=>{
       const cuad=cuads.find(c=>c.id===t.cuadrilla_id);
       return`<tr>
         <td style="font-weight:600">${t.nombre}</td>
