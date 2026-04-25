@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <meta name="theme-color" content="#2563eb"/>
-<title>FG Gestión OTs v221</title>
+<title>FG Gestión OTs v222</title>
 <style>
 :root{--bg:#f0f4f8;--bg2:#fff;--bg3:#f8fafc;--border:rgba(0,0,0,.1);--border2:rgba(0,0,0,.06);--text1:#1e293b;--text2:#64748b;--text3:#94a3b8;--accent:#2563eb;--accent-hover:#1d4ed8;--card-shadow:0 1px 4px rgba(0,0,0,.06)}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -170,7 +170,7 @@ tr:hover td{background:rgba(37,99,235,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-primary btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div style="text-align:center;font-size:11px;color:#94a3b8;margin-top:1rem;letter-spacing:2px">FG GESTIÓN OTS · V221</div>
+    <div style="text-align:center;font-size:11px;color:#94a3b8;margin-top:1rem;letter-spacing:2px">FG GESTIÓN OTS · V222</div>
   </div>
 </div>
 
@@ -180,7 +180,7 @@ tr:hover td{background:rgba(37,99,235,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver" style="font-size:11px;font-weight:700;color:#2563eb;margin-top:5px">v221</div>
+    <div class="sb-ver" style="font-size:11px;font-weight:700;color:#2563eb;margin-top:5px">v222</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -7965,14 +7965,54 @@ async function confirmarAjusteManualCuadrilla(){
       let cantNueva,serialesNuevos=[];
       if(m.serial_tipo==='INDIVIDUAL'||m.serial_tipo==='CORRELATIVO'){
         const txt=(document.getElementById('ajuste-ser-'+m.id)?.value||'').trim();
-        serialesNuevos=txt?txt.split('\n').map(s=>s.trim()).filter(Boolean):[];
+        serialesNuevos=txt?txt.split('\n').map(s=>normSerial(s)).filter(Boolean):[];
         cantNueva=serialesNuevos.length;
+        const actUbic='CUADRILLA_'+cuadId;
+
+        // Verificar seriales realmente activos en BD (pueden diferir de sersMap si hubo cambios)
+        const sersActivosBD=await sbGet('stock_seriales',
+          '?material_id=eq.'+m.id+'&ubicacion=eq.'+actUbic+'&select=serial&limit=500')||[];
+        const actualesNorm=sersActivosBD.map(s=>normSerial(s.serial));
+        const aEliminar=actualesNorm.filter(s=>!serialesNuevos.includes(s));
+        const aAgregar=serialesNuevos.filter(s=>!actualesNorm.includes(s));
+
+        // REGLA: si cantNueva=0 y hay seriales activos en BD → bloquear hasta confirmación
+        if(cantNueva===0&&actualesNorm.length>0){
+          const ok=confirm(
+            '⚠️ "'+m.nombre+'" tiene '+actualesNorm.length+' serial'+(actualesNorm.length!==1?'es activos':' activo')+' en la cuadrilla.\n\n'
+            +'Para dejar el stock en 0, esos seriales deben pasar a BAJA_AJUSTE.\n\n'
+            +'¿Confirmás dar de baja los '+actualesNorm.length+' serial'+(actualesNorm.length!==1?'es':'')+' y dejar el stock en 0?\n\n'
+            +'Cancelar = no se modifica este material.'
+          );
+          if(!ok)continue; // Cancelar → saltar este material sin cambios
+          // Marcar todos como BAJA_AJUSTE
+          for(const s of actualesNorm){
+            await sbPatch('stock_seriales',
+              '?material_id=eq.'+m.id+'&serial=eq.'+encodeURIComponent(s)+'&ubicacion=eq.'+actUbic,
+              {ubicacion:'BAJA_AJUSTE'}).catch(()=>{});
+          }
+        }else{
+          // Caso parcial: dar de baja los que salen, agregar los nuevos
+          for(const s of aEliminar){
+            await sbPatch('stock_seriales',
+              '?material_id=eq.'+m.id+'&serial=eq.'+encodeURIComponent(s)+'&ubicacion=eq.'+actUbic,
+              {ubicacion:'BAJA_AJUSTE'}).catch(()=>{});
+          }
+          if(aAgregar.length){
+            await sbPost('stock_seriales',
+              aAgregar.map(s=>({material_id:m.id,serial:s,ubicacion:actUbic}))
+            ).catch(e=>{errores.push(m.nombre+': '+e.message);});
+          }
+        }
+        if(aEliminar.length||aAgregar.length)cambios++;
+
       }else{
         cantNueva=parseInt(document.getElementById('ajuste-cant-'+m.id)?.value)||0;
       }
+
       const cantActual=scMap[m.id]||0;
       const diff=cantNueva-cantActual;
-      if(diff===0&&(m.serial_tipo==='NINGUNO'))continue; // sin cambio
+      if(diff===0&&m.serial_tipo==='NINGUNO')continue;
 
       // Actualizar stock_cuadrillas
       const sc2=await sbGet('stock_cuadrillas','?cuadrilla_id=eq.'+cuadId+'&material_id=eq.'+m.id)||[];
@@ -7982,7 +8022,6 @@ async function confirmarAjusteManualCuadrilla(){
         await sbPost('stock_cuadrillas',{cuadrilla_id:parseInt(cuadId),material_id:m.id,cantidad:cantNueva});
       }
 
-      // Registrar movimiento de ajuste (solo si hubo cambio de cantidad)
       if(diff!==0){
         await sbPost('movimientos_stock',{
           tipo_movimiento:'AJUSTE_VALIDACION',material_id:m.id,cuadrilla_id:parseInt(cuadId),
@@ -7991,20 +8030,6 @@ async function confirmarAjusteManualCuadrilla(){
         cambios++;
       }
 
-      // Actualizar seriales si corresponde
-      if(m.serial_tipo!=='NINGUNO'){
-        const actUbic='CUADRILLA_'+cuadId;
-        const actuales=sersMap[m.id]||[];
-        const aEliminar=actuales.filter(s=>!serialesNuevos.includes(s));
-        const aAgregar=serialesNuevos.filter(s=>!actuales.includes(s));
-        for(const s of aEliminar){
-          await sbPatch('stock_seriales','?material_id=eq.'+m.id+'&serial=eq.'+encodeURIComponent(s)+'&ubicacion=eq.'+actUbic,{ubicacion:'BAJA_AJUSTE'}).catch(()=>{});
-        }
-        if(aAgregar.length){
-          await sbPost('stock_seriales',aAgregar.map(s=>({material_id:m.id,serial:normSerial(s),ubicacion:actUbic}))).catch(e=>{errores.push(m.nombre+': '+e.message);});
-        }
-        if(aEliminar.length||aAgregar.length)cambios++;
-      }
     }catch(e){errores.push(m.nombre+': '+e.message);}
   }
   cerrarModal('ajuste-cuad-modal');
@@ -9386,10 +9411,38 @@ async function abrirEntradaStockMaterial(matId){
 }
 
 async function ponerEnCero(matId, nombre){
-  if(!confirm('¿Poner en 0 el stock de "'+nombre+'"?\nEsto registrará un ajuste en movimientos.'))return;
+  // Verificar si hay seriales activos en depósito para este material
+  const sersActivos=await sbGet('stock_seriales',
+    '?material_id=eq.'+matId+'&ubicacion=eq.DEPOSITO&select=serial&limit=500')||[];
+
+  if(sersActivos.length){
+    // Hay seriales — no se puede dejar en 0 sin darlos de baja
+    const ok=confirm(
+      '⚠️ "'+nombre+'" tiene '+sersActivos.length+' serial'+(sersActivos.length!==1?'es activos':' activo')+' en depósito.\n\n'
+      +'Para poner el stock en 0, esos seriales deben pasar a BAJA_AJUSTE.\n\n'
+      +'¿Confirmás dar de baja los '+sersActivos.length+' serial'+(sersActivos.length!==1?'es':'')+' y dejar el stock en 0?\n\n'
+      +'Cancelar = no se hace ningún cambio.'
+    );
+    if(!ok)return; // Cancelar → no se toca nada
+    // Marcar todos los seriales como BAJA_AJUSTE
+    try{
+      const serList=sersActivos.map(s=>normSerial(s.serial));
+      const BATCH=200;
+      for(let i=0;i<serList.length;i+=BATCH){
+        const lote=serList.slice(i,i+BATCH);
+        await sbPatch('stock_seriales',
+          '?material_id=eq.'+matId+'&ubicacion=eq.DEPOSITO&serial=in.('+lote.join(',')+')',
+          {ubicacion:'BAJA_AJUSTE'});
+      }
+    }catch(e){alert('Error al dar de baja seriales: '+e.message);return;}
+  }else{
+    // Sin seriales — confirmar normalmente
+    if(!confirm('¿Poner en 0 el stock de "'+nombre+'"?'))return;
+  }
+
   try{
     await sbPatch('stock_deposito','?material_id=eq.'+matId,{cantidad:0,updated_at:new Date().toISOString()});
-    await sbPost('movimientos_stock',{tipo_movimiento:'AJUSTE_VALIDACION',material_id:matId,cantidad:0,obs:'Ajuste manual → 0'});
+    await sbPost('movimientos_stock',{tipo_movimiento:'AJUSTE_VALIDACION',material_id:matId,cantidad:0,obs:'Ajuste manual → 0'+(sersActivos.length?' ('+sersActivos.length+' seriales dados de baja)':'')});
     renderStock('deposito');
   }catch(e){alert('Error: '+e.message);}
 }
