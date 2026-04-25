@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <meta name="theme-color" content="#2563eb"/>
-<title>FG Gestión OTs v223</title>
+<title>FG Gestión OTs v224</title>
 <style>
 :root{--bg:#f0f4f8;--bg2:#fff;--bg3:#f8fafc;--border:rgba(0,0,0,.1);--border2:rgba(0,0,0,.06);--text1:#1e293b;--text2:#64748b;--text3:#94a3b8;--accent:#2563eb;--accent-hover:#1d4ed8;--card-shadow:0 1px 4px rgba(0,0,0,.06)}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -170,7 +170,7 @@ tr:hover td{background:rgba(37,99,235,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-primary btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div style="text-align:center;font-size:11px;color:#94a3b8;margin-top:1rem;letter-spacing:2px">FG GESTIÓN OTS · V223</div>
+    <div style="text-align:center;font-size:11px;color:#94a3b8;margin-top:1rem;letter-spacing:2px">FG GESTIÓN OTS · V224</div>
   </div>
 </div>
 
@@ -180,7 +180,7 @@ tr:hover td{background:rgba(37,99,235,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver" style="font-size:11px;font-weight:700;color:#2563eb;margin-top:5px">v223</div>
+    <div class="sb-ver" style="font-size:11px;font-weight:700;color:#2563eb;margin-top:5px">v224</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -13173,8 +13173,32 @@ async function _registrarCambio(otId, campo, anterior, nuevo, origen){
 }
 
 // Helper: ajustar stock de cuadrilla por diferencia + registrar movimiento
-async function _ajustarStock(cuadId, materialId, diferencia, obs){
+async function _ajustarStock(cuadId, materialId, diferencia, obs, otId){
   if(!cuadId||!materialId||!diferencia)return;
+
+  // ── PROTECCIÓN MODELO DIFERIDO (Etapa 2.1.bis — temporal) ──────────────────
+  // Si la OT tiene stock_descontado=false (modelo nuevo), NO se debe tocar
+  // stock_cuadrillas ni movimientos_stock acá. El descuento real ocurrirá en
+  // la validación admin (Etapa 2.2 — pendiente de implementar).
+  // Sin esta guarda, editar materiales en validación de OTs nuevas descontaría
+  // stock que NUNCA fue descontado en el cierre técnico → stock erróneo.
+  // Comportamiento por OT:
+  //   stock_descontado=true  (modelo viejo) → SIGUE IGUAL, descuenta normal
+  //   stock_descontado=false (modelo nuevo) → NO TOCA STOCK, solo log
+  //   sin otId / OT no encontrada / error de query → fallback a viejo (descontar)
+  if(otId){
+    try{
+      const otRows=await sbGet('ordenes_trabajo',`?id=eq.${otId}&select=stock_descontado`)||[];
+      if(otRows[0]?.stock_descontado===false){
+        console.log('[_ajustarStock] OT '+otId+' modelo diferido (stock_descontado=false) — skip ajuste de stock. Material '+materialId+', diferencia '+diferencia+'. ot_materiales_usados ya fue actualizado correctamente; el descuento real ocurrirá en validación admin (Etapa 2.2).');
+        return;
+      }
+    }catch(eGuard){
+      // Si no se puede verificar, fallback al comportamiento viejo (descontar).
+      console.warn('[_ajustarStock] No se pudo verificar stock_descontado de OT '+otId+'. Aplicando comportamiento viejo. Error:',eGuard.message);
+    }
+  }
+
   const sc=await sbGet('stock_cuadrillas',`?cuadrilla_id=eq.${cuadId}&material_id=eq.${materialId}`)||[];
   if(!sc.length)return; // sin registro de stock → no tocar
   const actual=sc[0].cantidad||0;
@@ -13244,7 +13268,7 @@ function valQtyInput(input){
         await sbPatch('ot_materiales_usados',`?id=eq.${mid}`,{activo:false,cantidad:0});
         // Devolver todo al stock
         if(cuadId&&materialId&&cantBD>0){
-          await _ajustarStock(cuadId,materialId,-cantBD,`Eliminación en validación OT ${otId}`);
+          await _ajustarStock(cuadId,materialId,-cantBD,`Eliminación en validación OT ${otId}`,otId);
           if(serTipo==='CORRELATIVO') await _devolverSerialCorrelativoLIFO(otId,materialId,cuadId,cantBD);
         }
         // Registrar eliminación en ot_cambios
@@ -13257,7 +13281,7 @@ function valQtyInput(input){
           if(diferencia<0&&serTipo==='CORRELATIVO'){
             await _devolverSerialCorrelativoLIFO(otId,materialId,cuadId,Math.abs(diferencia));
           }
-          await _ajustarStock(cuadId,materialId,diferencia,`Ajuste ${cantBD}→${cantNueva} en validación OT ${otId}`);
+          await _ajustarStock(cuadId,materialId,diferencia,`Ajuste ${cantBD}→${cantNueva} en validación OT ${otId}`,otId);
         }
         // Registrar cambio de cantidad solo si hubo diferencia real
         if(diferencia!==0) _registrarCambio(otId,`material:${nombreMat}`,cantBD,cantNueva,'ADMIN');
@@ -13291,7 +13315,7 @@ async function valEliminarMat(mid,grupoId){
     await sbPatch('ot_materiales_usados',`?id=eq.${mid}`,{activo:false,cantidad:0});
     // Devolver stock
     if(cuadId&&row?.material_id&&row?.cantidad>0){
-      await _ajustarStock(cuadId,row.material_id,-row.cantidad,`Eliminación admin validación OT ${row.ot_id}`);
+      await _ajustarStock(cuadId,row.material_id,-row.cantidad,`Eliminación admin validación OT ${row.ot_id}`,row.ot_id);
       if(row.catalogo_materiales?.serial_tipo==='CORRELATIVO'){
         await _devolverSerialCorrelativoLIFO(row.ot_id,row.material_id,cuadId,row.cantidad);
       }else if(row.catalogo_materiales?.serial_tipo==='INDIVIDUAL'){
@@ -13322,7 +13346,7 @@ async function valConfirmarAddMat(otId,grupoId){
   try{
     const nombreMat=sel?.options[sel.selectedIndex]?.text||String(matId);
     await sbPost('ot_materiales_usados',{ot_id:parseInt(otId),material_id:matId,cantidad:cant,activo:true});
-    if(cuadId) await _ajustarStock(cuadId,matId,cant,`Agregado admin en validación OT ${otId}`);
+    if(cuadId) await _ajustarStock(cuadId,matId,cant,`Agregado admin en validación OT ${otId}`,otId);
     // Registrar agregado
     _registrarCambio(otId,`material:${nombreMat}`,0,cant,'ADMIN');
     await verGrupoValidacion(grupoId);
