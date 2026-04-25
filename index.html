@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <meta name="theme-color" content="#2563eb"/>
-<title>FG Gestión OTs v222</title>
+<title>FG Gestión OTs v223</title>
 <style>
 :root{--bg:#f0f4f8;--bg2:#fff;--bg3:#f8fafc;--border:rgba(0,0,0,.1);--border2:rgba(0,0,0,.06);--text1:#1e293b;--text2:#64748b;--text3:#94a3b8;--accent:#2563eb;--accent-hover:#1d4ed8;--card-shadow:0 1px 4px rgba(0,0,0,.06)}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -170,7 +170,7 @@ tr:hover td{background:rgba(37,99,235,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-primary btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div style="text-align:center;font-size:11px;color:#94a3b8;margin-top:1rem;letter-spacing:2px">FG GESTIÓN OTS · V222</div>
+    <div style="text-align:center;font-size:11px;color:#94a3b8;margin-top:1rem;letter-spacing:2px">FG GESTIÓN OTS · V223</div>
   </div>
 </div>
 
@@ -180,7 +180,7 @@ tr:hover td{background:rgba(37,99,235,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver" style="font-size:11px;font-weight:700;color:#2563eb;margin-top:5px">v222</div>
+    <div class="sb-ver" style="font-size:11px;font-weight:700;color:#2563eb;margin-top:5px">v223</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -5890,8 +5890,10 @@ function renderWizPaso(){
       return `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--border2)">
         <span style="flex:1;font-size:12px">${m.nombre}</span>
         <span style="font-size:10px;color:${stock>0?'#16a34a':'#94a3b8'};min-width:28px;text-align:right">${stock||''}</span>
-        <input type="number" min="0" value="${val}" style="width:52px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center"
-          onchange="WIZ.pasos[${WIZ.paso}].mats[${m.id}]=parseInt(this.value)||0" data-mid="${m.id}" class="wiz-mat"/>
+        <input type="number" min="0" value="${val||''}" placeholder="0" style="width:52px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;font-size:13px;text-align:center"
+          onchange="WIZ.pasos[${WIZ.paso}].mats[${m.id}]=parseInt(this.value)||0"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();var inputs=[...document.querySelectorAll('.wiz-mat')];var idx=inputs.indexOf(this);if(idx>=0&&inputs[idx+1])inputs[idx+1].focus();}"
+          data-mid="${m.id}" class="wiz-mat"/>
       </div>`;
     }).join('')
     +'</div>';
@@ -5938,9 +5940,11 @@ function renderWizPaso(){
         return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border2)">
           <span style="flex:1;font-size:12px;font-weight:600">${m.nombre}</span>
           <span style="font-size:10px;color:${dispCant>0?'#2563eb':'#94a3b8'}">${dispCant>0?dispCant+' disp.':''}</span>
-          <input type="number" min="0" max="${dispCant||99}" value="${val}"
+          <input type="number" min="0" max="${dispCant||99}" value="${val||''}" placeholder="0"
             style="width:52px;padding:3px 6px;border:2px solid ${val>0?'#2563eb':'#dbeafe'};border-radius:6px;font-size:13px;text-align:center;color:${val>0?'#2563eb':'inherit'};font-weight:${val>0?'700':'400'}"
-            onchange="WIZ.pasos[${WIZ.paso}].mats[${m.id}]=parseInt(this.value)||0;this.style.borderColor=this.value>0?'#2563eb':'#dbeafe';this.style.color=this.value>0?'#2563eb':'inherit';this.style.fontWeight=this.value>0?'700':'400'" data-mid="${m.id}" class="wiz-mat"/>
+            onchange="WIZ.pasos[${WIZ.paso}].mats[${m.id}]=parseInt(this.value)||0;this.style.borderColor=this.value>0?'#2563eb':'#dbeafe';this.style.color=this.value>0?'#2563eb':'inherit';this.style.fontWeight=this.value>0?'700':'400'"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();var inputs=[...document.querySelectorAll('.wiz-mat')];var idx=inputs.indexOf(this);if(idx>=0&&inputs[idx+1])inputs[idx+1].focus();}"
+            data-mid="${m.id}" class="wiz-mat"/>
         </div>`;
       }).join('')
       +'</div>';

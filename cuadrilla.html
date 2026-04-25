@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="FG Cuadrillas"/>
 <meta name="theme-color" content="#2563eb"/>
 <link rel="manifest" href="./manifest-cuad.json"/>
-<title>FG Cuadrillas v4.31</title>
+<title>FG Cuadrillas v4.33</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -155,7 +155,7 @@ body{display:flex;flex-direction:column;max-width:500px;margin:0 auto;min-height
     <div class="login-logo">
       <div class="login-logo-icon">🔧</div>
       <div class="login-logo-title">FG Cuadrillas</div>
-      <div class="login-logo-sub">v4.31 · Órdenes de trabajo</div>
+      <div class="login-logo-sub">v4.33 · Órdenes de trabajo</div>
     </div>
     <div class="field">
       <label>Seleccioná tu cuadrilla</label>
@@ -404,7 +404,7 @@ async function iniciarApp(){
   document.getElementById('btn-retiro').style.display='flex';
   var fechaStr=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('topbar-title').textContent=CUAD.nombre;
-  document.getElementById('topbar-sub').textContent=fechaStr+' · v4.31';
+  document.getElementById('topbar-sub').textContent=fechaStr+' · v4.33';
 
   // Cargar estados con fallback
   try{
@@ -1699,6 +1699,50 @@ async function confirmarWizard(){
         if(p.serialRetirado)pOT.serial_retirado=p.serialRetirado;
         await sbPatch('ordenes_trabajo','?id=eq.'+otId,pOT);
         try{await sbPost('historial_estados_ot',{ot_id:otId,estado_nuevo_id:eFinTec.id});}catch(e){}
+
+        // CAMBIO_TECNOLOGIA: registrar equipo retirado en circuito de recupero
+        var tipoOTw=p.ot?p.ot.tipo_item||p.ot.tipo_tarea||'':'';
+        if(p.serialRetirado&&tipoOTw==='CAMBIO_TECNOLOGIA'){
+          try{
+            var serialRet=p.serialRetirado; // ya normalizado a UPPER por wizSetSerialRetirado
+            var clienteIdRet=p.ot.clientes?.id||p.ot.cliente_id||null;
+            // Verificar si ya existe ese serial en equipos
+            var eqExist=await sbGet('equipos','?serial=eq.'+encodeURIComponent(serialRet)+'&select=id,estado')||[];
+            if(!eqExist.length){
+              // Crear nuevo equipo recuperado
+              var nuevoEqRet=await sbPost('equipos',{
+                serial:serialRet,
+                mac:serialRet,
+                estado:'RECUPERADO_CLIENTE',
+                cuadrilla_id:parseInt(cuadId),
+                cliente_id:clienteIdRet,
+                observaciones:'Recuperado en CAMBIO_TECNOLOGIA — OT '+otId,
+                origen:'RECUPERO_CLIENTE'
+              });
+              var eqRetId=(Array.isArray(nuevoEqRet)?nuevoEqRet[0]:nuevoEqRet)?.id||null;
+              await sbPost('equipo_historial',{
+                serial:serialRet,equipo_id:eqRetId,
+                evento:'RETIRADO_CLIENTE',origen:'RECUPERO_CLIENTE',
+                cuadrilla_id:parseInt(cuadId),cliente_id:clienteIdRet,
+                ot_id:otId,usuario:CUAD.nombre,
+                obs:'Retiro automático en cierre CAMBIO_TECNOLOGIA'
+              });
+            }else{
+              // Ya existe — actualizar estado y cuadrilla
+              await sbPatch('equipos','?id=eq.'+eqExist[0].id,{
+                estado:'RECUPERADO_CLIENTE',cuadrilla_id:parseInt(cuadId),
+                cliente_id:clienteIdRet,origen:'RECUPERO_CLIENTE'
+              });
+              await sbPost('equipo_historial',{
+                serial:serialRet,equipo_id:eqExist[0].id,
+                evento:'RETIRADO_CLIENTE',origen:'RECUPERO_CLIENTE',
+                cuadrilla_id:parseInt(cuadId),cliente_id:clienteIdRet,
+                ot_id:otId,usuario:CUAD.nombre,
+                obs:'Retiro CAMBIO_TECNOLOGIA (equipo ya registrado)'
+              });
+            }
+          }catch(eRet){console.warn('[recupero-CT]',eRet.message);}
+        }
 
         // Guardar fotos subidas en ot_fotos
         var fotosOk=(p.fotos||[]).filter(function(f){return f.estado==='ok'&&f.url;});
