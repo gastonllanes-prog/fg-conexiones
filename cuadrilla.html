@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="FG Cuadrillas"/>
 <meta name="theme-color" content="#2563eb"/>
 <link rel="manifest" href="./manifest-cuad.json"/>
-<title>FG Cuadrillas v4.34</title>
+<title>FG Cuadrillas v4.35</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -155,7 +155,7 @@ body{display:flex;flex-direction:column;max-width:500px;margin:0 auto;min-height
     <div class="login-logo">
       <div class="login-logo-icon">🔧</div>
       <div class="login-logo-title">FG Cuadrillas</div>
-      <div class="login-logo-sub">v4.34 · Órdenes de trabajo</div>
+      <div class="login-logo-sub">v4.35 · Órdenes de trabajo</div>
     </div>
     <div class="field">
       <label>Seleccioná tu cuadrilla</label>
@@ -404,7 +404,7 @@ async function iniciarApp(){
   document.getElementById('btn-retiro').style.display='flex';
   var fechaStr=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('topbar-title').textContent=CUAD.nombre;
-  document.getElementById('topbar-sub').textContent=fechaStr+' · v4.34';
+  document.getElementById('topbar-sub').textContent=fechaStr+' · v4.35';
 
   // Cargar estados con fallback
   try{
@@ -971,6 +971,35 @@ function renderWizPaso(){
 }
 
 // ── WIZARD — MATERIALES ───────────────────────────────────────────────────────
+// Helper: suma cargando_ahora = total de mats[matId] en TODOS los pasos
+// del wizard actual. Defensivo para multi-OT: evita over-allocation.
+function _wizCargandoTotal(matId){
+  if(!PWIZ||!PWIZ.pasos)return 0;
+  var total=0;
+  PWIZ.pasos.forEach(function(p){
+    if(!p||!p.mats)return;
+    total+=parseInt(p.mats[matId]||0,10)||0;
+  });
+  return total;
+}
+
+// Recalcula y refresca el bloque de stock teórico de un material, sin re-render
+// global (para no perder foco del input). Llamado desde wizCambiarMat / wizSetMatQty.
+function _wizRefrescarStockTeorico(matId){
+  var fisico=PWIZ.scMap[matId]||0;
+  var pendiente=PWIZ.pendienteMap[matId]||0;
+  var cargando=_wizCargandoTotal(matId);
+  var disp=fisico-pendiente-cargando;
+  var dispClass=disp<0?'var(--red)':disp===0?'var(--amber)':'var(--green)';
+  var elCar=document.getElementById('wiz-stock-cargando-'+matId);
+  var elDisp=document.getElementById('wiz-stock-disp-'+matId);
+  if(elCar)elCar.textContent=cargando;
+  if(elDisp){
+    elDisp.textContent=disp;
+    elDisp.style.color=dispClass;
+  }
+}
+
 function renderWizMateriales(p){
   var mats=PWIZ.catalogoMats;
   if(!mats.length)return'';
@@ -979,21 +1008,21 @@ function renderWizMateriales(p){
   mats.forEach(function(m){
     var qty=p.mats[m.id]||0;
     var fisico=PWIZ.scMap[m.id]||0;
-    var pendiente=PWIZ.pendienteMap[m.material_id||m.id]||0;
-    var disponible=Math.max(0,fisico-pendiente);
+    var pendiente=PWIZ.pendienteMap[m.id]||0;
+    var cargando=_wizCargandoTotal(m.id);
+    var disp=fisico-pendiente-cargando;
+    var dispColor=disp<0?'var(--red)':disp===0?'var(--amber)':'var(--green)';
+    var unidad=m.unidad||'';
     var badge=m.serial_tipo==='INDIVIDUAL'?' <span style="font-size:10px;background:var(--blue-l);color:var(--blue);padding:1px 6px;border-radius:5px;font-weight:700">SERIAL</span>':m.serial_tipo==='CORRELATIVO'?' <span style="font-size:10px;background:var(--amber-l);color:var(--amber);padding:1px 6px;border-radius:5px;font-weight:700">PRECINTO</span>':'';
-    // UI de stock: compacta si no hay pendiente, desglosada si hay
-    var stockHtml;
-    if(pendiente>0){
-      stockHtml='<div style="font-size:11px;margin-top:2px">'
-        +'<span style="color:var(--muted)">Físico: <strong>'+fisico+'</strong></span>'
-        +' · <span style="color:var(--amber)">Pendiente: <strong>'+pendiente+'</strong></span>'
-        +' · <span style="color:'+(disponible<=0?'var(--red)':'var(--green)')+'">Disponible: <strong>'+disponible+'</strong></span>'
-        +' '+(m.unidad||'')
-        +'</div>';
-    }else{
-      stockHtml='<div class="mat-stock">Stock: '+fisico+' '+(m.unidad||'')+'</div>';
-    }
+
+    // Bloque de stock teórico (4 líneas, ids para refresh en tiempo real)
+    var stockHtml='<div style="font-size:11px;line-height:1.5;margin-top:3px;color:var(--muted)">'
+      +'<div>Stock real: <strong style="color:var(--text2)">'+fisico+'</strong> '+unidad+'</div>'
+      +'<div>Ya comprometido: <strong style="color:var(--amber)">'+pendiente+'</strong> '+unidad+'</div>'
+      +'<div>Cargando ahora: <strong id="wiz-stock-cargando-'+m.id+'" style="color:var(--blue)">'+cargando+'</strong> '+unidad+'</div>'
+      +'<div>Disponible teórico: <strong id="wiz-stock-disp-'+m.id+'" style="color:'+dispColor+'">'+disp+'</strong> '+unidad+'</div>'
+      +'</div>';
+
     html+='<div class="mat-row">'
       +'<div style="flex:1;min-width:0"><div class="mat-nombre">'+m.nombre+badge+'</div>'
         +stockHtml+'</div>'
@@ -1194,6 +1223,8 @@ function wizCambiarMat(matId,delta){
   }else{
     renderWizPaso();
   }
+  // Refrescar stock teórico (cargando ahora + disponible) sin perder foco
+  _wizRefrescarStockTeorico(matId);
 }
 
 function wizSetMatQty(matId,val){
@@ -1208,6 +1239,8 @@ function wizSetMatQty(matId,val){
     var btnMenos=inp.previousElementSibling;
     if(btnMenos)btnMenos.disabled=(n<=0);
   }
+  // Refrescar stock teórico (cargando ahora + disponible) sin perder foco
+  _wizRefrescarStockTeorico(matId);
 }
 
 function wizCambiarServ(servId,delta){
@@ -2164,42 +2197,81 @@ async function renderMiStockTab(){
 
 async function renderStockActualTec(cont){
   var cuadId=CUAD.id;
-  var [mats,sc,movHoy,movRepartos]=await Promise.all([
+  // Cargar grupos de la cuadrilla y el ID de FINALIZADA_TECNICO en paralelo con el resto
+  var [mats,sc,movRepartos,gruposCuad]=await Promise.all([
     sbGet('catalogo_materiales','?activo=eq.true&order=orden_display')||[],
     sbGet('stock_cuadrillas','?cuadrilla_id=eq.'+cuadId)||[],
-    sbGet('movimientos_stock','?cuadrilla_id=eq.'+cuadId+'&tipo_movimiento=eq.CONSUMO_OT&created_at=gte.'+hoy()+'T00:00:00&select=material_id,cantidad')||[],
-    sbGet('movimientos_stock','?cuadrilla_id=eq.'+cuadId+'&tipo_movimiento=eq.REPARTO_CUADRILLA&order=created_at.desc&limit=100&select=material_id,cantidad,created_at,catalogo_materiales(nombre,unidad)')||[]
+    sbGet('movimientos_stock','?cuadrilla_id=eq.'+cuadId+'&tipo_movimiento=eq.REPARTO_CUADRILLA&order=created_at.desc&limit=100&select=material_id,cantidad,created_at,catalogo_materiales(nombre,unidad)')||[],
+    sbGet('grupos_ot','?cuadrilla_id=eq.'+cuadId+'&select=id')||[]
   ]);
   var scMap={};sc.forEach(function(s){scMap[s.material_id]=s.cantidad||0;});
-  var usadoHoyMap={};
-  movHoy.forEach(function(m){usadoHoyMap[m.material_id]=(usadoHoyMap[m.material_id]||0)+Math.abs(m.cantidad);});
 
-  // Stock total
+  // ── A DESCONTAR (modelo diferido): sumar materiales declarados en OTs
+  // FINALIZADA_TECNICO de esta cuadrilla, sin validar por admin ────────────
+  var pendienteMap={};
+  try{
+    var eFinTecId=(ESTADOS.find(function(e){return e.nombre==='FINALIZADA_TECNICO';})||{}).id;
+    var grupoIds=(gruposCuad||[]).map(function(g){return g.id;});
+    if(grupoIds.length&&eFinTecId){
+      var otsPend=await sbGet('ordenes_trabajo',
+        '?grupo_id=in.('+grupoIds.join(',')+')'
+        +'&estado_id=eq.'+eFinTecId
+        +'&validado_admin_at=is.null'
+        +'&select=id'
+      )||[];
+      if(otsPend.length){
+        var otPendIds=otsPend.map(function(o){return o.id;});
+        var matsPend=await sbGet('ot_materiales_usados',
+          '?ot_id=in.('+otPendIds.join(',')+')'
+          +'&activo=eq.true'
+          +'&select=material_id,cantidad'
+        )||[];
+        matsPend.forEach(function(m){
+          pendienteMap[m.material_id]=(pendienteMap[m.material_id]||0)+(parseInt(m.cantidad)||0);
+        });
+      }
+    }
+  }catch(ep){console.warn('[Mi Stock pendienteMap]',ep.message);}
+
+  // ── HEADER ──────────────────────────────────────────────────────────────
   var html='<div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#15803d;font-weight:600">📦 Stock disponible en el vehículo</div>';
-  var tieneStock=mats.some(function(m){return(scMap[m.id]||0)>0||(usadoHoyMap[m.id]||0)>0;});
+  // Si hay pendiente, mostrar leyenda explicativa
+  var hayPend=Object.values(pendienteMap).some(function(v){return v>0;});
+  if(hayPend){
+    html+='<div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:11px;color:#92400e;line-height:1.4">'
+      +'⏳ <strong>A descontar</strong> = materiales declarados en OTs cerradas pendientes de validación admin. '
+      +'El stock real se actualiza cuando el admin valida.'
+      +'</div>';
+  }
+
+  var tieneStock=mats.some(function(m){return(scMap[m.id]||0)>0||(pendienteMap[m.id]||0)>0;});
   if(!tieneStock){
     html+='<div style="text-align:center;padding:1.5rem;color:#94a3b8;font-size:13px;font-style:italic">No tenés materiales cargados todavía.</div>';
   }else{
     html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
-      +'<thead><tr style="font-size:11px;color:#94a3b8;text-transform:uppercase;border-bottom:1.5px solid var(--border)">'
+      +'<thead><tr style="font-size:10px;color:#94a3b8;text-transform:uppercase;border-bottom:1.5px solid var(--border)">'
       +'<th style="text-align:left;padding:6px 4px">Material</th>'
-      +'<th style="text-align:right;padding:6px 4px">Físico</th>'
-      +'<th style="text-align:right;padding:6px 4px;color:#dc2626">Usado hoy</th>'
+      +'<th style="text-align:right;padding:6px 4px">Stock real</th>'
+      +'<th style="text-align:right;padding:6px 4px;color:#d97706">A descontar</th>'
+      +'<th style="text-align:right;padding:6px 4px;color:#16a34a">Disp. teórico</th>'
       +'</tr></thead><tbody>';
     mats.forEach(function(m){
       var fis=scMap[m.id]||0;
-      var usado=usadoHoyMap[m.id]||0;
-      if(fis===0&&usado===0)return;
+      var pend=pendienteMap[m.id]||0;
+      if(fis===0&&pend===0)return;
+      var disp=fis-pend;
+      var dispColor=disp<0?'#dc2626':disp===0?'#d97706':'#16a34a';
       html+='<tr style="border-bottom:1px solid var(--border)">'
         +'<td style="padding:8px 4px;font-weight:600">'+m.nombre+'<span style="font-size:10px;color:#94a3b8;margin-left:4px">'+m.unidad+'</span></td>'
         +'<td style="text-align:right;padding:8px 4px;font-weight:700;font-size:15px;color:'+(fis>0?'#16a34a':'#94a3b8')+'">'+fis+'</td>'
-        +'<td style="text-align:right;padding:8px 4px;color:'+(usado>0?'#dc2626':'#94a3b8')+'">'+(usado>0?'-'+usado:'—')+'</td>'
+        +'<td style="text-align:right;padding:8px 4px;font-weight:700;color:'+(pend>0?'#d97706':'#94a3b8')+'">'+(pend>0?'-'+pend:'—')+'</td>'
+        +'<td style="text-align:right;padding:8px 4px;font-weight:700;font-size:15px;color:'+dispColor+'">'+disp+'</td>'
         +'</tr>';
     });
     html+='</tbody></table></div>';
   }
 
-  // Última carga detectada (heurístico ±30 min)
+  // ── Última carga detectada (heurístico ±30 min) — sin cambios ────────────
   if(movRepartos.length){
     var t0=new Date(movRepartos[0].created_at).getTime();
     var VENTANA=30*60*1000;
