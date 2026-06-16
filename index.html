@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v82</title>
+<title>FG Conexiones v83</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v82</div>
+    <div class="login-ver">FG Conexiones · v83</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v82</div>
+    <div class="sb-ver">v83</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v82</div>
+    <div id="mobile-ver">v83</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -434,7 +434,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div class="stat-grid">
       <div class="stat"><div class="lbl">Total equiv.</div><div class="val" id="t-total">—</div></div>
       <div class="stat"><div class="lbl">Meta</div><div class="val" id="t-meta">30</div></div>
-      <div class="stat"><div class="lbl">Saldo ant.</div><div class="val" id="t-saldo">—</div></div>
+      <div class="stat"><div class="lbl">Saldo acum.</div><div class="val" id="t-saldo">—</div></div>
       <div class="stat"><div class="lbl">Extras</div><div class="val green" id="t-extras">—</div></div>
     </div>
     <div id="t-acum-card" class="card" style="margin-bottom:.7rem;padding:.8rem 1rem;display:none">
@@ -1276,7 +1276,7 @@ async function renderTecSemana(){
     sbGet('registros',`?cuadrilla_id=eq.${cuadId}&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=*,registro_tareas(*)`),
     esInd?sbGet('dias_especiales',`?cuadrilla_id=eq.${cuadId}&tecnico_nombre=eq.${encodeURIComponent(CU.tecnico_ref)}&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=fecha,tipo`):Promise.resolve([]),
     sbGet('dias_especiales',`?tipo=eq.feriado&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=fecha,cuadrilla_id`),
-    sbGet('saldos',esInd?`?cuadrilla_id=eq.${cuadId}&tecnico_nombre=eq.${encodeURIComponent(CU.tecnico_ref)}&semana_inicio=eq.${lunes}&select=valor`:`?cuadrilla_id=eq.${cuadId}&semana_inicio=eq.${lunes}&select=valor`)
+    Promise.resolve([]) /* saldos eliminado: ya no se cierra la semana */
   ]);
 
   const libraS=semConf?cuad.grupo===semConf.grupo_libra:false;
@@ -1311,7 +1311,8 @@ async function renderTecSemana(){
 
   const totalConS=totalSemana+saldoTotal,extras=Math.max(0,totalConS-meta),falta=Math.max(0,meta-totalConS),pct=Math.min(100,Math.round((totalConS/meta)*100));
   document.getElementById('t-total').textContent=totalConS.toFixed(2);
-  const sEl=document.getElementById('t-saldo');sEl.textContent=(saldoTotal>=0?'+':'')+saldoTotal.toFixed(2);sEl.className='val '+(saldoTotal>=0?'green':'red');
+  // "Saldo acum." se completa más abajo con el saldo real del técnico (solo para login individual)
+  const sEl=document.getElementById('t-saldo');sEl.textContent='—';sEl.className='val';
   const eEl=document.getElementById('t-extras');eEl.textContent=extras>0?'+'+extras.toFixed(2):'0';eEl.className='val '+(extras>0?'green':'');
   const pb=document.getElementById('t-pb');pb.style.width=pct+'%';pb.className='pb '+(pct>=100?'green':pct>=60?'amber':'red');
   // Bloque 1: faltan para la meta esta semana
@@ -1339,6 +1340,9 @@ async function renderTecSemana(){
       const precioUnit=parseInt(CONFIG.precio_instalacion||7000)/2;
       const saldoNeto=infoAcum.saldo;
       const equivAcum=saldoNeto/precioUnit;
+      // Reflejar el saldo acumulado en el stat de arriba (en equiv)
+      sEl.textContent=(equivAcum>=0?'+':'')+equivAcum.toFixed(2);
+      sEl.className='val '+(equivAcum>=-0.01?'green':'red');
       cardDeuda.style.display='block';
       const meta2=parseInt(CONFIG.meta_semanal||30);
       // ── Helper: construir el desglose completo ──
@@ -1478,10 +1482,13 @@ function buildSaldoDetalle(info, precioUn, metaN){
       sems.forEach(d=>{
         const neg=d.semTotal<0;const clr=neg?'#dc2626':'#16a34a';
         const diff=d.efectivo-metaN;
-        const soloInfo=d.solo>0?` · solo×2 incl.`:'';
+        const desglose=d.solo>0
+          ? 'Cuadrilla: '+d.pareja.toFixed(2)+'  +  Solo: '+d.solo.toFixed(2)+' ×2 = '+(d.solo*2).toFixed(2)
+          : 'Cuadrilla: '+d.pareja.toFixed(2);
         semsHtml+=`<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:7px 10px 7px 16px;border-radius:8px;background:${neg?'rgba(220,38,38,.05)':'rgba(22,163,74,.05)'};margin-bottom:3px;border-left:3px solid ${clr}">
           <div>
-            <div style="font-size:13px;font-weight:600;color:#1e293b">Sem. ${fmtL(d.sem)}${soloInfo}</div>
+            <div style="font-size:13px;font-weight:600;color:#1e293b">Sem. ${fmtL(d.sem)}</div>
+            <div style="font-size:11px;color:#7c3aed;margin-top:2px;font-weight:600">${desglose}</div>
             <div style="font-size:11px;color:#64748b;margin-top:2px">${d.efectivo.toFixed(2)} equiv — meta ${metaN} = <strong style="color:${clr}">${diff>=0?'+':''}${diff.toFixed(2)}</strong></div>
             <div style="font-size:11px;color:#94a3b8">${diff>=0?'+':''}${diff.toFixed(2)} × $${precioUn.toLocaleString('es-AR')}/equiv</div>
           </div>
@@ -1538,10 +1545,12 @@ async function renderTecCobros(){
     html+='<div class="card"><div class="card-title">Detalle por semana (desde marzo)</div>';
     info.detalles.forEach(d=>{
       const neg=d.semTotal<0;
-      const soloInfo=d.solo>0?` (incl. solo×2: ${(d.solo*2).toFixed(2)})`:'';
+      const desg=d.solo>0
+        ? 'Cuadrilla '+d.pareja.toFixed(2)+' + Solo '+d.solo.toFixed(2)+'×2'
+        : 'Cuadrilla '+d.pareja.toFixed(2);
       html+=`<div class="row">
         <div><div style="font-size:13px;font-weight:600">Sem. ${fmtL(d.sem)}</div>
-        <div style="font-size:11px;color:#5a7a9a">Efectivo: ${d.efectivo.toFixed(2)} equiv${soloInfo}</div></div>
+        <div style="font-size:11px;color:#5a7a9a">${desg} → ${d.efectivo.toFixed(2)} equiv</div></div>
         <div style="text-align:right">
           <div style="font-size:14px;font-weight:700;color:${neg?'#ef4444':'#059669'}">${d.semTotal>=0?'+':''}${fmtPesos(d.semTotal)}</div>
           <div style="font-size:11px;color:#5a7a9a">Acum: ${fmtPesos(d.acum)}</div>
@@ -1566,13 +1575,13 @@ async function calcSaldoTecnico(cuadId,tecNombre){
   const MARZO2026='2026-03-01';
   const hoy=new Date();
   const lunesHoy=getLunesDesd(fmtD(hoy));
-  const saldosGuardados=await sbGet('saldos',`?cuadrilla_id=eq.${cuadId}&select=semana_inicio`);
-  const semanasCerradas=new Set((saldosGuardados||[]).map(s=>s.semana_inicio));
+  // El saldo cuenta SOLO automáticamente todas las semanas YA TERMINADAS.
+  // La semana en curso no entra hasta que termina (no hace falta "cerrar" la semana).
   const porSemana={};
   regs.forEach(reg=>{
     if(reg.fecha<MARZO2026)return;
     const semReg=getLunesDesd(reg.fecha);
-    if(semReg>=lunesHoy&&!semanasCerradas.has(semReg))return;
+    if(semReg>=lunesHoy)return;
     let eq=0;(reg.registro_tareas||[]).forEach(rt=>eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));
     const sem=getLunesDesd(reg.fecha);if(!porSemana[sem])porSemana[sem]={pareja:0,solo:0};
     if(reg.solo&&reg.tecnico_nombre===tecNombre)porSemana[sem].solo+=eq;
@@ -1582,7 +1591,7 @@ async function calcSaldoTecnico(cuadId,tecNombre){
   diasVac.forEach(d=>{
     if(d.fecha<MARZO2026)return;
     const semV=getLunesDesd(d.fecha);
-    if(semV>=lunesHoy&&!semanasCerradas.has(semV))return;
+    if(semV>=lunesHoy)return;
     if(!porSemana[semV])porSemana[semV]={pareja:0,solo:0};
     porSemana[semV].pareja=meta;
   });
@@ -1590,7 +1599,7 @@ async function calcSaldoTecnico(cuadId,tecNombre){
   diasCert.forEach(d=>{
     if(d.fecha<MARZO2026)return;
     const semC=getLunesDesd(d.fecha);
-    if(semC>=lunesHoy&&!semanasCerradas.has(semC))return;
+    if(semC>=lunesHoy)return;
     if(!porSemana[semC])porSemana[semC]={pareja:0,solo:0};
     porSemana[semC].pareja+=5;
   });
@@ -1599,7 +1608,7 @@ async function calcSaldoTecnico(cuadId,tecNombre){
     if(d.fecha<MARZO2026)return;
     if(d.cuadrilla_id&&d.cuadrilla_id!==cuadId)return; // feriado de otra cuadrilla, ignorar
     const semF=getLunesDesd(d.fecha);
-    if(semF>=lunesHoy&&!semanasCerradas.has(semF))return;
+    if(semF>=lunesHoy)return;
     if(!porSemana[semF])porSemana[semF]={pareja:0,solo:0};
     porSemana[semF].pareja+=5;
   });
@@ -2090,23 +2099,9 @@ async function renderAdmResumen(){
     document.getElementById('sg3').className='sab-opt'+(gl===2?' sel-g2':'');
     document.getElementById('sg4-tecs').innerHTML=g1names;
     document.getElementById('sg3-tecs').innerHTML=g2names;
-    // Botones cierre bloque
+    // Cierre de semana eliminado: el saldo cuenta solo las semanas ya terminadas, sin cerrar nada.
     const btnWrap=document.getElementById('rv-btn-cerrar');
-    if(btnWrap&&CU&&CU.rol==='jefe'){
-      const g1=CUADRILLAS.filter(c=>c.grupo===1).map(c=>c.nombre).join(', ');
-      const g2=CUADRILLAS.filter(c=>c.grupo===2).map(c=>c.nombre).join(', ');
-      btnWrap.innerHTML=`
-        <div class="close-bloque">
-          <div>
-            <button class="close-bloque-btn" onclick="cerrarSemanaBloque('${lunes}',1)">🔒 Cerrar Grupo 1</button>
-            <div class="close-bloque-names">${g1}</div>
-          </div>
-          <div>
-            <button class="close-bloque-btn" onclick="cerrarSemanaBloque('${lunes}',2)">🔒 Cerrar Grupo 2</button>
-            <div class="close-bloque-names">${g2}</div>
-          </div>
-        </div>`;
-    }
+    if(btnWrap)btnWrap.innerHTML='';
   }
   const el=document.getElementById('a-resumen-lista');
   el.innerHTML='<div class="loading"><span class="spinner"></span>Cargando...</div>';
@@ -2127,19 +2122,14 @@ async function renderAdmResumen(){
   const precioUnit=precio/2;
   let cards=[];
 
-  // Batch: cargar todos los saldos de la semana y semConf de una sola vez
-  let allSaldosSem={}, semConfCache=null;
+  let semConfCache=null;
   if(resumenVista==='semana'){
-    const [saldosData, sc] = await Promise.all([
-      sbGet('saldos',`?semana_inicio=eq.${desde}&select=cuadrilla_id,id,valor`),
-      getSemConf(desde)
-    ]);
-    saldosData.forEach(s=>{
-      if(!allSaldosSem[s.cuadrilla_id])allSaldosSem[s.cuadrilla_id]=[];
-      allSaldosSem[s.cuadrilla_id].push(s);
-    });
-    semConfCache=sc;
+    semConfCache=await getSemConf(desde);
   }
+  // ¿La semana mostrada ya terminó? (para avisar de días sin cargar solo en semanas cerradas naturalmente)
+  const _finSem=new Date(desde+'T12:00:00');_finSem.setDate(_finSem.getDate()+6);
+  const _hoyMid=new Date();_hoyMid.setHours(0,0,0,0);
+  const semanaTerminada=resumenVista==='semana'&&_finSem<_hoyMid;
 
   for(const cuad of CUADRILLAS){
     let totalCuad=0;
@@ -2148,15 +2138,21 @@ async function renderAdmResumen(){
     feriadosPeriodo.forEach(f=>{if(!f.cuadrilla_id||f.cuadrilla_id===cuad.id)totalCuad+=5;});
     if(totalCuad===0&&histTotales[cuad.id])Object.values(histTotales[cuad.id]).forEach(v=>totalCuad+=v);
 
-    let saldoCuad=0;
-    const semCerrada=resumenVista==='semana'?(allSaldosSem[cuad.id]||[]):[];
-    const yaCerrada=semCerrada.length>0;
-    if(yaCerrada)semCerrada.forEach(s=>saldoCuad+=parseFloat(s.valor));
-
     let libraS=false;
     if(resumenVista==='semana'){libraS=semConfCache?cuad.grupo===semConfCache.grupo_libra:false;}
 
-    let extrasPesos=resumenVista==='semana'?(yaCerrada?saldoCuad:(totalCuad-meta)*precioUnit):0;
+    // Aviso "semana incompleta": días laborables ya pasados sin ninguna carga (solo en semanas terminadas)
+    let diasFaltantes=[];
+    if(semanaTerminada){
+      const cargados=new Set(regsCuad.map(r=>r.fecha));
+      getDias(desde,!libraS).forEach(dd=>{
+        const de=diasEsp[dd.fecha]||(feriadosAR[dd.fecha]?{tipo:'feriado'}:null);
+        const noLaborable=de&&(de.tipo==='lluvia'||de.tipo==='feriado'||de.tipo==='vacaciones');
+        if(!noLaborable&&!cargados.has(dd.fecha))diasFaltantes.push(dd.short);
+      });
+    }
+
+    let extrasPesos=resumenVista==='semana'?(totalCuad-meta)*precioUnit:0;
     const falta=Math.max(0,meta-totalCuad),extras=Math.max(0,totalCuad-meta);
     const pct=Math.min(100,Math.round((totalCuad/meta)*100));
     const cls=pct>=100?'ok':pct>=60?'warn':'bad';
@@ -2190,20 +2186,16 @@ async function renderAdmResumen(){
       statusHtml=`<div class="rc-status ok">${totalCuad.toFixed(2)} equiv.</div>`;
     }
 
-    // Acciones
-    let actHtml='';
-    if(resumenVista==='semana'&&CU&&CU.rol==='jefe'){
-      actHtml=yaCerrada
-        ?`<button class="btn btn-sm" style="cursor:default;color:#64748b;font-size:11px;padding:5px 10px" onclick="event.stopPropagation()">✓</button>
-           <button class="btn btn-sm btn-red" style="font-size:11px;padding:5px 10px" onclick="event.stopPropagation();eliminarCierreSemana('${desde}','${cuad.id}')">↩</button>`
-        :`<button class="btn btn-sm btn-dark" style="font-size:11px;padding:6px 12px;white-space:nowrap" onclick="event.stopPropagation();cerrarSemana('${desde}','${cuad.id}')">🔒 Cerrar</button>`;
-    }
+    const avisoHtml=diasFaltantes.length>0
+      ? '<div style="font-size:10px;color:#d97706;font-weight:700;margin-top:3px">⚠ Faltan cargar '+diasFaltantes.length+' día(s): '+diasFaltantes.join(', ')+'</div>'
+      : '';
 
-    cards.push([totalCuad, `<div class="rc${yaCerrada?' rc-closed':''}" onclick="abrirDetalleCuad('${cuad.id}','${desde}','${hasta}')">
+    cards.push([totalCuad, `<div class="rc" onclick="abrirDetalleCuad('${cuad.id}','${desde}','${hasta}')">
       <div class="rc-rank">__RANK__</div>
       <div class="rc-info">
         <div class="rc-name">${cuad.nombre}</div>
         <div class="rc-tecs-line">${tecs.join(' · ')}</div>
+        ${avisoHtml}
       </div>
       <div class="rc-bar-col">
         <div class="rc-bar-wrap"><div class="rc-bar ${cls}" style="width:${pct}%"></div></div>
@@ -2216,10 +2208,8 @@ async function renderAdmResumen(){
       <div class="rc-status-col">${statusHtml}</div>
       <div class="rc-badge-col">
         ${resumenVista==='semana'?`<span class="badge ${libraS?'b-ok':'b-warn'}" style="font-size:10px">${libraS?'Libre':'Sáb.'}</span>`:''}
-        ${yaCerrada?`<span class="badge b-gray" style="font-size:10px">🔒</span>`:''}
         <span style="font-size:11px;color:#64748b">→</span>
       </div>
-      ${actHtml?`<div class="rc-actions-col" onclick="event.stopPropagation()">${actHtml}</div>`:''}
     </div>`]);
   }
 
@@ -3491,7 +3481,7 @@ async function renderDashboard() {
         // Usar regsAll (historia completa con solo + tecnico_nombre correctos)
         regsAll.filter(function(r){ return r.cuadrilla_id===cuad.id; }).forEach(function(reg){
           var sem = getLunesDesd(reg.fecha);
-          if(sem >= lunesHoy && !semC[sem]) return; // semana actual abierta: skip
+          if(sem >= lunesHoy) return; // la semana en curso no entra hasta terminar
           if(!porSemana[sem]) porSemana[sem] = {par:0, sol:0};
           var eq = 0; (reg.registro_tareas||[]).forEach(function(rt){ eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad); });
           if(reg.solo && reg.tecnico_nombre===tec) porSemana[sem].sol += eq; // solo: solo cuenta para este tec
@@ -3500,7 +3490,7 @@ async function renderDashboard() {
         // Días especiales
         allDiasEsp.filter(function(d){ return d.fecha>=MARZO2026; }).forEach(function(d){
           var sem = getLunesDesd(d.fecha);
-          if(sem >= lunesHoy && !semC[sem]) return;
+          if(sem >= lunesHoy) return;
           if(!porSemana[sem]) porSemana[sem] = {par:0, sol:0};
           if(d.tipo==='vacaciones' && d.tecnico_nombre===tec && d.cuadrilla_id===cuad.id)
             porSemana[sem].par = meta;
