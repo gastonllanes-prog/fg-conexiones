@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v83</title>
+<title>FG Conexiones v84</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v83</div>
+    <div class="login-ver">FG Conexiones · v84</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v83</div>
+    <div class="sb-ver">v84</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v83</div>
+    <div id="mobile-ver">v84</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1036,6 +1036,14 @@ let CU=null,wkOff=0,admWkOff=0,modo='par';
 let TIPOS=[],CONFIG={},CUADRILLAS=[],diasEsp={},feriadosAR={};
 let selCalDay=null,editRegId=null,editCuadId=null;
 
+// ── Técnicos que cambiaron de cuadrilla: su saldo arranca limpio desde el lunes que entraron ──
+// (no cargan la deuda de la cuadrilla de semanas en que todavía no estaban).
+// Si alguien cambia de cuadrilla, agregá/actualizá acá su lunes de ingreso (formato AAAA-MM-DD).
+const INGRESO_CUADRILLA = {
+  'Daniel Pereira':'2026-06-01',
+  'Gustavo Gimenez':'2026-06-01'
+};
+
 // CUADRILLAS se carga dinámicamente desde DB — incluye tec1, tec2
 function getTecs(cuadId){
   const c=CUADRILLAS.find(x=>x.id===cuadId);
@@ -1573,13 +1581,15 @@ async function calcSaldoTecnico(cuadId,tecNombre){
   const diasFer=await sbGet('dias_especiales',`?tipo=eq.feriado&select=fecha,cuadrilla_id`);
   const meta=parseInt(CONFIG.meta_semanal||30),precio=parseInt(CONFIG.precio_instalacion||7000);
   const MARZO2026='2026-03-01';
+  // Si el técnico cambió de cuadrilla, su saldo arranca desde que entró (no antes).
+  const inicioTec=INGRESO_CUADRILLA[tecNombre]||MARZO2026;
   const hoy=new Date();
   const lunesHoy=getLunesDesd(fmtD(hoy));
   // El saldo cuenta SOLO automáticamente todas las semanas YA TERMINADAS.
   // La semana en curso no entra hasta que termina (no hace falta "cerrar" la semana).
   const porSemana={};
   regs.forEach(reg=>{
-    if(reg.fecha<MARZO2026)return;
+    if(reg.fecha<inicioTec)return;
     const semReg=getLunesDesd(reg.fecha);
     if(semReg>=lunesHoy)return;
     let eq=0;(reg.registro_tareas||[]).forEach(rt=>eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));
@@ -1589,7 +1599,7 @@ async function calcSaldoTecnico(cuadId,tecNombre){
   });
   // Vacaciones: semana entera = meta equiv como pareja
   diasVac.forEach(d=>{
-    if(d.fecha<MARZO2026)return;
+    if(d.fecha<inicioTec)return;
     const semV=getLunesDesd(d.fecha);
     if(semV>=lunesHoy)return;
     if(!porSemana[semV])porSemana[semV]={pareja:0,solo:0};
@@ -1597,7 +1607,7 @@ async function calcSaldoTecnico(cuadId,tecNombre){
   });
   // Certificado médico: ese día = 5 equiv como pareja
   diasCert.forEach(d=>{
-    if(d.fecha<MARZO2026)return;
+    if(d.fecha<inicioTec)return;
     const semC=getLunesDesd(d.fecha);
     if(semC>=lunesHoy)return;
     if(!porSemana[semC])porSemana[semC]={pareja:0,solo:0};
@@ -1605,7 +1615,7 @@ async function calcSaldoTecnico(cuadId,tecNombre){
   });
   // Feriado: ese día = 5 equiv para todos (aplica si es para todas o para esta cuadrilla)
   diasFer.forEach(d=>{
-    if(d.fecha<MARZO2026)return;
+    if(d.fecha<inicioTec)return;
     if(d.cuadrilla_id&&d.cuadrilla_id!==cuadId)return; // feriado de otra cuadrilla, ignorar
     const semF=getLunesDesd(d.fecha);
     if(semF>=lunesHoy)return;
@@ -3478,8 +3488,10 @@ async function renderDashboard() {
       var semC = semanasCerradasPorCuad[cuad.id] || {};
       getTecs(cuad.id).forEach(function(tec){
         var porSemana = {};
+        var inicioTec = INGRESO_CUADRILLA[tec] || MARZO2026; // si cambió de cuadrilla, arranca desde que entró
         // Usar regsAll (historia completa con solo + tecnico_nombre correctos)
         regsAll.filter(function(r){ return r.cuadrilla_id===cuad.id; }).forEach(function(reg){
+          if(reg.fecha < inicioTec) return;
           var sem = getLunesDesd(reg.fecha);
           if(sem >= lunesHoy) return; // la semana en curso no entra hasta terminar
           if(!porSemana[sem]) porSemana[sem] = {par:0, sol:0};
@@ -3488,7 +3500,7 @@ async function renderDashboard() {
           else if(!reg.solo) porSemana[sem].par += eq; // pareja: cuenta para ambos
         });
         // Días especiales
-        allDiasEsp.filter(function(d){ return d.fecha>=MARZO2026; }).forEach(function(d){
+        allDiasEsp.filter(function(d){ return d.fecha>=inicioTec; }).forEach(function(d){
           var sem = getLunesDesd(d.fecha);
           if(sem >= lunesHoy) return;
           if(!porSemana[sem]) porSemana[sem] = {par:0, sol:0};
@@ -3993,16 +4005,21 @@ async function dashPagoRapido(tecNombre, cuadNombre, montoDeuda){
     ]);
 
     // Calcular extras por semana
+    var inicioTec=INGRESO_CUADRILLA[tecNombre]||MARZO2026; // si cambió de cuadrilla, arranca desde que entró
+    var lunesHoy=getLunesDesd(hoy);
     var porSemana={};
     regsAll.forEach(function(reg){
+      if(reg.fecha<inicioTec)return;
       var sem=getLunesDesd(reg.fecha);
+      if(sem>=lunesHoy)return; // la semana en curso no entra hasta terminar
       if(!porSemana[sem])porSemana[sem]={par:0,sol:0};
       var eq=0;(reg.registro_tareas||[]).forEach(function(rt){eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad);});
       if(reg.solo&&reg.tecnico_nombre===tecNombre) porSemana[sem].sol+=eq;
       else if(!reg.solo) porSemana[sem].par+=eq;
     });
-    diasEsp.filter(function(d){return d.fecha>=MARZO2026;}).forEach(function(d){
+    diasEsp.filter(function(d){return d.fecha>=inicioTec;}).forEach(function(d){
       var sem=getLunesDesd(d.fecha);
+      if(sem>=lunesHoy)return;
       if(!porSemana[sem])porSemana[sem]={par:0,sol:0};
       if(d.tipo==='vacaciones'&&d.tecnico_nombre===tecNombre) porSemana[sem].par=meta;
       else if(d.tipo==='certificado'&&d.tecnico_nombre===tecNombre) porSemana[sem].par+=5;
