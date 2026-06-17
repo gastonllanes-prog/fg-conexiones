@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v85</title>
+<title>FG Conexiones v86</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v85</div>
+    <div class="login-ver">FG Conexiones · v86</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v85</div>
+    <div class="sb-ver">v86</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v85</div>
+    <div id="mobile-ver">v86</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1203,35 +1203,40 @@ async function doLogin(){
   try{
     const d=await sbGet('usuarios',`?username=eq.${u}&password_hash=eq.${p}&activo=eq.true&select=*`);
     if(!d||!d.length){err.textContent='Usuario o contraseña incorrectos';spin.style.display='none';return;}
-    CU=d[0];spin.style.display='none';wkOff=0;admWkOff=0;
-    await Promise.all([cargarTipos(),cargarConfig(),cargarCuadrillas(),cargarDiasEsp(),cargarFeriadosAR()]);
-    try{
-      await sbPost('log_actividad',{usuario:CU.username,accion:'LOGIN',detalle:CU.nombre+' ('+CU.rol+') ingresó al sistema'});
-      await sbUpsert('sesiones_activas',{username:CU.username,nombre:CU.nombre,rol:CU.rol,ultimo_acceso:new Date().toISOString()});
-    }catch(ex){}
-    startHeartbeat();
-    // Show sidebar layout
-    document.getElementById('s-login').style.display='none';
-    document.body.classList.add('app-ready');
-    try{buildSidebar();}catch(be){console.error('buildSidebar:',be);}
-    if(CU.rol==='tecnico'){
-      showContent('tec');
-      try{await renderTec();}catch(re){console.error('renderTec:',re);}
-    } else {
-      showContent('adm');
-      try{await renderAdm();}catch(re){console.error('renderAdm:',re);}
-      if(CU.rol==='jefe'){
-        sbSetActive('dashboard');
-        admTabShow('dashboard');
-        document.getElementById('page-area').classList.add('dash-expand');
-        _dashWkOff=0;
-        try{renderDashboard();}catch(de){console.error('renderDashboard:',de);}
-      } else {
-        admTabShow('cargar');
-        sbSetActive('cargar');
-      }
-    }
+    CU=d[0];spin.style.display='none';
+    // Guardar la sesión en el navegador (sin la contraseña) para no salir al refrescar
+    try{const cuSafe={...CU};delete cuSafe.password_hash;localStorage.setItem('fg_session',JSON.stringify(cuSafe));}catch(e){}
+    try{await sbPost('log_actividad',{usuario:CU.username,accion:'LOGIN',detalle:CU.nombre+' ('+CU.rol+') ingresó al sistema'});}catch(ex){}
+    await entrarApp();
   }catch(e){err.textContent='Error: '+e.message;spin.style.display='none';console.error('doLogin error:',e);}
+}
+
+// Arranca la app con el usuario ya cargado en CU. Se usa al loguear Y al restaurar sesión tras refrescar.
+async function entrarApp(){
+  wkOff=0;admWkOff=0;
+  await Promise.all([cargarTipos(),cargarConfig(),cargarCuadrillas(),cargarDiasEsp(),cargarFeriadosAR()]);
+  try{await sbUpsert('sesiones_activas',{username:CU.username,nombre:CU.nombre,rol:CU.rol,ultimo_acceso:new Date().toISOString()});}catch(ex){}
+  startHeartbeat();
+  document.getElementById('s-login').style.display='none';
+  document.body.classList.add('app-ready');
+  try{buildSidebar();}catch(be){console.error('buildSidebar:',be);}
+  if(CU.rol==='tecnico'){
+    showContent('tec');
+    try{await renderTec();}catch(re){console.error('renderTec:',re);}
+  } else {
+    showContent('adm');
+    try{await renderAdm();}catch(re){console.error('renderAdm:',re);}
+    if(CU.rol==='jefe'){
+      sbSetActive('dashboard');
+      admTabShow('dashboard');
+      document.getElementById('page-area').classList.add('dash-expand');
+      _dashWkOff=0;
+      try{renderDashboard();}catch(de){console.error('renderDashboard:',de);}
+    } else {
+      admTabShow('cargar');
+      sbSetActive('cargar');
+    }
+  }
 }
 
 function startHeartbeat(){
@@ -1244,6 +1249,7 @@ function startHeartbeat(){
 
 function logout(){
   CU=null;
+  try{localStorage.removeItem('fg_session');}catch(e){}
   if(window._hbInterval)clearInterval(window._hbInterval);
   document.body.classList.remove('app-ready');
   document.getElementById('s-login').style.display='flex';
@@ -1267,6 +1273,14 @@ function showScr(n){
 }
 
 document.getElementById('l-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+// Restaurar sesión al cargar/refrescar la página (para no salir del login)
+(function(){
+  try{
+    const s=localStorage.getItem('fg_session');
+    if(s){ CU=JSON.parse(s); entrarApp().catch(e=>{console.error('restaurar sesión:',e);try{localStorage.removeItem('fg_session');}catch(_){}}); }
+  }catch(e){}
+})();
 
 // =============================================
 // TÉCNICO — sin división, mismo total que cuadrilla
