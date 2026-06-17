@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v86</title>
+<title>FG Conexiones v87</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v86</div>
+    <div class="login-ver">FG Conexiones · v87</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v86</div>
+    <div class="sb-ver">v87</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v86</div>
+    <div id="mobile-ver">v87</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -490,16 +490,14 @@ tr:hover td{background:rgba(255,255,255,.02)}
           <div class="fg"><label>Fecha</label><input type="date" id="a-fecha" onchange="onFechaChange()"/></div>
           <div id="a-dia-info"></div>
           <div class="fg"><label>Cuadrilla</label><select id="a-cuad" onchange="onCuadChange()"></select></div>
-          <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem;margin-top:.25rem">Modo de trabajo</div>
-          <div class="toggle-row">
-            <div class="tog active" id="modo-par" onclick="setModo('par')">En pareja</div>
-            <div class="tog" id="modo-solo" onclick="setModo('solo')">Un técnico solo</div>
+          <div id="carga-cuad-sec">
+            <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.07em;margin:.25rem 0 .6rem">👥 Trabajo de la cuadrilla (juntos)</div>
+            <div id="a-tareas-cuad"></div>
           </div>
-          <div id="solo-tec-wrap" style="display:none" class="fg">
-            <label>¿Cuál técnico fue solo?</label>
-            <select id="a-tec-solo"></select>
+          <div id="carga-solo-sec" style="margin-top:1rem">
+            <div style="font-size:12px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.6rem">👤 Trabajo individual (lo que hizo cada uno SOLO · cuenta ×2)</div>
+            <div id="a-tareas-solo"></div>
           </div>
-          <div id="a-tareas-inputs"></div>
           <button class="btn btn-dark btn-full" style="margin-top:.5rem" onclick="guardarCarga()"><span class="spinner" id="a-spin" style="display:none"></span>Guardar carga</button>
           <p class="ok-msg" id="a-ok"></p><p class="err-msg" id="a-err"></p>
         </div>
@@ -1862,30 +1860,38 @@ function admTab(tab,el){
 }
 
 function onCuadChange(){
-  const c=document.getElementById('a-cuad').value;
-  document.getElementById('a-tec-solo').innerHTML=getTecs(c).map(t=>`<option>${t}</option>`).join('');
+  buildTareasInputs(); // reconstruir inputs (cuadrilla + individual por técnico) para la cuadrilla elegida
   onFechaChange(); // actualizar aviso de día especial al cambiar cuadrilla
 }
 function renderSaldoTecs(){const c=document.getElementById('s-cuad').value;document.getElementById('s-tec').innerHTML=getTecs(c).map(t=>`<option>${t}</option>`).join('');}
 function renderHistTecs(){const c=document.getElementById('hist-cuad').value;document.getElementById('hist-tec').innerHTML=getTecs(c).map(t=>`<option>${t}</option>`).join('');}
 
-function setModo(m){
-  modo=m;
-  document.getElementById('modo-par').classList.toggle('active',m==='par');
-  document.getElementById('modo-solo').classList.toggle('active',m==='solo');
-  document.getElementById('solo-tec-wrap').style.display=m==='solo'?'block':'none';
-  recalcPreview();
+function filaTarea(inputId,t){
+  return `<div class="tarea-row"><div><div class="tarea-label">${t.nombre}${t.solo_registra?'<span class="badge b-gray" style="margin-left:5px;font-size:10px">solo registra</span>':''}</div><div class="tarea-sub">${t.solo_registra?'No afecta el total':'Cada '+t.divisor+' = '+t.unidades+' equiv.'}</div></div><input type="number" id="${inputId}" min="0" placeholder="0" oninput="recalcPreview()"/></div>`;
 }
-
 function buildTareasInputs(){
-  document.getElementById('a-tareas-inputs').innerHTML=TIPOS.map(t=>
-    `<div class="tarea-row"><div><div class="tarea-label">${t.nombre}${t.solo_registra?'<span class="badge b-gray" style="margin-left:5px;font-size:10px">solo registra</span>':''}</div><div class="tarea-sub">${t.solo_registra?'No afecta el total':'Cada '+t.divisor+' = '+t.unidades+' equiv.'}</div></div><input type="number" id="ti-${t.id}" min="0" placeholder="0" oninput="recalcPreview()"/></div>`
+  const cuadId=document.getElementById('a-cuad').value;
+  const tecs=getTecs(cuadId);
+  // Sección "cuadrilla (juntos)": solo tiene sentido si hay 2 técnicos
+  const cuadSec=document.getElementById('carga-cuad-sec');
+  if(cuadSec)cuadSec.style.display=tecs.length>=2?'block':'none';
+  const elC=document.getElementById('a-tareas-cuad');
+  if(elC)elC.innerHTML=TIPOS.map(t=>filaTarea('tc-'+t.id,t)).join('');
+  // Sección individual: un bloque por técnico
+  const elS=document.getElementById('a-tareas-solo');
+  if(elS)elS.innerHTML=tecs.map((tec,i)=>
+    `<div class="card-inset" style="margin-bottom:.6rem"><div style="font-size:13px;font-weight:700;color:#7c3aed;margin-bottom:.5rem">👤 ${tec}${tecs.length<2?' (trabaja solo · ×2)':' — lo que hizo solo'}</div>`+
+    TIPOS.map(t=>filaTarea('ts-'+i+'-'+t.id,t)).join('')+`</div>`
   ).join('');
 }
 
 async function recalcPreview(){
-  let total=0;TIPOS.forEach(t=>{const v=parseFloat(document.getElementById('ti-'+t.id)?.value||0)||0;total+=calcEquiv(t.id,v);});
-  const meta=parseInt(CONFIG.meta_semanal||30),precio=parseInt(CONFIG.precio_instalacion||7000),mult=modo==='solo'?2:1;
+  // Total de la carga = trabajo de cuadrilla + lo individual de cada técnico (×2)
+  let totalCuad=0;TIPOS.forEach(t=>{const v=parseFloat(document.getElementById('tc-'+t.id)?.value||0)||0;totalCuad+=calcEquiv(t.id,v);});
+  const tecs=getTecs(document.getElementById('a-cuad').value);
+  let totalSolo=0;tecs.forEach((tec,i)=>{TIPOS.forEach(t=>{const v=parseFloat(document.getElementById('ts-'+i+'-'+t.id)?.value||0)||0;totalSolo+=calcEquiv(t.id,v)*2;});});
+  const total=totalCuad+totalSolo;
+  const meta=parseInt(CONFIG.meta_semanal||30),precio=parseInt(CONFIG.precio_instalacion||7000),mult=1;
   document.getElementById('pv-equiv').textContent=total.toFixed(2);
   try{
     const cuadId=document.getElementById('a-cuad').value,fecha=document.getElementById('a-fecha').value;
@@ -1913,32 +1919,42 @@ async function onFechaChange(){
   await renderAdmHoy();
 }
 
+// Guarda (o actualiza/borra) UN registro para una persona/cuadrilla en una fecha
+async function guardarUnRegistro(fecha,cuadId,tecNombre,esSolo,tareas){
+  const existing=await sbGet('registros',`?fecha=eq.${fecha}&cuadrilla_id=eq.${cuadId}&tecnico_nombre=eq.${encodeURIComponent(tecNombre)}&select=id`);
+  if(!tareas.length){
+    // sin tareas: si había un registro, borrarlo (permite corregir a 0)
+    if(existing&&existing.length){await sbDel('registro_tareas',`?registro_id=eq.${existing[0].id}`);await sbDel('registros',`?id=eq.${existing[0].id}`);}
+    return;
+  }
+  let regId;
+  if(existing&&existing.length){regId=existing[0].id;await sbPatch('registros',`?id=eq.${regId}`,{solo:esSolo,created_by:CU.username});}
+  else{const nuevo=await sbPost('registros',{fecha,cuadrilla_id:cuadId,tecnico_nombre:tecNombre,solo:esSolo,created_by:CU.username});regId=nuevo[0].id;}
+  await sbDel('registro_tareas',`?registro_id=eq.${regId}`);
+  for(const t of tareas)await sbPost('registro_tareas',{registro_id:regId,tipo_tarea_id:t.tipo_tarea_id,cantidad:t.cantidad});
+}
+
 async function guardarCarga(){
   const fecha=document.getElementById('a-fecha').value,cuadId=document.getElementById('a-cuad').value;
-  const esSolo=modo==='solo',tecSolo=esSolo?document.getElementById('a-tec-solo').value:null;
   const aErr=document.getElementById('a-err'),aOk=document.getElementById('a-ok'),spin=document.getElementById('a-spin');
-  if(!fecha||!cuadId){aErr.textContent='Completá todos los campos.';return;}
-  const tareas=[];TIPOS.forEach(t=>{const v=parseFloat(document.getElementById('ti-'+t.id)?.value||0)||0;if(v>0)tareas.push({tipo_tarea_id:t.id,cantidad:v});});
-  if(!tareas.length){aErr.textContent='Ingresá al menos una tarea.';return;}
+  if(!fecha||!cuadId){aErr.textContent='Completá fecha y cuadrilla.';return;}
+  const tecs=getTecs(cuadId);
+  // Trabajo de la cuadrilla (juntos) — solo si hay 2 técnicos
+  const tareasCuad=[];
+  if(tecs.length>=2)TIPOS.forEach(t=>{const v=parseFloat(document.getElementById('tc-'+t.id)?.value||0)||0;if(v>0)tareasCuad.push({tipo_tarea_id:t.id,cantidad:v});});
+  // Trabajo individual de cada técnico
+  const soloPorTec=tecs.map((tec,i)=>{
+    const arr=[];TIPOS.forEach(t=>{const v=parseFloat(document.getElementById('ts-'+i+'-'+t.id)?.value||0)||0;if(v>0)arr.push({tipo_tarea_id:t.id,cantidad:v});});
+    return{tec,arr};
+  });
+  if(!tareasCuad.length && !soloPorTec.some(x=>x.arr.length)){aErr.textContent='Ingresá al menos una tarea.';return;}
   spin.style.display='inline-block';aErr.textContent='';aOk.textContent='';
   try{
-    const tecNombre=esSolo?tecSolo:'En pareja';
-    // Buscar registro existente
-    const existing=await sbGet('registros',`?fecha=eq.${fecha}&cuadrilla_id=eq.${cuadId}&tecnico_nombre=eq.${tecNombre}&select=id`);
-    let regId;
-    if(existing&&existing.length>0){
-      regId=existing[0].id;
-      await sbPatch('registros',`?id=eq.${regId}`,{solo:esSolo,created_by:CU.username});
-    }else{
-      const nuevo=await sbPost('registros',{fecha,cuadrilla_id:cuadId,tecnico_nombre:tecNombre,solo:esSolo,created_by:CU.username});
-      regId=nuevo[0].id;
-    }
-    await sbDel('registro_tareas',`?registro_id=eq.${regId}`);
-    for(const t of tareas)await sbPost('registro_tareas',{registro_id:regId,tipo_tarea_id:t.tipo_tarea_id,cantidad:t.cantidad});
-    const eq=tareas.reduce((s,t)=>s+calcEquiv(t.tipo_tarea_id,t.cantidad),0);
-    await logAct('Carga',`${tecNombre}·${cuadId}·${fecha}·${eq.toFixed(2)}·${modo}`,'registros');
+    await guardarUnRegistro(fecha,cuadId,'En pareja',false,tareasCuad);
+    for(const {tec,arr} of soloPorTec) await guardarUnRegistro(fecha,cuadId,tec,true,arr);
+    await logAct('Carga',`${cuadId}·${fecha}·cuad:${tareasCuad.length}·solos:${soloPorTec.filter(x=>x.arr.length).length}`,'registros');
     spin.style.display='none';aOk.textContent='Guardado ✓';setTimeout(()=>aOk.textContent='',2500);
-    TIPOS.forEach(t=>{const el=document.getElementById('ti-'+t.id);if(el)el.value='';});
+    TIPOS.forEach(t=>{const e1=document.getElementById('tc-'+t.id);if(e1)e1.value='';tecs.forEach((tec,i)=>{const e2=document.getElementById('ts-'+i+'-'+t.id);if(e2)e2.value='';});});
     recalcPreview();await renderAdmHoy();
   }catch(e){spin.style.display='none';aErr.textContent='Error: '+e.message;}
 }
