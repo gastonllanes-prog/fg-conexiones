@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v87</title>
+<title>FG Conexiones v88</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v87</div>
+    <div class="login-ver">FG Conexiones · v88</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v87</div>
+    <div class="sb-ver">v88</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v87</div>
+    <div id="mobile-ver">v88</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -506,18 +506,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
         <div class="card">
           <div class="card-title">Resumen de la carga</div>
           <div class="card-inset" style="margin-bottom:.75rem">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <span style="font-size:13px;color:#5a7a9a">Instalaciones equiv.</span>
-              <span style="font-size:20px;font-weight:800;color:#1e293b" id="pv-equiv">0.00</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <span style="font-size:13px;color:#5a7a9a">Estado semana</span>
-              <span style="font-size:13px;font-weight:600;color:#1e293b" id="pv-estado">—</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)">
-              <span style="font-size:13px;font-weight:700;color:#1e293b">Ganancia extras est.</span>
-              <span style="font-size:16px;font-weight:800;color:#059669" id="pv-ganancia">$0</span>
-            </div>
+            <div id="pv-resumen"><div style="font-size:13px;color:#5a7a9a">Ingresá tareas para ver el total por técnico.</div></div>
           </div>
           <div class="card-title">Cargado hoy <span style="font-weight:400;font-size:11px;text-transform:none;letter-spacing:0">(tocá para editar)</span></div>
           <div id="a-hoy-lista"><p style="font-size:13px;color:#64748b">Seleccioná una fecha</p></div>
@@ -1885,25 +1874,28 @@ function buildTareasInputs(){
   ).join('');
 }
 
-async function recalcPreview(){
-  // Total de la carga = trabajo de cuadrilla + lo individual de cada técnico (×2)
-  let totalCuad=0;TIPOS.forEach(t=>{const v=parseFloat(document.getElementById('tc-'+t.id)?.value||0)||0;totalCuad+=calcEquiv(t.id,v);});
-  const tecs=getTecs(document.getElementById('a-cuad').value);
-  let totalSolo=0;tecs.forEach((tec,i)=>{TIPOS.forEach(t=>{const v=parseFloat(document.getElementById('ts-'+i+'-'+t.id)?.value||0)||0;totalSolo+=calcEquiv(t.id,v)*2;});});
-  const total=totalCuad+totalSolo;
-  const meta=parseInt(CONFIG.meta_semanal||30),precio=parseInt(CONFIG.precio_instalacion||7000),mult=1;
-  document.getElementById('pv-equiv').textContent=total.toFixed(2);
-  try{
-    const cuadId=document.getElementById('a-cuad').value,fecha=document.getElementById('a-fecha').value;
-    if(cuadId&&fecha){
-      const lunes=getLunesDesd(fecha),dom=new Date(lunes+'T12:00:00');dom.setDate(dom.getDate()+6);
-      const regs=await sbGet('registros',`?cuadrilla_id=eq.${cuadId}&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=registro_tareas(tipo_tarea_id,cantidad)`);
-      let sem=0;regs.forEach(r=>r.registro_tareas.forEach(rt=>sem+=calcEquiv(rt.tipo_tarea_id,rt.cantidad)));
-      const nuevo=sem+total,falta=Math.max(0,meta-nuevo),extra=Math.max(0,nuevo-meta);
-      document.getElementById('pv-estado').textContent=`Sem: ${sem.toFixed(2)} → ${nuevo.toFixed(2)} · ${falta>0?'Faltan: '+falta.toFixed(2):'Extras: +'+extra.toFixed(2)}`;
-      document.getElementById('pv-ganancia').textContent=extra>0?fmtPesos(extra*precio*mult):'$0 (sin meta aún)';
-    }
-  }catch(e){}
+function recalcPreview(){
+  // Resumen POR TÉCNICO: cada uno = trabajo de cuadrilla (juntos) + lo suyo solo (×2)
+  const el=document.getElementById('pv-resumen');
+  if(!el)return;
+  const cuadId=document.getElementById('a-cuad').value;
+  const tecs=getTecs(cuadId);
+  let cuadEq=0;TIPOS.forEach(t=>{const v=parseFloat(document.getElementById('tc-'+t.id)?.value||0)||0;cuadEq+=calcEquiv(t.id,v);});
+  let html='';
+  if(tecs.length>=2){
+    html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
+      <span style="font-size:13px;color:#5a7a9a">👥 Cuadrilla (juntos)</span>
+      <span style="font-size:16px;font-weight:800;color:#1e293b">${cuadEq.toFixed(2)}</span></div>`;
+  }
+  tecs.forEach((tec,i)=>{
+    let soloEq=0;TIPOS.forEach(t=>{const v=parseFloat(document.getElementById('ts-'+i+'-'+t.id)?.value||0)||0;soloEq+=calcEquiv(t.id,v);});
+    const soloX2=soloEq*2, total=cuadEq+soloX2;
+    const det = soloEq>0 ? `${cuadEq.toFixed(2)} + ${soloX2.toFixed(2)} (solo ×2)` : `cuadrilla ${cuadEq.toFixed(2)}`;
+    html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid rgba(30,80,160,.08)">
+      <span><span style="font-size:13px;font-weight:700;color:#334155">👤 ${tec}</span><div style="font-size:11px;color:#94a3b8">${det}</div></span>
+      <span style="font-size:18px;font-weight:900;color:#1e293b">${total.toFixed(2)}</span></div>`;
+  });
+  el.innerHTML=html||'<div style="font-size:13px;color:#5a7a9a">Ingresá tareas para ver el total por técnico.</div>';
 }
 
 async function onFechaChange(){
