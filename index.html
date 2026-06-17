@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v84</title>
+<title>FG Conexiones v85</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v84</div>
+    <div class="login-ver">FG Conexiones · v85</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v84</div>
+    <div class="sb-ver">v85</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v84</div>
+    <div id="mobile-ver">v85</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1036,13 +1036,41 @@ let CU=null,wkOff=0,admWkOff=0,modo='par';
 let TIPOS=[],CONFIG={},CUADRILLAS=[],diasEsp={},feriadosAR={};
 let selCalDay=null,editRegId=null,editCuadId=null;
 
-// ── Técnicos que cambiaron de cuadrilla: su saldo arranca limpio desde el lunes que entraron ──
-// (no cargan la deuda de la cuadrilla de semanas en que todavía no estaban).
-// Si alguien cambia de cuadrilla, agregá/actualizá acá su lunes de ingreso (formato AAAA-MM-DD).
-const INGRESO_CUADRILLA = {
-  'Daniel Pereira':'2026-06-01',
-  'Gustavo Gimenez':'2026-06-01'
+// ═══ HISTORIAL DE CUADRILLAS POR TÉCNICO ═══════════════════════════════════
+// El cálculo cuenta TODO por PERSONA (no por etiqueta de cuadrilla), para que los
+// cambios de cuadrilla no rompan el saldo ni el ranking.
+// Solo hace falta listar acá a los que SE MOVIERON. Los que nunca cambiaron usan
+// automáticamente su cuadrilla actual desde el inicio.
+// Cada período: {cuad, desde, hasta} en formato AAAA-MM-DD.
+const HISTORIAL_CUADRILLA = {
+  'Daniel Pereira':      [{cuad:'daniel_pablo',    desde:'2026-01-01', hasta:'2026-05-27'},
+                          {cuad:'ricardo_gustavo', desde:'2026-05-28', hasta:'9999-12-31'}],
+  'Gustavo Gimenez':     [{cuad:'ricardo_gustavo', desde:'2026-01-01', hasta:'2026-05-25'},
+                          {cuad:'maxi_pocho',      desde:'2026-05-26', hasta:'9999-12-31'}],
+  'Gaspar Encina':       [{cuad:'jorge_gaspar',    desde:'2026-01-01', hasta:'2026-04-13'},
+                          {cuad:'maxi_pocho',      desde:'2026-04-14', hasta:'9999-12-31'}],
+  'Maximiliano Benitez': [{cuad:'maxi_pocho',      desde:'2026-01-01', hasta:'2026-04-13'},
+                          {cuad:'jorge_gaspar',    desde:'2026-04-14', hasta:'9999-12-31'}]
 };
+
+// Períodos (cuadrilla + rango) de un técnico. Si no se movió, su cuadrilla actual desde el inicio.
+function periodosTec(tecNombre){
+  if(HISTORIAL_CUADRILLA[tecNombre]) return HISTORIAL_CUADRILLA[tecNombre];
+  const c=CUADRILLAS.find(x=>x.tec1===tecNombre||x.tec2===tecNombre);
+  return c?[{cuad:c.id,desde:'2026-01-01',hasta:'9999-12-31'}]:[];
+}
+// ¿En qué cuadrilla estaba este técnico en esta fecha? (null si en ninguna)
+function cuadrillaDeTecEn(tecNombre,fecha){
+  for(const p of periodosTec(tecNombre)){ if(fecha>=p.desde&&fecha<=p.hasta) return p.cuad; }
+  return null;
+}
+// Lista de TODOS los técnicos reales (miembros actuales de cuadrillas + los que se movieron)
+function todosLosTecnicos(){
+  const set=new Set();
+  CUADRILLAS.forEach(c=>{[c.tec1,c.tec2].forEach(t=>{if(t)set.add(t);});});
+  Object.keys(HISTORIAL_CUADRILLA).forEach(t=>set.add(t));
+  return[...set];
+}
 
 // CUADRILLAS se carga dinámicamente desde DB — incluye tec1, tec2
 function getTecs(cuadId){
@@ -1574,55 +1602,38 @@ async function renderTecCobros(){
 }
 
 async function calcSaldoTecnico(cuadId,tecNombre){
-  const regs=await sbGet('registros',`?cuadrilla_id=eq.${cuadId}&select=*,registro_tareas(tipo_tarea_id,cantidad)`);
-  const diasVac=await sbGet('dias_especiales',`?cuadrilla_id=eq.${cuadId}&tecnico_nombre=eq.${encodeURIComponent(tecNombre)}&tipo=eq.vacaciones&select=fecha`);
-  const diasCert=await sbGet('dias_especiales',`?cuadrilla_id=eq.${cuadId}&tecnico_nombre=eq.${encodeURIComponent(tecNombre)}&tipo=eq.certificado&select=fecha`);
-  // Feriados: aplican a todos (cuadrilla_id null = todas, o cuadrilla_id = esta cuadrilla)
-  const diasFer=await sbGet('dias_especiales',`?tipo=eq.feriado&select=fecha,cuadrilla_id`);
+  // POR PERSONA: recorre las cuadrillas donde estuvo el técnico (en sus rangos de fechas),
+  // así su saldo lo sigue aunque haya cambiado de cuadrilla.
   const meta=parseInt(CONFIG.meta_semanal||30),precio=parseInt(CONFIG.precio_instalacion||7000);
-  const MARZO2026='2026-03-01';
-  // Si el técnico cambió de cuadrilla, su saldo arranca desde que entró (no antes).
-  const inicioTec=INGRESO_CUADRILLA[tecNombre]||MARZO2026;
-  const hoy=new Date();
-  const lunesHoy=getLunesDesd(fmtD(hoy));
-  // El saldo cuenta SOLO automáticamente todas las semanas YA TERMINADAS.
-  // La semana en curso no entra hasta que termina (no hace falta "cerrar" la semana).
-  const porSemana={};
-  regs.forEach(reg=>{
-    if(reg.fecha<inicioTec)return;
-    const semReg=getLunesDesd(reg.fecha);
-    if(semReg>=lunesHoy)return;
-    let eq=0;(reg.registro_tareas||[]).forEach(rt=>eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));
-    const sem=getLunesDesd(reg.fecha);if(!porSemana[sem])porSemana[sem]={pareja:0,solo:0};
-    if(reg.solo&&reg.tecnico_nombre===tecNombre)porSemana[sem].solo+=eq;
-    else if(!reg.solo)porSemana[sem].pareja+=eq;
-  });
-  // Vacaciones: semana entera = meta equiv como pareja
-  diasVac.forEach(d=>{
-    if(d.fecha<inicioTec)return;
-    const semV=getLunesDesd(d.fecha);
-    if(semV>=lunesHoy)return;
-    if(!porSemana[semV])porSemana[semV]={pareja:0,solo:0};
-    porSemana[semV].pareja=meta;
-  });
-  // Certificado médico: ese día = 5 equiv como pareja
-  diasCert.forEach(d=>{
-    if(d.fecha<inicioTec)return;
-    const semC=getLunesDesd(d.fecha);
-    if(semC>=lunesHoy)return;
-    if(!porSemana[semC])porSemana[semC]={pareja:0,solo:0};
-    porSemana[semC].pareja+=5;
-  });
-  // Feriado: ese día = 5 equiv para todos (aplica si es para todas o para esta cuadrilla)
-  diasFer.forEach(d=>{
-    if(d.fecha<inicioTec)return;
-    if(d.cuadrilla_id&&d.cuadrilla_id!==cuadId)return; // feriado de otra cuadrilla, ignorar
-    const semF=getLunesDesd(d.fecha);
-    if(semF>=lunesHoy)return;
-    if(!porSemana[semF])porSemana[semF]={pareja:0,solo:0};
-    porSemana[semF].pareja+=5;
-  });
   const precioUnit=precio/2;
+  const MARZO2026='2026-03-01';
+  const lunesHoy=getLunesDesd(fmtD(new Date()));
+  const porSemana={};
+  const addSem=(fecha,campo,val)=>{
+    if(fecha<MARZO2026)return;
+    const sem=getLunesDesd(fecha);
+    if(sem>=lunesHoy)return; // la semana en curso no entra hasta terminar
+    if(!porSemana[sem])porSemana[sem]={pareja:0,solo:0};
+    porSemana[sem][campo]+=val;
+  };
+  for(const per of periodosTec(tecNombre)){
+    const desde=per.desde>MARZO2026?per.desde:MARZO2026;
+    const regs=await sbGet('registros',`?cuadrilla_id=eq.${per.cuad}&fecha=gte.${desde}&fecha=lte.${per.hasta}&select=fecha,solo,tecnico_nombre,registro_tareas(tipo_tarea_id,cantidad)`);
+    regs.forEach(reg=>{
+      let eq=0;(reg.registro_tareas||[]).forEach(rt=>eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));
+      if(reg.solo&&reg.tecnico_nombre===tecNombre)addSem(reg.fecha,'solo',eq);
+      else if(!reg.solo)addSem(reg.fecha,'pareja',eq);
+    });
+    // Vacaciones (semana entera = meta) / certificado (+5) del técnico en este período
+    const esp=await sbGet('dias_especiales',`?cuadrilla_id=eq.${per.cuad}&tecnico_nombre=eq.${encodeURIComponent(tecNombre)}&fecha=gte.${desde}&fecha=lte.${per.hasta}&select=fecha,tipo`);
+    esp.forEach(d=>{
+      if(d.tipo==='vacaciones'){const sem=getLunesDesd(d.fecha);if(d.fecha>=MARZO2026&&sem<lunesHoy){if(!porSemana[sem])porSemana[sem]={pareja:0,solo:0};porSemana[sem].pareja=meta;}}
+      else if(d.tipo==='certificado')addSem(d.fecha,'pareja',5);
+    });
+    // Feriados que apliquen a esta cuadrilla en el rango (+5)
+    const fer=await sbGet('dias_especiales',`?tipo=eq.feriado&fecha=gte.${desde}&fecha=lte.${per.hasta}&select=fecha,cuadrilla_id`);
+    fer.forEach(d=>{ if(d.cuadrilla_id&&d.cuadrilla_id!==per.cuad)return; addSem(d.fecha,'pareja',5); });
+  }
   let totalExtras=0;
   const detallesSemanas=[];
   Object.entries(porSemana).sort().forEach(([sem,{pareja,solo}])=>{
@@ -1632,7 +1643,8 @@ async function calcSaldoTecnico(cuadId,tecNombre){
     totalExtras+=semTotal;
     detallesSemanas.push({sem,pareja,solo,efectivo,semTotal,acum:totalExtras});
   });
-  const pagosData=await sbGet('pagos',`?cuadrilla_id=eq.${cuadId}&tecnico_nombre=eq.${encodeURIComponent(tecNombre)}&order=fecha.desc`);
+  // Pagos: por NOMBRE del técnico (en cualquier cuadrilla)
+  const pagosData=await sbGet('pagos',`?tecnico_nombre=eq.${encodeURIComponent(tecNombre)}&order=fecha.desc`);
   const totalPagado=pagosData.reduce((s,p)=>s+parseFloat(p.monto),0);
   return{totalExtras,totalPagado,saldo:totalExtras-totalPagado,pagos:pagosData,detalles:detallesSemanas};
 }
@@ -1740,32 +1752,32 @@ async function renderAdmRanking(){
 async function buildRankings(desde, hasta, usarHistorico){
   desde = desde||'2026-01-01'; hasta = hasta||fmtD(new Date());
   const queries = [
-    sbGet('registros','?fecha=gte.'+desde+'&fecha=lte.'+hasta+'&select=cuadrilla_id,tecnico_nombre,solo,registro_tareas(tipo_tarea_id,cantidad)')
+    sbGet('registros','?fecha=gte.'+desde+'&fecha=lte.'+hasta+'&select=cuadrilla_id,fecha,tecnico_nombre,solo,registro_tareas(tipo_tarea_id,cantidad)')
   ];
   if(usarHistorico) queries.push(sbGet('historico_totales','?select=*'));
   const [regs, hist=[]] = await Promise.all(queries);
+  const TECS=todosLosTecnicos();
   const totCuad={},totInd={};
-  CUADRILLAS.forEach(c=>{
-    totCuad[c.id]={nombre:c.nombre,total:0};
-    getTecs(c.id).forEach(t=>{totInd[c.id+'_'+t]={nombre:t,cuad:c.nombre,total:0};});
+  CUADRILLAS.forEach(c=>{ totCuad[c.id]={nombre:c.nombre,total:0}; });
+  // Ranking individual POR PERSONA (key = nombre del técnico)
+  TECS.forEach(t=>{
+    const c=CUADRILLAS.find(x=>x.tec1===t||x.tec2===t);
+    totInd[t]={nombre:t,cuad:c?c.nombre:'—',total:0};
   });
-  hist.forEach(h=>{
-    if(totCuad[h.cuadrilla_id])totCuad[h.cuadrilla_id].total+=parseFloat(h.total_equiv);
-    const k=h.cuadrilla_id+'_'+h.tecnico_nombre;if(totInd[k])totInd[k].total+=parseFloat(h.total_equiv);
+  // Histórico ene/feb: solo "-2026" (el "-2025" está duplicado). Individual POR NOMBRE.
+  hist.filter(h=>String(h.periodo).endsWith('-2026')).forEach(h=>{
+    const v=parseFloat(h.total_equiv);
+    if(totCuad[h.cuadrilla_id])totCuad[h.cuadrilla_id].total+=v;
+    if(totInd[h.tecnico_nombre])totInd[h.tecnico_nombre].total+=v;
   });
   regs.forEach(reg=>{
     let eq=0;(reg.registro_tareas||[]).forEach(rt=>eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));
     if(totCuad[reg.cuadrilla_id])totCuad[reg.cuadrilla_id].total+=eq;
     if(reg.solo){
-      // Solo: solo para ese técnico
-      const k=reg.cuadrilla_id+'_'+reg.tecnico_nombre;
-      if(totInd[k])totInd[k].total+=eq;
+      if(totInd[reg.tecnico_nombre])totInd[reg.tecnico_nombre].total+=eq; // solo: solo para ese técnico
     }else{
-      // En pareja: suma a AMBOS técnicos de la cuadrilla
-      getTecs(reg.cuadrilla_id).forEach(t=>{
-        const k=reg.cuadrilla_id+'_'+t;
-        if(totInd[k])totInd[k].total+=eq;
-      });
+      // En pareja: a cada técnico que estaba en ESA cuadrilla en ESA fecha
+      TECS.forEach(t=>{ if(cuadrillaDeTecEn(t,reg.fecha)===reg.cuadrilla_id) totInd[t].total+=eq; });
     }
   });
   return{rankCuad:Object.values(totCuad).sort((a,b)=>b.total-a.total),rankInd:Object.values(totInd).sort((a,b)=>b.total-a.total)};
@@ -3488,10 +3500,8 @@ async function renderDashboard() {
       var semC = semanasCerradasPorCuad[cuad.id] || {};
       getTecs(cuad.id).forEach(function(tec){
         var porSemana = {};
-        var inicioTec = INGRESO_CUADRILLA[tec] || MARZO2026; // si cambió de cuadrilla, arranca desde que entró
-        // Usar regsAll (historia completa con solo + tecnico_nombre correctos)
-        regsAll.filter(function(r){ return r.cuadrilla_id===cuad.id; }).forEach(function(reg){
-          if(reg.fecha < inicioTec) return;
+        // POR PERSONA: contar los registros de las cuadrillas donde estuvo el técnico (en sus fechas)
+        regsAll.filter(function(r){ return cuadrillaDeTecEn(tec, r.fecha)===r.cuadrilla_id; }).forEach(function(reg){
           var sem = getLunesDesd(reg.fecha);
           if(sem >= lunesHoy) return; // la semana en curso no entra hasta terminar
           if(!porSemana[sem]) porSemana[sem] = {par:0, sol:0};
@@ -3499,16 +3509,18 @@ async function renderDashboard() {
           if(reg.solo && reg.tecnico_nombre===tec) porSemana[sem].sol += eq; // solo: solo cuenta para este tec
           else if(!reg.solo) porSemana[sem].par += eq; // pareja: cuenta para ambos
         });
-        // Días especiales
-        allDiasEsp.filter(function(d){ return d.fecha>=inicioTec; }).forEach(function(d){
+        // Días especiales (por persona)
+        allDiasEsp.filter(function(d){ return d.fecha>=MARZO2026; }).forEach(function(d){
           var sem = getLunesDesd(d.fecha);
           if(sem >= lunesHoy) return;
+          var cuadEn = cuadrillaDeTecEn(tec, d.fecha);
+          if(!cuadEn) return;
           if(!porSemana[sem]) porSemana[sem] = {par:0, sol:0};
-          if(d.tipo==='vacaciones' && d.tecnico_nombre===tec && d.cuadrilla_id===cuad.id)
+          if(d.tipo==='vacaciones' && d.tecnico_nombre===tec)
             porSemana[sem].par = meta;
-          else if(d.tipo==='certificado' && d.tecnico_nombre===tec && d.cuadrilla_id===cuad.id)
+          else if(d.tipo==='certificado' && d.tecnico_nombre===tec)
             porSemana[sem].par += 5;
-          else if(d.tipo==='feriado' && (!d.cuadrilla_id||d.cuadrilla_id===cuad.id))
+          else if(d.tipo==='feriado' && (!d.cuadrilla_id||d.cuadrilla_id===cuadEn))
             porSemana[sem].par += 5;
         });
         var totalExtras = 0;
@@ -3999,17 +4011,16 @@ async function dashPagoRapido(tecNombre, cuadNombre, montoDeuda){
     var hoy=fmtD(new Date());
 
     var [regsAll, allPagos, diasEsp] = await Promise.all([
-      sbGet('registros','?fecha=gte.'+MARZO2026+'&cuadrilla_id=eq.'+(cuad?cuad.id:'')+'&select=fecha,tecnico_nombre,solo,registro_tareas(tipo_tarea_id,cantidad)'),
-      sbGet('pagos','?cuadrilla_id=eq.'+(cuad?cuad.id:'')+'&tecnico_nombre=eq.'+encodeURIComponent(tecNombre)+'&select=fecha,monto,descripcion&order=fecha.desc'),
-      sbGet('dias_especiales','?cuadrilla_id=eq.'+(cuad?cuad.id:'')+'&select=fecha,tipo,tecnico_nombre')
+      sbGet('registros','?fecha=gte.'+MARZO2026+'&select=cuadrilla_id,fecha,tecnico_nombre,solo,registro_tareas(tipo_tarea_id,cantidad)'),
+      sbGet('pagos','?tecnico_nombre=eq.'+encodeURIComponent(tecNombre)+'&select=fecha,monto,descripcion&order=fecha.desc'),
+      sbGet('dias_especiales','?fecha=gte.'+MARZO2026+'&select=fecha,tipo,tecnico_nombre,cuadrilla_id')
     ]);
 
-    // Calcular extras por semana
-    var inicioTec=INGRESO_CUADRILLA[tecNombre]||MARZO2026; // si cambió de cuadrilla, arranca desde que entró
+    // Calcular extras por semana (POR PERSONA: las cuadrillas donde estuvo, en sus fechas)
     var lunesHoy=getLunesDesd(hoy);
     var porSemana={};
     regsAll.forEach(function(reg){
-      if(reg.fecha<inicioTec)return;
+      if(cuadrillaDeTecEn(tecNombre,reg.fecha)!==reg.cuadrilla_id)return;
       var sem=getLunesDesd(reg.fecha);
       if(sem>=lunesHoy)return; // la semana en curso no entra hasta terminar
       if(!porSemana[sem])porSemana[sem]={par:0,sol:0};
@@ -4017,13 +4028,15 @@ async function dashPagoRapido(tecNombre, cuadNombre, montoDeuda){
       if(reg.solo&&reg.tecnico_nombre===tecNombre) porSemana[sem].sol+=eq;
       else if(!reg.solo) porSemana[sem].par+=eq;
     });
-    diasEsp.filter(function(d){return d.fecha>=inicioTec;}).forEach(function(d){
+    diasEsp.forEach(function(d){
       var sem=getLunesDesd(d.fecha);
       if(sem>=lunesHoy)return;
+      var cuadEn=cuadrillaDeTecEn(tecNombre,d.fecha);
+      if(!cuadEn)return;
       if(!porSemana[sem])porSemana[sem]={par:0,sol:0};
       if(d.tipo==='vacaciones'&&d.tecnico_nombre===tecNombre) porSemana[sem].par=meta;
       else if(d.tipo==='certificado'&&d.tecnico_nombre===tecNombre) porSemana[sem].par+=5;
-      else if(d.tipo==='feriado'&&(!d.cuadrilla_id||d.cuadrilla_id===(cuad?cuad.id:''))) porSemana[sem].par+=5;
+      else if(d.tipo==='feriado'&&(!d.cuadrilla_id||d.cuadrilla_id===cuadEn)) porSemana[sem].par+=5;
     });
 
     var totalExtras=0;
