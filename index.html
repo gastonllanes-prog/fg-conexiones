@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v88</title>
+<title>FG Conexiones v89</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v88</div>
+    <div class="login-ver">FG Conexiones · v89</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v88</div>
+    <div class="sb-ver">v89</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v88</div>
+    <div id="mobile-ver">v89</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1651,6 +1651,46 @@ async function calcSaldoTecnico(cuadId,tecNombre){
 }
 
 
+// Calcula el saldo de TODOS los técnicos con solo 3 consultas (rápido). Mismo criterio que calcSaldoTecnico.
+async function calcSaldosTodos(){
+  const meta=parseInt(CONFIG.meta_semanal||30),precioUnit=parseInt(CONFIG.precio_instalacion||7000)/2;
+  const MARZO='2026-03-01';
+  const lunesHoy=getLunesDesd(fmtD(new Date()));
+  const [regs,esp,pagos]=await Promise.all([
+    sbGet('registros',`?fecha=gte.${MARZO}&select=cuadrilla_id,fecha,solo,tecnico_nombre,registro_tareas(tipo_tarea_id,cantidad)`),
+    sbGet('dias_especiales',`?fecha=gte.${MARZO}&select=fecha,tipo,tecnico_nombre,cuadrilla_id`),
+    sbGet('pagos','?select=id,cuadrilla_id,tecnico_nombre,monto,fecha,descripcion&order=fecha.desc')
+  ]);
+  const res={};
+  todosLosTecnicos().forEach(tec=>{
+    const porSemana={};
+    const add=(f,k,v)=>{const s=getLunesDesd(f);if(f<MARZO||s>=lunesHoy)return;if(!porSemana[s])porSemana[s]={pareja:0,solo:0};porSemana[s][k]+=v;};
+    regs.forEach(r=>{
+      if(cuadrillaDeTecEn(tec,r.fecha)!==r.cuadrilla_id)return;
+      let eq=0;(r.registro_tareas||[]).forEach(rt=>eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));
+      if(r.solo&&r.tecnico_nombre===tec)add(r.fecha,'solo',eq);
+      else if(!r.solo)add(r.fecha,'pareja',eq);
+    });
+    esp.forEach(d=>{
+      const ce=cuadrillaDeTecEn(tec,d.fecha);if(!ce)return;
+      const s=getLunesDesd(d.fecha);if(d.fecha<MARZO||s>=lunesHoy)return;
+      if(d.tipo==='vacaciones'&&d.tecnico_nombre===tec){if(!porSemana[s])porSemana[s]={pareja:0,solo:0};porSemana[s].pareja=meta;}
+      else if(d.tipo==='certificado'&&d.tecnico_nombre===tec)add(d.fecha,'pareja',5);
+      else if(d.tipo==='feriado'&&(!d.cuadrilla_id||d.cuadrilla_id===ce))add(d.fecha,'pareja',5);
+    });
+    let totalExtras=0;const detalles=[];
+    Object.entries(porSemana).sort().forEach(([sem,o])=>{
+      if(o.pareja===0&&o.solo===0)return;
+      const efectivo=o.pareja+o.solo*2,semTotal=(efectivo-meta)*precioUnit;
+      totalExtras+=semTotal;detalles.push({sem,pareja:o.pareja,solo:o.solo,efectivo,semTotal,acum:totalExtras});
+    });
+    const pg=pagos.filter(p=>p.tecnico_nombre===tec);
+    const totalPagado=pg.reduce((s,p)=>s+parseFloat(p.monto),0);
+    res[tec]={totalExtras,totalPagado,saldo:totalExtras-totalPagado,detalles,pagos:pg};
+  });
+  return res;
+}
+
 async function renderTecRanking(){
   document.getElementById('t-rank-cuad').innerHTML='<div class="loading"><span class="spinner"></span></div>';
   document.getElementById('t-rank-ind').innerHTML='<div class="loading"><span class="spinner"></span></div>';
@@ -2572,11 +2612,12 @@ async function _renderSaldosResumen(){
   const precio=parseInt(CONFIG.precio_instalacion||7000);
   const precioUnit=precio/2;
   el.innerHTML='<div class="loading"><span class="spinner"></span>Calculando saldos...</div>';
-  // Usar calcSaldoTecnico (mismo cálculo que detalle y vista técnico - respeta semanas cerradas)
+  // Calcular TODOS los saldos en una sola pasada (3 consultas) — rápido
+  const todos=await calcSaldosTodos();
   const rows=[];
   for(const cuad of CUADRILLAS){
     for(const tec of getTecs(cuad.id)){
-      const info=await calcSaldoTecnico(cuad.id,tec);
+      const info=todos[tec]||{totalExtras:0,totalPagado:0,saldo:0};
       rows.push({tec,cuad:cuad.nombre,cuadId:cuad.id,totalExtras:info.totalExtras,pagado:info.totalPagado,saldo:info.saldo});
     }
   }
@@ -2637,9 +2678,10 @@ async function _renderHistorialMensual(){
   const meta=parseInt(CONFIG.meta_semanal||30);
   // Recopilar info de todos los técnicos
   const allRows=[]; // {tec, cuad, cuadId, mesTotales:{yyyy-MM: {equiv, pesos}}, totalExtras, saldo}
+  const todos=await calcSaldosTodos();
   for(const cuad of CUADRILLAS){
     for(const tec of getTecs(cuad.id)){
-      const info=await calcSaldoTecnico(cuad.id,tec);
+      const info=todos[tec]||{detalles:[],totalExtras:0,totalPagado:0,saldo:0};
       // Agrupar detalles por mes
       const mesTotales={};
       (info.detalles||[]).forEach(d=>{
@@ -2770,9 +2812,10 @@ async function abrirSaldoTecDet(cuadId, tecFocus){
     <div style="font-size:13px;color:#64748b;margin-bottom:1.25rem">${cuad?getTecs(cuadId).join(' · '):''}</div>
     <div id="st-det-content"><div class="loading"><span class="spinner"></span>Cargando...</div></div>`;
   const tecs=getTecs(cuadId);
+  const todos=await calcSaldosTodos();
   let html='';
   for(const tec of tecs){
-    const info=await calcSaldoTecnico(cuadId,tec);
+    const info=todos[tec]||{saldo:0,totalExtras:0,totalPagado:0,detalles:[],pagos:[]};
     const saldo=info.saldo;
     const equiv=saldo/precioUnit;
     const esNeg=saldo<-100,esPos=saldo>100,ok=Math.abs(saldo)<100;
@@ -2843,8 +2886,9 @@ async function abrirDetallePagos(cuadId, tecFocus){
   const meta=parseInt(CONFIG.meta_semanal||30);
   let html='';
 
+  const todos=await calcSaldosTodos();
   for(const tec of tecs){
-    const info=await calcSaldoTecnico(cuadId,tec);
+    const info=todos[tec]||{saldo:0,totalExtras:0,totalPagado:0,detalles:[],pagos:[]};
     const saldo=info.saldo;
     const esNeg=saldo<0, esPos=saldo>0, esOk=Math.abs(saldo)<1;
     const clr=esPos?'#16a34a':esNeg?'#dc2626':'#5a7a9a';
