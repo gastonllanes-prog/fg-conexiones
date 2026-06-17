@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v89</title>
+<title>FG Conexiones v90</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v89</div>
+    <div class="login-ver">FG Conexiones · v90</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v89</div>
+    <div class="sb-ver">v90</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v89</div>
+    <div id="mobile-ver">v90</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1953,12 +1953,10 @@ async function onFechaChange(){
 
 // Guarda (o actualiza/borra) UN registro para una persona/cuadrilla en una fecha
 async function guardarUnRegistro(fecha,cuadId,tecNombre,esSolo,tareas){
+  // Sección vacía: NO tocar lo que ya estaba cargado (para borrar/corregir, usar "Cargado hoy → Editar").
+  // Así, agregar el trabajo de cuadrilla más tarde no pisa los "solo" ya guardados ese día.
+  if(!tareas.length) return;
   const existing=await sbGet('registros',`?fecha=eq.${fecha}&cuadrilla_id=eq.${cuadId}&tecnico_nombre=eq.${encodeURIComponent(tecNombre)}&select=id`);
-  if(!tareas.length){
-    // sin tareas: si había un registro, borrarlo (permite corregir a 0)
-    if(existing&&existing.length){await sbDel('registro_tareas',`?registro_id=eq.${existing[0].id}`);await sbDel('registros',`?id=eq.${existing[0].id}`);}
-    return;
-  }
   let regId;
   if(existing&&existing.length){regId=existing[0].id;await sbPatch('registros',`?id=eq.${regId}`,{solo:esSolo,created_by:CU.username});}
   else{const nuevo=await sbPost('registros',{fecha,cuadrilla_id:cuadId,tecnico_nombre:tecNombre,solo:esSolo,created_by:CU.username});regId=nuevo[0].id;}
@@ -3558,8 +3556,8 @@ async function renderDashboard() {
     var extrasPorTec = {};
     var pagosPorTec = {};
     allPagos.forEach(function(p){
-      var k = p.cuadrilla_id+'_'+p.tecnico_nombre;
-      pagosPorTec[k] = (pagosPorTec[k]||0) + parseFloat(p.monto);
+      // por NOMBRE (el pago sigue a la persona, aunque haya cambiado de cuadrilla)
+      pagosPorTec[p.tecnico_nombre] = (pagosPorTec[p.tecnico_nombre]||0) + parseFloat(p.monto);
     });
 
     CUADRILLAS.forEach(function(cuad){
@@ -3604,7 +3602,7 @@ async function renderDashboard() {
       getTecs(cuad.id).forEach(function(tec){
         var k = cuad.id+'_'+tec;
         var extras = extrasPorTec[k]||0;
-        var pagado = pagosPorTec[k]||0;
+        var pagado = pagosPorTec[tec]||0;
         sRows.push({ nm:tec, cuad:cuad.nombre, sal:extras-pagado });
       });
     });
