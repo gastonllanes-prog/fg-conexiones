@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v90</title>
+<title>FG Conexiones v91</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v90</div>
+    <div class="login-ver">FG Conexiones · v91</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v90</div>
+    <div class="sb-ver">v91</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v90</div>
+    <div id="mobile-ver">v91</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1317,9 +1317,13 @@ async function renderTecSemana(){
   ]);
 
   const libraS=semConf?cuad.grupo===semConf.grupo_libra:false;
-  const dias=getDias(lunes,!libraS);
-  const fechas=dias.map(d=>d.fecha);
   const regs=regsData;
+  // Mostrar SIEMPRE de Lunes a Sábado (aunque el sábado sea libre, igual pueden venir a trabajar)
+  const dias=getDias(lunes,true);
+  // Agregar Domingo si hubo trabajo cargado ese día
+  const _dom=new Date(lunes+'T12:00:00');_dom.setDate(_dom.getDate()+6);const domStr=fmtD(_dom);
+  if(regs.some(r=>r.fecha===domStr))dias.push({short:'Do',full:'Domingo',fecha:domStr});
+  const fechas=dias.map(d=>d.fecha);
 
   let totalSemana=0;const totPorDia={};dias.forEach(d=>totPorDia[d.fecha]=0);
   regs.forEach(reg=>{
@@ -1454,7 +1458,9 @@ function renderCalDet(fecha,regs){
     const _cls={lluvia:'b-rain',feriado:'b-holiday',vacaciones:'b-info',certificado:'b-gray'};
     html+=`<div style="margin-bottom:8px"><span class="badge ${_cls[de.tipo]||'b-holiday'}">${_icons[de.tipo]||de.tipo}${de.descripcion?': '+de.descripcion:''}</span></div>`;
   }
-  const del=regs.filter(r=>r.fecha===fecha);
+  // Si es un técnico individual, NO mostrar el "solo" del compañero (solo cuenta para él, no para mí)
+  const esInd=!!CU.tecnico_ref;
+  const del=regs.filter(r=>r.fecha===fecha&&!(esInd&&r.solo&&r.tecnico_nombre!==CU.tecnico_ref));
   if(!del.length){html+='<p style="font-size:13px;color:#6b7280;padding:8px 0">Sin tareas para este día.</p>';el.innerHTML=html;return;}
   del.forEach(reg=>{
     const isSolo=reg.solo;
@@ -1470,7 +1476,10 @@ async function renderTecFechaLibre(){
   const fecha=document.getElementById('t-fecha-libre').value,el=document.getElementById('t-fecha-libre-det');
   if(!fecha){el.innerHTML='';return;}
   el.innerHTML='<div class="loading"><span class="spinner"></span>Cargando...</div>';
-  const regs=await sbGet('registros',`?cuadrilla_id=eq.${CU.cuadrilla_id}&fecha=eq.${fecha}&select=*,registro_tareas(*)`);
+  const _regs=await sbGet('registros',`?cuadrilla_id=eq.${CU.cuadrilla_id}&fecha=eq.${fecha}&select=*,registro_tareas(*)`);
+  // Técnico individual: no mostrar el "solo" del compañero
+  const esInd=!!CU.tecnico_ref;
+  const regs=_regs.filter(r=>!(esInd&&r.solo&&r.tecnico_nombre!==CU.tecnico_ref));
   const de=esDiaEsp(fecha);let html='';
   if(de)html+=`<div class="card"><span class="badge ${de.tipo==='lluvia'?'b-rain':'b-holiday'}">${de.tipo==='lluvia'?'🌧':'📅'} ${de.descripcion||de.tipo}</span></div>`;
   if(!regs.length){html+='<div class="card"><p style="font-size:13px;color:#6b7280">Sin tareas para esta fecha.</p></div>';el.innerHTML=html;return;}
