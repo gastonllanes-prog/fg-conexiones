@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v91</title>
+<title>FG Conexiones v92</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v91</div>
+    <div class="login-ver">FG Conexiones · v92</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v91</div>
+    <div class="sb-ver">v92</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v91</div>
+    <div id="mobile-ver">v92</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1307,21 +1307,27 @@ async function renderTecSemana(){
   document.getElementById('t-meta').textContent=meta;
   const cuad=CUADRILLAS.find(x=>x.id===cuadId);
 
+  // Días de la semana (Lu-Do) y en qué cuadrilla estuvo el técnico cada uno
+  const _7=[];for(let i=0;i<7;i++){const d=new Date(lunes+'T12:00:00');d.setDate(d.getDate()+i);_7.push(fmtD(d));}
+  const domStr=_7[6];
+  let cuadsSem=[cuadId];
+  if(esInd){cuadsSem=[...new Set(_7.map(f=>cuadrillaDeTecEn(CU.tecnico_ref,f)).filter(Boolean))];if(!cuadsSem.length)cuadsSem=[cuadId];}
+
   // Batch: todas las queries en paralelo
-  const [semConf, regsData, diasEspData, ferData, saldoData] = await Promise.all([
+  const [semConf, regsRaw, diasEspData, ferData, saldoData] = await Promise.all([
     getSemConf(lunes),
-    sbGet('registros',`?cuadrilla_id=eq.${cuadId}&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=*,registro_tareas(*)`),
-    esInd?sbGet('dias_especiales',`?cuadrilla_id=eq.${cuadId}&tecnico_nombre=eq.${encodeURIComponent(CU.tecnico_ref)}&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=fecha,tipo`):Promise.resolve([]),
+    sbGet('registros',`?cuadrilla_id=in.(${cuadsSem.join(',')})&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=*,registro_tareas(*)`),
+    esInd?sbGet('dias_especiales',`?tecnico_nombre=eq.${encodeURIComponent(CU.tecnico_ref)}&tipo=in.(vacaciones,certificado)&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=fecha,tipo`):Promise.resolve([]),
     sbGet('dias_especiales',`?tipo=eq.feriado&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=fecha,cuadrilla_id`),
     Promise.resolve([]) /* saldos eliminado: ya no se cierra la semana */
   ]);
 
+  // Para un técnico, quedarse con los registros de la cuadrilla donde estuvo CADA día
+  const regs = esInd ? regsRaw.filter(r=>cuadrillaDeTecEn(CU.tecnico_ref,r.fecha)===r.cuadrilla_id) : regsRaw;
   const libraS=semConf?cuad.grupo===semConf.grupo_libra:false;
-  const regs=regsData;
   // Mostrar SIEMPRE de Lunes a Sábado (aunque el sábado sea libre, igual pueden venir a trabajar)
   const dias=getDias(lunes,true);
   // Agregar Domingo si hubo trabajo cargado ese día
-  const _dom=new Date(lunes+'T12:00:00');_dom.setDate(_dom.getDate()+6);const domStr=fmtD(_dom);
   if(regs.some(r=>r.fecha===domStr))dias.push({short:'Do',full:'Domingo',fecha:domStr});
   const fechas=dias.map(d=>d.fecha);
 
