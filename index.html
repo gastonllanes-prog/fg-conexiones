@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v97</title>
+<title>FG Conexiones v98</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v97</div>
+    <div class="login-ver">FG Conexiones · v98</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v97</div>
+    <div class="sb-ver">v98</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v97</div>
+    <div id="mobile-ver">v98</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1324,8 +1324,13 @@ async function renderTecSemana(){
     Promise.resolve([]) /* saldos eliminado: ya no se cierra la semana */
   ]);
 
-  // Para un técnico, quedarse con los registros de la cuadrilla donde estuvo CADA día
-  const regs = esInd ? regsRaw.filter(r=>cuadrillaDeTecEn(CU.tecnico_ref,r.fecha)===r.cuadrilla_id) : regsRaw;
+  // Para un técnico: quedarse SOLO con lo suyo — su cuadrilla ese día, su trabajo solo, y las parejas donde realmente salió (participantes)
+  const regs = esInd ? regsRaw.filter(r=>{
+    if(cuadrillaDeTecEn(CU.tecnico_ref,r.fecha)!==r.cuadrilla_id) return false;
+    if(r.solo) return r.tecnico_nombre===CU.tecnico_ref;
+    const parts=Array.isArray(r.participantes)&&r.participantes.length?r.participantes:null;
+    return parts? parts.indexOf(CU.tecnico_ref)>=0 : true;
+  }) : regsRaw;
   const libraS=semConf?cuad.grupo===semConf.grupo_libra:false;
   // Mostrar SIEMPRE de Lunes a Sábado (aunque el sábado sea libre, igual pueden venir a trabajar)
   const dias=getDias(lunes,true);
@@ -1485,9 +1490,14 @@ async function renderTecFechaLibre(){
   if(!fecha){el.innerHTML='';return;}
   el.innerHTML='<div class="loading"><span class="spinner"></span>Cargando...</div>';
   const _regs=await sbGet('registros',`?cuadrilla_id=eq.${CU.cuadrilla_id}&fecha=eq.${fecha}&select=*,registro_tareas(*)`);
-  // Técnico individual: no mostrar el "solo" del compañero
+  // Técnico individual: solo lo suyo (su solo + las parejas donde realmente salió)
   const esInd=!!CU.tecnico_ref;
-  const regs=_regs.filter(r=>!(esInd&&r.solo&&r.tecnico_nombre!==CU.tecnico_ref));
+  const regs=_regs.filter(r=>{
+    if(!esInd) return true;
+    if(r.solo) return r.tecnico_nombre===CU.tecnico_ref;
+    const parts=Array.isArray(r.participantes)&&r.participantes.length?r.participantes:null;
+    return parts? parts.indexOf(CU.tecnico_ref)>=0 : true;
+  });
   const de=esDiaEsp(fecha);let html='';
   if(de)html+=`<div class="card"><span class="badge ${de.tipo==='lluvia'?'b-rain':'b-holiday'}">${de.tipo==='lluvia'?'🌧':'📅'} ${de.descripcion||de.tipo}</span></div>`;
   if(!regs.length){html+='<div class="card"><p style="font-size:13px;color:#6b7280">Sin tareas para esta fecha.</p></div>';el.innerHTML=html;return;}
