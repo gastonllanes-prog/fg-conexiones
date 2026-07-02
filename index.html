@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v92</title>
+<title>FG Conexiones v94</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v92</div>
+    <div class="login-ver">FG Conexiones · v94</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v92</div>
+    <div class="sb-ver">v94</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v92</div>
+    <div id="mobile-ver">v94</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -491,7 +491,9 @@ tr:hover td{background:rgba(255,255,255,.02)}
           <div id="a-dia-info"></div>
           <div class="fg"><label>Cuadrilla</label><select id="a-cuad" onchange="onCuadChange()"></select></div>
           <div id="carga-cuad-sec">
-            <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.07em;margin:.25rem 0 .6rem">👥 Trabajo de la cuadrilla (juntos)</div>
+            <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.07em;margin:.25rem 0 .4rem">👥 Trabajo de la cuadrilla (juntos)</div>
+            <div style="font-size:12px;color:#5a7a9a;margin-bottom:.35rem">¿Quiénes salieron juntos hoy? <span style="color:#94a3b8">(cambialo si armaste una pareja distinta)</span></div>
+            <div id="a-participantes" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:.7rem"></div>
             <div id="a-tareas-cuad"></div>
           </div>
           <div id="carga-solo-sec" style="margin-top:1rem">
@@ -1618,51 +1620,9 @@ async function renderTecCobros(){
 }
 
 async function calcSaldoTecnico(cuadId,tecNombre){
-  // POR PERSONA: recorre las cuadrillas donde estuvo el técnico (en sus rangos de fechas),
-  // así su saldo lo sigue aunque haya cambiado de cuadrilla.
-  const meta=parseInt(CONFIG.meta_semanal||30),precio=parseInt(CONFIG.precio_instalacion||7000);
-  const precioUnit=precio/2;
-  const MARZO2026='2026-03-01';
-  const lunesHoy=getLunesDesd(fmtD(new Date()));
-  const porSemana={};
-  const addSem=(fecha,campo,val)=>{
-    if(fecha<MARZO2026)return;
-    const sem=getLunesDesd(fecha);
-    if(sem>=lunesHoy)return; // la semana en curso no entra hasta terminar
-    if(!porSemana[sem])porSemana[sem]={pareja:0,solo:0};
-    porSemana[sem][campo]+=val;
-  };
-  for(const per of periodosTec(tecNombre)){
-    const desde=per.desde>MARZO2026?per.desde:MARZO2026;
-    const regs=await sbGet('registros',`?cuadrilla_id=eq.${per.cuad}&fecha=gte.${desde}&fecha=lte.${per.hasta}&select=fecha,solo,tecnico_nombre,registro_tareas(tipo_tarea_id,cantidad)`);
-    regs.forEach(reg=>{
-      let eq=0;(reg.registro_tareas||[]).forEach(rt=>eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));
-      if(reg.solo&&reg.tecnico_nombre===tecNombre)addSem(reg.fecha,'solo',eq);
-      else if(!reg.solo)addSem(reg.fecha,'pareja',eq);
-    });
-    // Vacaciones (semana entera = meta) / certificado (+5) del técnico en este período
-    const esp=await sbGet('dias_especiales',`?cuadrilla_id=eq.${per.cuad}&tecnico_nombre=eq.${encodeURIComponent(tecNombre)}&fecha=gte.${desde}&fecha=lte.${per.hasta}&select=fecha,tipo`);
-    esp.forEach(d=>{
-      if(d.tipo==='vacaciones'){const sem=getLunesDesd(d.fecha);if(d.fecha>=MARZO2026&&sem<lunesHoy){if(!porSemana[sem])porSemana[sem]={pareja:0,solo:0};porSemana[sem].pareja=meta;}}
-      else if(d.tipo==='certificado')addSem(d.fecha,'pareja',5);
-    });
-    // Feriados que apliquen a esta cuadrilla en el rango (+5)
-    const fer=await sbGet('dias_especiales',`?tipo=eq.feriado&fecha=gte.${desde}&fecha=lte.${per.hasta}&select=fecha,cuadrilla_id`);
-    fer.forEach(d=>{ if(d.cuadrilla_id&&d.cuadrilla_id!==per.cuad)return; addSem(d.fecha,'pareja',5); });
-  }
-  let totalExtras=0;
-  const detallesSemanas=[];
-  Object.entries(porSemana).sort().forEach(([sem,{pareja,solo}])=>{
-    if(pareja===0&&solo===0)return;
-    const efectivo=pareja+(solo*2);
-    const semTotal=(efectivo-meta)*precioUnit;
-    totalExtras+=semTotal;
-    detallesSemanas.push({sem,pareja,solo,efectivo,semTotal,acum:totalExtras});
-  });
-  // Pagos: por NOMBRE del técnico (en cualquier cuadrilla)
-  const pagosData=await sbGet('pagos',`?tecnico_nombre=eq.${encodeURIComponent(tecNombre)}&order=fecha.desc`);
-  const totalPagado=pagosData.reduce((s,p)=>s+parseFloat(p.monto),0);
-  return{totalExtras,totalPagado,saldo:totalExtras-totalPagado,pagos:pagosData,detalles:detallesSemanas};
+  // Usa el cálculo único por persona (respeta participantes de cada carga y los cambios de cuadrilla)
+  const todos=await calcSaldosTodos();
+  return todos[tecNombre]||{totalExtras:0,totalPagado:0,saldo:0,pagos:[],detalles:[]};
 }
 
 
@@ -1672,7 +1632,7 @@ async function calcSaldosTodos(){
   const MARZO='2026-03-01';
   const lunesHoy=getLunesDesd(fmtD(new Date()));
   const [regs,esp,pagos]=await Promise.all([
-    sbGet('registros',`?fecha=gte.${MARZO}&select=cuadrilla_id,fecha,solo,tecnico_nombre,registro_tareas(tipo_tarea_id,cantidad)`),
+    sbGet('registros',`?fecha=gte.${MARZO}&select=cuadrilla_id,fecha,solo,tecnico_nombre,participantes,registro_tareas(tipo_tarea_id,cantidad)`),
     sbGet('dias_especiales',`?fecha=gte.${MARZO}&select=fecha,tipo,tecnico_nombre,cuadrilla_id`),
     sbGet('pagos','?select=id,cuadrilla_id,tecnico_nombre,monto,fecha,descripcion&order=fecha.desc')
   ]);
@@ -1681,10 +1641,12 @@ async function calcSaldosTodos(){
     const porSemana={};
     const add=(f,k,v)=>{const s=getLunesDesd(f);if(f<MARZO||s>=lunesHoy)return;if(!porSemana[s])porSemana[s]={pareja:0,solo:0};porSemana[s][k]+=v;};
     regs.forEach(r=>{
-      if(cuadrillaDeTecEn(tec,r.fecha)!==r.cuadrilla_id)return;
       let eq=0;(r.registro_tareas||[]).forEach(rt=>eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));
-      if(r.solo&&r.tecnico_nombre===tec)add(r.fecha,'solo',eq);
-      else if(!r.solo)add(r.fecha,'pareja',eq);
+      if(r.solo){ if(r.tecnico_nombre===tec)add(r.fecha,'solo',eq); return; }
+      // Trabajo compartido: si tiene participantes guardados, cuenta para ellos; si no, para la cuadrilla (histórico)
+      const parts=Array.isArray(r.participantes)&&r.participantes.length?r.participantes:null;
+      const cuenta=parts?parts.includes(tec):(cuadrillaDeTecEn(tec,r.fecha)===r.cuadrilla_id);
+      if(cuenta)add(r.fecha,'pareja',eq);
     });
     esp.forEach(d=>{
       const ce=cuadrillaDeTecEn(tec,d.fecha);if(!ce)return;
@@ -1808,7 +1770,7 @@ async function renderAdmRanking(){
 async function buildRankings(desde, hasta, usarHistorico){
   desde = desde||'2026-01-01'; hasta = hasta||fmtD(new Date());
   const queries = [
-    sbGet('registros','?fecha=gte.'+desde+'&fecha=lte.'+hasta+'&select=cuadrilla_id,fecha,tecnico_nombre,solo,registro_tareas(tipo_tarea_id,cantidad)')
+    sbGet('registros','?fecha=gte.'+desde+'&fecha=lte.'+hasta+'&select=cuadrilla_id,fecha,tecnico_nombre,solo,participantes,registro_tareas(tipo_tarea_id,cantidad)')
   ];
   if(usarHistorico) queries.push(sbGet('historico_totales','?select=*'));
   const [regs, hist=[]] = await Promise.all(queries);
@@ -1832,8 +1794,10 @@ async function buildRankings(desde, hasta, usarHistorico){
     if(reg.solo){
       if(totInd[reg.tecnico_nombre])totInd[reg.tecnico_nombre].total+=eq; // solo: solo para ese técnico
     }else{
-      // En pareja: a cada técnico que estaba en ESA cuadrilla en ESA fecha
-      TECS.forEach(t=>{ if(cuadrillaDeTecEn(t,reg.fecha)===reg.cuadrilla_id) totInd[t].total+=eq; });
+      // En pareja: si la carga guardó participantes, va a esos nombres; si no, a quien estaba en esa cuadrilla esa fecha
+      const parts=Array.isArray(reg.participantes)&&reg.participantes.length?reg.participantes:null;
+      if(parts){ parts.forEach(t=>{ if(totInd[t]) totInd[t].total+=eq; }); }
+      else { TECS.forEach(t=>{ if(cuadrillaDeTecEn(t,reg.fecha)===reg.cuadrilla_id) totInd[t].total+=eq; }); }
     }
   });
   return{rankCuad:Object.values(totCuad).sort((a,b)=>b.total-a.total),rankInd:Object.values(totInd).sort((a,b)=>b.total-a.total)};
@@ -1919,6 +1883,12 @@ function buildTareasInputs(){
   // Sección "cuadrilla (juntos)": solo tiene sentido si hay 2 técnicos
   const cuadSec=document.getElementById('carga-cuad-sec');
   if(cuadSec)cuadSec.style.display=tecs.length>=2?'block':'none';
+  // Selector "quiénes salieron juntos": todos los técnicos, con la pareja de la cuadrilla marcada por defecto
+  const elP=document.getElementById('a-participantes');
+  if(elP)elP.innerHTML=todosLosTecnicos().sort().map(t=>{
+    const chk=tecs.includes(t)?'checked':'';
+    return `<label style="display:inline-flex;align-items:center;gap:5px;font-size:13px;background:${tecs.includes(t)?'rgba(59,130,246,.1)':'var(--bg3)'};border:1px solid var(--border);border-radius:8px;padding:5px 9px;cursor:pointer"><input type="checkbox" class="a-part-chk" value="${t}" ${chk} onchange="recalcPreview()"/> ${t}</label>`;
+  }).join('');
   const elC=document.getElementById('a-tareas-cuad');
   if(elC)elC.innerHTML=TIPOS.map(t=>filaTarea('tc-'+t.id,t)).join('');
   // Sección individual: un bloque por técnico
@@ -1967,14 +1937,15 @@ async function onFechaChange(){
 }
 
 // Guarda (o actualiza/borra) UN registro para una persona/cuadrilla en una fecha
-async function guardarUnRegistro(fecha,cuadId,tecNombre,esSolo,tareas){
+async function guardarUnRegistro(fecha,cuadId,tecNombre,esSolo,tareas,participantes){
   // Sección vacía: NO tocar lo que ya estaba cargado (para borrar/corregir, usar "Cargado hoy → Editar").
   // Así, agregar el trabajo de cuadrilla más tarde no pisa los "solo" ya guardados ese día.
   if(!tareas.length) return;
   const existing=await sbGet('registros',`?fecha=eq.${fecha}&cuadrilla_id=eq.${cuadId}&tecnico_nombre=eq.${encodeURIComponent(tecNombre)}&select=id`);
+  const body={solo:esSolo,created_by:CU.username,participantes:(participantes&&participantes.length?participantes:null)};
   let regId;
-  if(existing&&existing.length){regId=existing[0].id;await sbPatch('registros',`?id=eq.${regId}`,{solo:esSolo,created_by:CU.username});}
-  else{const nuevo=await sbPost('registros',{fecha,cuadrilla_id:cuadId,tecnico_nombre:tecNombre,solo:esSolo,created_by:CU.username});regId=nuevo[0].id;}
+  if(existing&&existing.length){regId=existing[0].id;await sbPatch('registros',`?id=eq.${regId}`,body);}
+  else{const nuevo=await sbPost('registros',Object.assign({fecha,cuadrilla_id:cuadId,tecnico_nombre:tecNombre},body));regId=nuevo[0].id;}
   await sbDel('registro_tareas',`?registro_id=eq.${regId}`);
   for(const t of tareas)await sbPost('registro_tareas',{registro_id:regId,tipo_tarea_id:t.tipo_tarea_id,cantidad:t.cantidad});
 }
@@ -1984,6 +1955,8 @@ async function guardarCarga(){
   const aErr=document.getElementById('a-err'),aOk=document.getElementById('a-ok'),spin=document.getElementById('a-spin');
   if(!fecha||!cuadId){aErr.textContent='Completá fecha y cuadrilla.';return;}
   const tecs=getTecs(cuadId);
+  // Quiénes salieron juntos (para el trabajo de cuadrilla)
+  const participantes=[...document.querySelectorAll('.a-part-chk:checked')].map(c=>c.value);
   // Trabajo de la cuadrilla (juntos) — solo si hay 2 técnicos
   const tareasCuad=[];
   if(tecs.length>=2)TIPOS.forEach(t=>{const v=parseFloat(document.getElementById('tc-'+t.id)?.value||0)||0;if(v>0)tareasCuad.push({tipo_tarea_id:t.id,cantidad:v});});
@@ -1993,10 +1966,11 @@ async function guardarCarga(){
     return{tec,arr};
   });
   if(!tareasCuad.length && !soloPorTec.some(x=>x.arr.length)){aErr.textContent='Ingresá al menos una tarea.';return;}
+  if(tareasCuad.length && participantes.length<2){aErr.textContent='En "juntos" elegí al menos 2 personas (si trabajó solo, usá la sección individual).';return;}
   spin.style.display='inline-block';aErr.textContent='';aOk.textContent='';
   try{
-    await guardarUnRegistro(fecha,cuadId,'En pareja',false,tareasCuad);
-    for(const {tec,arr} of soloPorTec) await guardarUnRegistro(fecha,cuadId,tec,true,arr);
+    await guardarUnRegistro(fecha,cuadId,'En pareja',false,tareasCuad,participantes);
+    for(const {tec,arr} of soloPorTec) await guardarUnRegistro(fecha,cuadId,tec,true,arr,null);
     await logAct('Carga',`${cuadId}·${fecha}·cuad:${tareasCuad.length}·solos:${soloPorTec.filter(x=>x.arr.length).length}`,'registros');
     spin.style.display='none';aOk.textContent='Guardado ✓';setTimeout(()=>aOk.textContent='',2500);
     TIPOS.forEach(t=>{const e1=document.getElementById('tc-'+t.id);if(e1)e1.value='';tecs.forEach((tec,i)=>{const e2=document.getElementById('ts-'+i+'-'+t.id);if(e2)e2.value='';});});
@@ -2012,6 +1986,7 @@ async function renderAdmHoy(){
     if(!regs.length){el.innerHTML='<p style="font-size:13px;color:#6b7280">Nada cargado para esta fecha.</p>';return;}
     el.innerHTML=regs.map(reg=>{
       let eq=0;(reg.registro_tareas||[]).forEach(rt=>eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));
+      const disp=reg.solo?eq*2:eq; // solo cuenta doble
       const c=CUADRILLAS.find(x=>x.id===reg.cuadrilla_id);
       const soloTag=reg.solo?'<span class="solo-badge">solo</span>':'';
       const tarDet=reg.registro_tareas.filter(rt=>rt.cantidad>0).map(rt=>{const t=TIPOS.find(x=>x.id===rt.tipo_tarea_id);return`${t?t.nombre:rt.tipo_tarea_id}: ${rt.cantidad}`;}).join(' · ');
@@ -2020,7 +1995,7 @@ async function renderAdmHoy(){
           <div><div style="font-size:14px;font-weight:700">${reg.tecnico_nombre}${soloTag}</div>
           <div style="font-size:12px;color:#5a7a9a">${c?c.nombre:reg.cuadrilla_id}</div>
           <div style="font-size:11px;color:#6b7280;margin-top:3px">${tarDet}</div></div>
-          <div style="font-size:18px;font-weight:800">${eq.toFixed(2)}</div>
+          <div style="font-size:18px;font-weight:800;${reg.solo?'color:#7c3aed':''}">${disp.toFixed(2)}${reg.solo?`<span style="font-size:11px;font-weight:600;color:#94a3b8"> (${eq.toFixed(2)}×2)</span>`:''}</div>
         </div>
         <div class="reg-item-btns">
           <button class="btn btn-sm btn-blue" onclick="abrirEditar('${reg.id}')">✏️ Editar</button>
@@ -3523,7 +3498,7 @@ async function renderDashboard() {
       // 2. Registros 4 semanas para el gráfico
       sbGet('registros', '?fecha=gte.'+sem3Atras+'&fecha=lte.'+hasta+'&select=cuadrilla_id,fecha,registro_tareas(tipo_tarea_id,cantidad)'),
       // 3. Todos los registros desde MARZO2026 con solo/tecnico (para saldo correcto por técnico)
-      sbGet('registros', '?fecha=gte.'+MARZO2026+'&select=cuadrilla_id,fecha,tecnico_nombre,solo,registro_tareas(tipo_tarea_id,cantidad)'),
+      sbGet('registros', '?fecha=gte.'+MARZO2026+'&select=cuadrilla_id,fecha,tecnico_nombre,solo,participantes,registro_tareas(tipo_tarea_id,cantidad)'),
       // 4. Todos los saldos cerrados
       sbGet('saldos', '?select=cuadrilla_id,semana_inicio,valor'),
       // 5. Todos los pagos
@@ -3579,14 +3554,15 @@ async function renderDashboard() {
       var semC = semanasCerradasPorCuad[cuad.id] || {};
       getTecs(cuad.id).forEach(function(tec){
         var porSemana = {};
-        // POR PERSONA: contar los registros de las cuadrillas donde estuvo el técnico (en sus fechas)
-        regsAll.filter(function(r){ return cuadrillaDeTecEn(tec, r.fecha)===r.cuadrilla_id; }).forEach(function(reg){
+        // POR PERSONA: solo=por nombre; compartido=por participantes (o cuadrilla si no hay)
+        regsAll.forEach(function(reg){
           var sem = getLunesDesd(reg.fecha);
           if(sem >= lunesHoy) return; // la semana en curso no entra hasta terminar
-          if(!porSemana[sem]) porSemana[sem] = {par:0, sol:0};
           var eq = 0; (reg.registro_tareas||[]).forEach(function(rt){ eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad); });
-          if(reg.solo && reg.tecnico_nombre===tec) porSemana[sem].sol += eq; // solo: solo cuenta para este tec
-          else if(!reg.solo) porSemana[sem].par += eq; // pareja: cuenta para ambos
+          if(reg.solo){ if(reg.tecnico_nombre===tec){ if(!porSemana[sem])porSemana[sem]={par:0,sol:0}; porSemana[sem].sol += eq; } return; }
+          var parts = Array.isArray(reg.participantes)&&reg.participantes.length?reg.participantes:null;
+          var cuenta = parts ? parts.indexOf(tec)>=0 : (cuadrillaDeTecEn(tec,reg.fecha)===reg.cuadrilla_id);
+          if(cuenta){ if(!porSemana[sem])porSemana[sem]={par:0,sol:0}; porSemana[sem].par += eq; }
         });
         // Días especiales (por persona)
         allDiasEsp.filter(function(d){ return d.fecha>=MARZO2026; }).forEach(function(d){
@@ -4090,22 +4066,22 @@ async function dashPagoRapido(tecNombre, cuadNombre, montoDeuda){
     var hoy=fmtD(new Date());
 
     var [regsAll, allPagos, diasEsp] = await Promise.all([
-      sbGet('registros','?fecha=gte.'+MARZO2026+'&select=cuadrilla_id,fecha,tecnico_nombre,solo,registro_tareas(tipo_tarea_id,cantidad)'),
+      sbGet('registros','?fecha=gte.'+MARZO2026+'&select=cuadrilla_id,fecha,tecnico_nombre,solo,participantes,registro_tareas(tipo_tarea_id,cantidad)'),
       sbGet('pagos','?tecnico_nombre=eq.'+encodeURIComponent(tecNombre)+'&select=fecha,monto,descripcion&order=fecha.desc'),
       sbGet('dias_especiales','?fecha=gte.'+MARZO2026+'&select=fecha,tipo,tecnico_nombre,cuadrilla_id')
     ]);
 
-    // Calcular extras por semana (POR PERSONA: las cuadrillas donde estuvo, en sus fechas)
+    // Calcular extras por semana (POR PERSONA: solo por nombre; compartido por participantes o cuadrilla)
     var lunesHoy=getLunesDesd(hoy);
     var porSemana={};
     regsAll.forEach(function(reg){
-      if(cuadrillaDeTecEn(tecNombre,reg.fecha)!==reg.cuadrilla_id)return;
       var sem=getLunesDesd(reg.fecha);
       if(sem>=lunesHoy)return; // la semana en curso no entra hasta terminar
-      if(!porSemana[sem])porSemana[sem]={par:0,sol:0};
       var eq=0;(reg.registro_tareas||[]).forEach(function(rt){eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad);});
-      if(reg.solo&&reg.tecnico_nombre===tecNombre) porSemana[sem].sol+=eq;
-      else if(!reg.solo) porSemana[sem].par+=eq;
+      if(reg.solo){ if(reg.tecnico_nombre===tecNombre){ if(!porSemana[sem])porSemana[sem]={par:0,sol:0}; porSemana[sem].sol+=eq; } return; }
+      var parts=Array.isArray(reg.participantes)&&reg.participantes.length?reg.participantes:null;
+      var cuenta=parts?parts.indexOf(tecNombre)>=0:(cuadrillaDeTecEn(tecNombre,reg.fecha)===reg.cuadrilla_id);
+      if(cuenta){ if(!porSemana[sem])porSemana[sem]={par:0,sol:0}; porSemana[sem].par+=eq; }
     });
     diasEsp.forEach(function(d){
       var sem=getLunesDesd(d.fecha);
