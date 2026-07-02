@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v103</title>
+<title>FG Conexiones v104</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v103</div>
+    <div class="login-ver">FG Conexiones · v104</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v103</div>
+    <div class="sb-ver">v104</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v103</div>
+    <div id="mobile-ver">v104</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -467,8 +467,8 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div id="t-fecha-libre-det"></div>
   </div>
   <div id="tt-ranking" style="display:none">
+    <div class="card"><div class="card-title">Ranking individual (por técnico)</div><div id="t-rank-ind"><div class="loading"><span class="spinner"></span></div></div></div>
     <div class="card"><div class="card-title">Ranking por cuadrilla</div><div id="t-rank-cuad"><div class="loading"><span class="spinner"></span></div></div></div>
-    <div class="card"><div class="card-title">Ranking individual</div><div id="t-rank-ind"><div class="loading"><span class="spinner"></span></div></div></div>
     <p style="font-size:12px;color:#6b7280;text-align:center;margin-top:8px">Más instalaciones equiv. = elegís primero las vacaciones.</p>
   </div>
   <div id="tt-adelantos" style="display:none">
@@ -798,8 +798,8 @@ tr:hover td{background:rgba(255,255,255,.02)}
         </div>
       </div>
     </div>
-    <div class="card"><div class="card-title">Ranking por cuadrilla</div><div id="adm-rank-cuad"><div class="loading"><span class="spinner"></span></div></div></div>
-    <div class="card"><div class="card-title">Ranking individual</div><div id="adm-rank-ind"><div class="loading"><span class="spinner"></span></div></div></div>
+    <div class="card"><div class="card-title">Ranking individual (por técnico)</div><div id="adm-rank-ind"><div class="loading"><span class="spinner"></span></div></div></div>
+    <div class="card"><div class="card-title">Ranking por cuadrilla</div><div class="card-sub" style="font-size:11px;color:#64748b;margin:-4px 0 8px">Referencial — las cuadrillas cambian de integrantes.</div><div id="adm-rank-cuad"><div class="loading"><span class="spinner"></span></div></div></div>
   </div>
 
   <!-- COMBUSTIBLE -->
@@ -1493,12 +1493,20 @@ async function renderTecSemana(){
     else if(de&&de.tipo==='lluvia')cls+=' rain';
     else if(de&&(de.tipo==='feriado'||de.tipo==='vacaciones'||de.tipo==='certificado'))cls+=' holiday';
     const tot=totPorDia[d.fecha]||0;
-    return`<div class="${cls}" onclick="selCalDay2('${d.fecha}')"><div class="cal-day-name">${d.short}</div><div class="cal-day-num">${d.fecha.slice(8)}</div><div class="cal-day-total">${tot>0?tot.toFixed(1):'·'}</div></div>`;
+    return`<div class="${cls}" data-fecha="${d.fecha}" onclick="selCalDay2('${d.fecha}')"><div class="cal-day-name">${d.short}</div><div class="cal-day-num">${d.fecha.slice(8)}</div><div class="cal-day-total">${tot>0?tot.toFixed(1):'·'}</div></div>`;
   }).join('');
+  window._tecCalRegs=regs;
   renderCalDet(selCalDay,regs);
 }
 
-function selCalDay2(fecha){selCalDay=fecha;renderTecSemana();}
+function selCalDay2(fecha){
+  selCalDay=fecha;
+  // click liviano: solo cambia el detalle, sin re-cargar toda la semana
+  const strip=document.getElementById('t-cal-strip');
+  if(strip){strip.querySelectorAll('.cal-day').forEach(el=>{el.classList.toggle('active',el.getAttribute('data-fecha')===fecha);});}
+  if(Array.isArray(window._tecCalRegs))renderCalDet(fecha,window._tecCalRegs);
+  else renderTecSemana();
+}
 
 function renderCalDet(fecha,regs){
   const el=document.getElementById('t-dia-det');const de=esDiaEsp(fecha);let html='';
@@ -1773,9 +1781,9 @@ async function renderAdmRanking(){
         </div>
       </div>
       <div>${rankCuad.map((r,i)=>`
-        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)">
           <div style="width:10px;height:10px;border-radius:50%;background:${clrs[i]||'#94a3b8'};flex-shrink:0"></div>
-          <div style="flex:1;font-size:13px;font-weight:${i<3?700:500};color:${i<3?'#ffffff':'#94a3b8'}">${medals[i]||''}${medals[i]?' ':''}${r.nombre}</div>
+          <div style="flex:1;font-size:13px;font-weight:${i<3?700:500};color:${i<3?'#0f172a':'#334155'}">${medals[i]||''}${medals[i]?' ':''}${r.nombre}</div>
           <div style="font-size:14px;font-weight:800;color:#1e293b">${r.total.toFixed(1)}</div>
           <div style="font-size:10px;color:#64748b;width:32px;text-align:right">${total>0?(r.total/total*100).toFixed(0)+'%':''}</div>
         </div>`).join('')}
@@ -1786,10 +1794,10 @@ async function renderAdmRanking(){
   // Barras individual
   const maxInd=rankInd[0]?.total||1;
   const indHtml=`<div>${rankInd.map((r,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)">
       <div style="font-size:16px;font-weight:900;color:${i===0?'#fbbf24':i===1?'#e2e8f0':i===2?'#fb923c':'#64748b'};width:28px;text-align:center;flex-shrink:0">${medals[i]||i+1}</div>
       <div style="width:130px;flex-shrink:0">
-        <div style="font-size:13px;font-weight:${i<3?700:500};color:${i<3?'#ffffff':'#94a3b8'}">${r.nombre}</div>
+        <div style="font-size:13px;font-weight:${i<3?700:500};color:${i<3?'#0f172a':'#334155'}">${r.nombre}</div>
         <div style="font-size:10px;color:#64748b">${r.cuad}</div>
       </div>
       <div style="flex:1;background:rgba(30,80,160,.06);border-radius:99px;height:7px;overflow:hidden">
@@ -3902,7 +3910,7 @@ function dashKpiDetalle(tipo){
     else{
       html+='<div style="font-size:11px;color:#6b7280;margin-bottom:.75rem">Técnicos con extras sin cobrar, ordenados de mayor a menor.</div>';
       positivos.forEach(function(s){
-        html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
+        html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
         html+='<div><div style="font-size:13px;font-weight:700;color:#fff">'+s.nm+'</div>';
         html+='<div style="font-size:11px;color:#6b7280">'+s.cuad+'</div></div>';
         html+='<span style="font-size:14px;font-weight:900;color:#22c55e">+'+fmtPesos(s.sal)+'</span></div>';
@@ -3967,7 +3975,7 @@ function dashKpiDetalle(tipo){
       Object.entries(porTec).sort(function(a,b){return b[1]-a[1];}).forEach(function(e){
         var cuad=adels.find(function(a){return a.tecnico_nombre===e[0];});
         var cuadNm=cuad&&cuad.cuadrilla_id?(CUADRILLAS.find(function(c){return c.id===cuad.cuadrilla_id;})||{}).nombre||'':'';
-        html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
+        html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
         html+='<div><div style="font-size:13px;font-weight:700;color:#fff">'+e[0]+'</div>';
         html+='<div style="font-size:11px;color:#6b7280">'+cuadNm+'</div></div>';
         html+='<span style="font-size:14px;font-weight:900;color:#a78bfa">'+fmtPesos(e[1])+'</span></div>';
@@ -4048,7 +4056,7 @@ async function dashVerCuad(cuadId, desde, hasta){
     });
     ferAplic.forEach(function(f){ if(!porDiaTec[f.fecha])porDiaTec[f.fecha]={}; tecs.forEach(function(tec){ porDiaTec[f.fecha][tec]=(porDiaTec[f.fecha][tec]||0)+5; }); });
     Object.keys(porDiaTec).sort().forEach(function(fecha){
-      html+='<div style="padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
+      html+='<div style="padding:7px 0;border-bottom:1px solid rgba(0,0,0,.06)">';
       html+='<div style="font-size:12px;color:#64748b;margin-bottom:3px">'+fmtFull(fecha)+'</div>';
       tecs.forEach(function(tec){
         var v=porDiaTec[fecha][tec]||0;
