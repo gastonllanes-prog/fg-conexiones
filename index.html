@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v100</title>
+<title>FG Conexiones v101</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v100</div>
+    <div class="login-ver">FG Conexiones · v101</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v100</div>
+    <div class="sb-ver">v101</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v100</div>
+    <div id="mobile-ver">v101</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1400,6 +1400,30 @@ async function renderTecSemana(){
       const equivHasta=(extrasHasta-pagosHasta)/precioUnit;
       sEl.textContent=(equivHasta>=0?'+':'')+equivHasta.toFixed(2);
       sEl.className='val '+(equivHasta>=-0.01?'green':'red');
+      // ── FUTUROLOGÍA (solo semana en curso): cuánto falta, días que quedan, y para quedar al día ──
+      if(wkOff===0){
+        const hoyStr=fmtD(new Date());
+        const laborables=dias.filter(d=>d.short!=='Do'&&(d.short!=='Sa'||!libraS));
+        const restantes=laborables.filter(d=>d.fecha>=hoyStr).length;
+        const faltaMeta=Math.max(0,meta-totalSemana);
+        const deudaEq=equivAcum<0?-equivAcum:0;
+        const paraCero=Math.max(0,meta+deudaEq-totalSemana);
+        const card2=document.getElementById('t-acum-card');
+        if(card2){
+          let m='';
+          if(faltaMeta<=0){
+            card2.style.background='#f0faf4';
+            m=`<div style="font-size:14px;font-weight:800;color:#059669">✓ ¡Meta de la semana cumplida!</div>`;
+            if(deudaEq>0.1)m+=`<div style="font-size:12px;color:#5a7a9a;margin-top:4px">Cada equiv. arriba de 30 te baja la deuda. Para quedar <b>al día</b> te faltan <b>${paraCero.toFixed(1)}</b> esta semana.</div>`;
+          }else{
+            card2.style.background='#f8f8f5';
+            m=`<div style="font-size:14px;color:#334155">Te faltan <b style="color:#ef4444;font-size:16px">${faltaMeta.toFixed(1)}</b> para la meta (30)${restantes>0?` · quedan <b>${restantes}</b> día${restantes>1?'s':''} → ~<b>${(faltaMeta/restantes).toFixed(1)}</b>/día`:''}.</div>`;
+            if(deudaEq>0.1)m+=`<div style="font-size:12px;color:#5a7a9a;margin-top:4px">Para quedar <b>al día</b> (deuda en 0) necesitás <b>${paraCero.toFixed(1)}</b> esta semana.</div>`;
+          }
+          if(deudaEq>0.1&&libraS)m+=`<div style="font-size:12px;font-weight:700;color:#d97706;margin-top:6px">⚠ Tenés deuda → este sábado te conviene venir a trabajar (aunque tu grupo esté libre).</div>`;
+          card2.innerHTML=`<div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Para la semana</div>`+m;
+        }
+      }
       cardDeuda.style.display='block';
       const meta2=parseInt(CONFIG.meta_semanal||30);
       // ── Helper: construir el desglose completo ──
