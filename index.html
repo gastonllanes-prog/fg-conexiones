@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v94</title>
+<title>FG Conexiones v95</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v94</div>
+    <div class="login-ver">FG Conexiones · v95</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v94</div>
+    <div class="sb-ver">v95</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v94</div>
+    <div id="mobile-ver">v95</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1934,6 +1934,30 @@ async function onFechaChange(){
   const _tipoCls={'lluvia':'msg-info','feriado':'msg-warn','vacaciones':'msg-info','certificado':'msg-warn'};
   info.innerHTML=de?`<div class="msg ${_tipoCls[de.tipo]||'msg-warn'}" style="margin-bottom:.7rem">${_tipoIcon[de.tipo]||'📋 '+de.tipo}${de.descripcion?': '+de.descripcion:''}</div>`:'';
   await renderAdmHoy();
+  await cargarFormExistente();
+}
+
+// Trae lo ya cargado para esa fecha+cuadrilla y lo pone en los campos, para poder editarlo
+async function cargarFormExistente(){
+  const fecha=document.getElementById('a-fecha')?.value, cuadId=document.getElementById('a-cuad')?.value;
+  if(!fecha||!cuadId)return;
+  const tecs=getTecs(cuadId);
+  // Reset: limpiar tareas y dejar participantes en el default de la cuadrilla
+  TIPOS.forEach(t=>{const e=document.getElementById('tc-'+t.id);if(e)e.value='';tecs.forEach((tec,i)=>{const e2=document.getElementById('ts-'+i+'-'+t.id);if(e2)e2.value='';});});
+  document.querySelectorAll('.a-part-chk').forEach(c=>{c.checked=tecs.includes(c.value);});
+  // Traer lo cargado ese día para esta cuadrilla
+  const regs=await sbGet('registros',`?fecha=eq.${fecha}&cuadrilla_id=eq.${cuadId}&select=tecnico_nombre,solo,participantes,registro_tareas(tipo_tarea_id,cantidad)`);
+  const pareja=regs.find(r=>!r.solo);
+  if(pareja){
+    if(Array.isArray(pareja.participantes)&&pareja.participantes.length)
+      document.querySelectorAll('.a-part-chk').forEach(c=>{c.checked=pareja.participantes.includes(c.value);});
+    (pareja.registro_tareas||[]).forEach(rt=>{const e=document.getElementById('tc-'+rt.tipo_tarea_id);if(e)e.value=rt.cantidad;});
+  }
+  tecs.forEach((tec,i)=>{
+    const solo=regs.find(r=>r.solo&&r.tecnico_nombre===tec);
+    if(solo)(solo.registro_tareas||[]).forEach(rt=>{const e=document.getElementById('ts-'+i+'-'+rt.tipo_tarea_id);if(e)e.value=rt.cantidad;});
+  });
+  recalcPreview();
 }
 
 // Guarda (o actualiza/borra) UN registro para una persona/cuadrilla en una fecha
