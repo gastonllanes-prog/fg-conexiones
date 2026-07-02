@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v99</title>
+<title>FG Conexiones v100</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v99</div>
+    <div class="login-ver">FG Conexiones · v100</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v99</div>
+    <div class="sb-ver">v100</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v99</div>
+    <div id="mobile-ver">v100</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1394,9 +1394,12 @@ async function renderTecSemana(){
       const precioUnit=parseInt(CONFIG.precio_instalacion||7000)/2;
       const saldoNeto=infoAcum.saldo;
       const equivAcum=saldoNeto/precioUnit;
-      // Reflejar el saldo acumulado en el stat de arriba (en equiv)
-      sEl.textContent=(equivAcum>=0?'+':'')+equivAcum.toFixed(2);
-      sEl.className='val '+(equivAcum>=-0.01?'green':'red');
+      // Stat "Saldo acum.": acumulado HASTA la semana que se está mirando (para ver la evolución al navegar)
+      let extrasHasta=0;(infoAcum.detalles||[]).forEach(d=>{ if(d.sem<=lunes) extrasHasta=d.acum; });
+      const pagosHasta=(infoAcum.pagos||[]).filter(p=>p.fecha<=fmtD(dom)).reduce((s,p)=>s+parseFloat(p.monto),0);
+      const equivHasta=(extrasHasta-pagosHasta)/precioUnit;
+      sEl.textContent=(equivHasta>=0?'+':'')+equivHasta.toFixed(2);
+      sEl.className='val '+(equivHasta>=-0.01?'green':'red');
       cardDeuda.style.display='block';
       const meta2=parseInt(CONFIG.meta_semanal||30);
       // ── Helper: construir el desglose completo ──
