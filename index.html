@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v95</title>
+<title>FG Conexiones v96</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v95</div>
+    <div class="login-ver">FG Conexiones · v96</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v95</div>
+    <div class="sb-ver">v96</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v95</div>
+    <div id="mobile-ver">v96</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1900,24 +1900,33 @@ function buildTareasInputs(){
 }
 
 function recalcPreview(){
-  // Resumen POR TÉCNICO: cada uno = trabajo de cuadrilla (juntos) + lo suyo solo (×2)
+  // Resumen POR TÉCNICO: el trabajo "juntos" va a QUIENES SALIERON JUNTOS (participantes), no a la cuadrilla fija.
   const el=document.getElementById('pv-resumen');
   if(!el)return;
   const cuadId=document.getElementById('a-cuad').value;
   const tecs=getTecs(cuadId);
+  const participantes=[...document.querySelectorAll('.a-part-chk:checked')].map(c=>c.value);
   let cuadEq=0;TIPOS.forEach(t=>{const v=parseFloat(document.getElementById('tc-'+t.id)?.value||0)||0;cuadEq+=calcEquiv(t.id,v);});
+  // Solo de cada integrante de la cuadrilla (por índice de su bloque)
+  const soloDe={};
+  tecs.forEach((tec,i)=>{let s=0;TIPOS.forEach(t=>{const v=parseFloat(document.getElementById('ts-'+i+'-'+t.id)?.value||0)||0;s+=calcEquiv(t.id,v);});soloDe[tec]=s;});
+  // A mostrar: los que salieron juntos (si hay trabajo de cuadrilla) + los que hicieron algo solo
+  const personas=[...new Set([...(cuadEq>0?participantes:[]), ...tecs.filter(t=>soloDe[t]>0)])];
   let html='';
-  if(tecs.length>=2){
+  if(cuadEq>0 && participantes.length){
     html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
-      <span style="font-size:13px;color:#5a7a9a">👥 Cuadrilla (juntos)</span>
+      <span style="font-size:13px;color:#5a7a9a">👥 Juntos (${participantes.length})</span>
       <span style="font-size:16px;font-weight:800;color:#1e293b">${cuadEq.toFixed(2)}</span></div>`;
   }
-  tecs.forEach((tec,i)=>{
-    let soloEq=0;TIPOS.forEach(t=>{const v=parseFloat(document.getElementById('ts-'+i+'-'+t.id)?.value||0)||0;soloEq+=calcEquiv(t.id,v);});
-    const soloX2=soloEq*2, total=cuadEq+soloX2;
-    const det = soloEq>0 ? `${cuadEq.toFixed(2)} + ${soloX2.toFixed(2)} (solo ×2)` : `cuadrilla ${cuadEq.toFixed(2)}`;
+  personas.forEach(tec=>{
+    const esPart=cuadEq>0 && participantes.includes(tec);
+    const soloX2=(soloDe[tec]||0)*2;
+    const total=(esPart?cuadEq:0)+soloX2;
+    const parts=[];
+    if(esPart)parts.push('cuadrilla '+cuadEq.toFixed(2));
+    if(soloX2>0)parts.push(soloX2.toFixed(2)+' (solo ×2)');
     html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid rgba(30,80,160,.08)">
-      <span><span style="font-size:13px;font-weight:700;color:#334155">👤 ${tec}</span><div style="font-size:11px;color:#94a3b8">${det}</div></span>
+      <span><span style="font-size:13px;font-weight:700;color:#334155">👤 ${tec}</span><div style="font-size:11px;color:#94a3b8">${parts.join(' + ')}</div></span>
       <span style="font-size:18px;font-weight:900;color:#1e293b">${total.toFixed(2)}</span></div>`;
   });
   el.innerHTML=html||'<div style="font-size:13px;color:#5a7a9a">Ingresá tareas para ver el total por técnico.</div>';
