@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v104</title>
+<title>FG Conexiones v105</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v104</div>
+    <div class="login-ver">FG Conexiones · v105</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v104</div>
+    <div class="sb-ver">v105</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v104</div>
+    <div id="mobile-ver">v105</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1370,22 +1370,12 @@ async function renderTecSemana(){
   const eEl=document.getElementById('t-extras');eEl.textContent=extras>0?'+'+extras.toFixed(2):'0';eEl.className='val '+(extras>0?'green':'');
   const pb=document.getElementById('t-pb');pb.style.width=pct+'%';pb.className='pb '+(pct>=100?'green':pct>=60?'amber':'red');
   // Bloque 1: faltan para la meta esta semana
+  // La tarjeta "Para la semana" (futurología) es SOLO de la semana en curso.
+  // Se completa en el bloque de futurología de más abajo (wkOff===0, que reescribe su innerHTML);
+  // en otras semanas se oculta. No escribir acá en sus hijos estáticos: el innerHTML de la futurología
+  // los destruye y al re-renderizar (navegar semanas) quedarían null.
   const card=document.getElementById('t-acum-card');
-  if(card){
-    card.style.display='block';
-    const faltaInst=Math.max(0,meta-totalSemana);
-    if(faltaInst<=0){
-      card.style.background='#f0faf4';
-      document.getElementById('t-acum-label').textContent='¡Meta cumplida!';
-      const valEl=document.getElementById('t-acum-val');
-      valEl.textContent='✓';valEl.style.color='#059669';
-    }else{
-      card.style.background='#f8f8f5';
-      document.getElementById('t-acum-label').textContent='equiv. para llegar a 30';
-      const valEl=document.getElementById('t-acum-val');
-      valEl.textContent='Faltan '+faltaInst.toFixed(2);valEl.style.color='#ef4444';
-    }
-  }
+  if(card)card.style.display=(wkOff===0)?'block':'none';
   // Bloque 2: saldo neto acumulado (extras - pagos ya cobrados)
   let _deudaEquivTec=0; // deuda del técnico en equiv (se completa en el bloque de abajo; la usa el cartel del sábado)
   const cardDeuda=document.getElementById('t-deuda-card');
@@ -1471,15 +1461,17 @@ async function renderTecSemana(){
   document.getElementById('t-faltan').textContent=txt;
   const msgEl=document.getElementById('t-msg');
   const _cumplioSem=totalConS>=meta;
+  // El sábado obligatorio se basa en la DEUDA acumulada (saldo arrastrado), NO en si llegó a 30 en la semana en curso.
+  // Un técnico a favor / al día NO tiene que venir el sábado aunque la semana todavía no esté cerrada.
   const _debe=(wkOff===0)&&(_deudaEquivTec>0.1);
   if(libraS){
-    if(_cumplioSem&&!_debe){
-      msgEl.innerHTML='<div class="msg msg-ok" style="background:#f0faf4">¡Meta cumplida! 🏖 Este sábado estás libre.</div>';
+    if(!_debe){
+      msgEl.innerHTML='<div class="msg msg-ok" style="background:#f0faf4">🏖 Este sábado estás libre. Vas al día.</div>';
     }else{
-      // No llegó a la meta o debe → tiene que venir el sábado aunque su grupo esté libre
+      // Tiene deuda acumulada → tiene que venir el sábado aunque su grupo esté libre
       msgEl.innerHTML='<div class="msg" style="background:#fff1f0;border:1px solid #fecaca;color:#b91c1c">'
         +'<div style="font-size:16px;font-weight:900;color:#dc2626">🔴 ESTE SÁBADO TENÉS QUE VENIR A TRABAJAR</div>'
-        +'<div style="font-size:12px;margin-top:3px">Por más que te toque libre'+(!_cumplioSem?(' — te faltan '+falta.toFixed(1)+' para la meta'):'')+(_debe?' y tenés deuda':'')+'.</div></div>';
+        +'<div style="font-size:12px;margin-top:3px">Por más que te toque libre — arrastrás una deuda de '+_deudaEquivTec.toFixed(1)+' instalaciones para saldar.</div></div>';
     }
   }else{
     if(_cumplioSem)msgEl.innerHTML='<div class="msg msg-ok">¡Meta cumplida! 💼 Este sábado trabajan.</div>';
