@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v111</title>
+<title>FG Conexiones v112</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -381,7 +381,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v111</div>
+    <div class="login-ver">FG Conexiones · v112</div>
   </div>
 </div>
 
@@ -399,7 +399,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v111</div>
+    <div class="sb-ver">v112</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -413,7 +413,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v111</div>
+    <div id="mobile-ver">v112</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1142,6 +1142,7 @@ function buildSidebar(){
     nav+=sbItem('saldos_tecs','📊','Saldos técnicos',`admTab('saldos_tecs',this)`);
     nav+=sbItem('ranking','🏆','Ranking',`admTab('ranking',this)`);
     nav+=`<div class="sb-divider"></div><div class="sb-section">Gestión</div>`;
+    nav+=sbItem('dias','📅','Días especiales',`admTab('dias',this)`);
     nav+=sbItem('combustible','⛽','Combustible',`admTab('combustible',this)`);
     if(esJefe){nav+=sbItem('adelantos','💵','Adelantos',`admTab('adelantos',this)`);}
     nav+=`<div class="sb-divider"></div><div class="sb-section">Sistema</div>`;
@@ -1153,7 +1154,6 @@ function buildSidebar(){
       <span class="sb-chevron" id="sb-chevron">▼</span></div>`;
     nav+=`<div class="sb-sub" id="sb-submenu">`;
     nav+=sbSubItem('historico','📦 Histórico',`admTab('historico',this)`);
-    nav+=sbSubItem('dias','📅 Días especiales',`admTab('dias',this)`);
     nav+=sbSubItem('saldos','💳 Saldos',`admTab('saldos',this)`);
     nav+=sbSubItem('config','⚙️ Configuración',`admTab('config',this)`);
     nav+=`</div>`;
