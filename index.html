@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v110</title>
+<title>FG Conexiones v111</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -119,6 +119,7 @@ body.app-ready #main-content{display:flex}
 .fg input,.fg select{width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:var(--bg3);color:var(--text1);font-family:inherit;-webkit-appearance:none;transition:border-color .15s}
 .fg input:focus,.fg select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
 .fg input::placeholder{color:var(--text3)}
+.fg .d-tec-chk{width:18px;height:18px;padding:0;-webkit-appearance:auto;appearance:auto;flex:0 0 18px;box-shadow:none;accent-color:var(--accent);cursor:pointer}
 .btn{padding:10px 16px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;background:var(--bg3);color:var(--text1);font-family:inherit;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:6px}
 .btn:hover{background:var(--bg2);border-color:rgba(255,255,255,.15)}.btn:active{transform:scale(.97)}
 .btn-full{width:100%}
@@ -380,7 +381,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v110</div>
+    <div class="login-ver">FG Conexiones · v111</div>
   </div>
 </div>
 
@@ -398,7 +399,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v110</div>
+    <div class="sb-ver">v111</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +413,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v110</div>
+    <div id="mobile-ver">v111</div>
   </div>
 
   <!-- Page area - all content goes here -->
