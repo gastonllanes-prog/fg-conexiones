@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v106</title>
+<title>FG Conexiones v107</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v106</div>
+    <div class="login-ver">FG Conexiones · v107</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v106</div>
+    <div class="sb-ver">v107</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v106</div>
+    <div id="mobile-ver">v107</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -3576,6 +3576,34 @@ async function renderDashboard() {
     var totGen = 0; cRows.forEach(function(c){ totGen+=c.tot; });
     var cuadsOk = cRows.filter(function(c){ return c.pct>=100; }).length;
 
+    // ═══ TÉCNICOS: progreso de la semana POR PERSONA (participantes-aware, solos ×2) ═══
+    var diasEspSem = allDiasEsp.filter(function(d){ return d.fecha>=lunes && d.fecha<=hasta; });
+    var tRows = [];
+    todosLosTecnicos().forEach(function(tec){
+      var tot = 0;
+      regs.forEach(function(r){
+        var eq=0; (r.registro_tareas||[]).forEach(function(rt){ eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad); });
+        if(r.solo){ if(r.tecnico_nombre===tec) tot += eq*2; return; }
+        var parts=Array.isArray(r.participantes)&&r.participantes.length?r.participantes:null;
+        var cuenta = parts ? parts.indexOf(tec)>=0 : (cuadrillaDeTecEn(tec,r.fecha)===r.cuadrilla_id);
+        if(cuenta) tot += eq;
+      });
+      diasEspSem.forEach(function(d){
+        var ce=cuadrillaDeTecEn(tec,d.fecha); if(!ce) return;
+        if(d.tipo==='vacaciones' && d.tecnico_nombre===tec) tot += meta;
+        else if(d.tipo==='certificado' && d.tecnico_nombre===tec) tot += 5;
+        else if(d.tipo==='feriado' && (!d.cuadrilla_id||d.cuadrilla_id===ce)) tot += 5;
+      });
+      var cuadEn = cuadrillaDeTecEn(tec, lunes);
+      var cuadObj = CUADRILLAS.find(function(c){ return c.id===cuadEn; });
+      var libre = gl && cuadObj ? cuadObj.grupo===gl : false;
+      var pct = Math.min(100, Math.round(tot/meta*100));
+      tRows.push({ tec:tec, cuad:cuadObj?cuadObj.nombre:'—', cuadId:cuadEn||'', tot:tot, libre:libre, pct:pct, bc:pct>=100?'g':pct>=60?'a':'r' });
+    });
+    tRows.sort(function(a,b){ return b.tot - a.tot; });
+    var tecsOk = tRows.filter(function(t){ return t.pct>=100; }).length;
+    var promTec = tRows.length ? tRows.reduce(function(s,t){ return s+t.tot; },0)/tRows.length : 0;
+
     // ═══ SALDOS: calcular en memoria con historial completo ═══
     var lunesHoy = getLunesDesd(fmtD(hoy));
     var semanasCerradasPorCuad = {};
@@ -3694,8 +3722,8 @@ async function renderDashboard() {
       return { label:cuad.nombre, data:vals, backgroundColor:clrs[ci]+'25', borderColor:clrs[ci], borderWidth:2, borderRadius:4 };
     });
 
-    var lider = cRows[0];
-    var ultimo = cRows[cRows.length-1];
+    var lider = tRows[0];
+    var ultimo = tRows[tRows.length-1];
     var fStr = hoy.toLocaleDateString('es-AR', {weekday:'long',day:'2-digit',month:'long'});
 
     // ═══ BUILD HTML ═══
@@ -3727,8 +3755,8 @@ async function renderDashboard() {
     window._dashMeta = meta;
 
     html += '<div class="dk">';
-    html += '<div class="dk-card" style="cursor:pointer" onclick="dashKpiDetalle(\'equiv\')" title="Ver detalle por cuadrilla"><div class="dk-accent" style="background:'+kpiAccents[0]+'"></div><div class="dk-icon">📊</div><div class="dk-val">'+totGen.toFixed(1)+'</div><div class="dk-label">Equiv. totales</div><div class="dk-sub '+(cuadsOk===CUADRILLAS.length?'pos':cuadsOk>0?'warn':'neg')+'">'+cuadsOk+' / '+CUADRILLAS.length+' en meta</div><div style="font-size:9px;color:#374151;margin-top:4px">click p/ver</div></div>';
-    html += '<div class="dk-card" style="cursor:pointer" onclick="dashKpiDetalle(\'promedio\')" title="Ver desglose"><div class="dk-accent" style="background:'+kpiAccents[1]+'"></div><div class="dk-icon">📈</div><div class="dk-val">'+(totGen/CUADRILLAS.length).toFixed(1)+'</div><div class="dk-label">Promedio / cuadrilla</div><div class="dk-sub">Meta: '+meta+' equiv.</div><div style="font-size:9px;color:#374151;margin-top:4px">click p/ver</div></div>';
+    html += '<div class="dk-card" style="cursor:pointer" onclick="dashKpiDetalle(\'equiv\')" title="Ver detalle por cuadrilla"><div class="dk-accent" style="background:'+kpiAccents[0]+'"></div><div class="dk-icon">📊</div><div class="dk-val">'+totGen.toFixed(1)+'</div><div class="dk-label">Equiv. totales</div><div class="dk-sub '+(tecsOk===tRows.length?'pos':tecsOk>0?'warn':'neg')+'">'+tecsOk+' / '+tRows.length+' en meta</div><div style="font-size:9px;color:#374151;margin-top:4px">click p/ver</div></div>';
+    html += '<div class="dk-card" style="cursor:pointer" onclick="dashKpiDetalle(\'promedio\')" title="Ver desglose"><div class="dk-accent" style="background:'+kpiAccents[1]+'"></div><div class="dk-icon">📈</div><div class="dk-val">'+promTec.toFixed(1)+'</div><div class="dk-label">Promedio / técnico</div><div class="dk-sub">Meta: '+meta+' equiv.</div><div style="font-size:9px;color:#374151;margin-top:4px">click p/ver</div></div>';
     var tecsPend = sRows.filter(function(s){return s.sal>0;}).length;
     html += '<div class="dk-card" style="cursor:pointer" onclick="dashKpiDetalle(\'pagos\')" title="Ver quién tiene saldo pendiente"><div class="dk-accent" style="background:'+kpiAccents[2]+'"></div><div class="dk-icon">💰</div><div class="dk-val" style="font-size:22px;letter-spacing:-.5px">'+fmtPesos(totPend)+'</div><div class="dk-label">Pagos pendientes</div><div class="dk-sub '+(tecsPend>0?'warn':'pos')+'">'+tecsPend+' técnico'+(tecsPend!==1?'s':'')+' por cobrar</div><div style="font-size:9px;color:#374151;margin-top:4px">click p/ver</div></div>';
     html += '<div class="dk-card" style="cursor:pointer" onclick="dashKpiDetalle(\'alertas\')" title="Ver deudas activas"><div class="dk-accent" style="background:'+(alertas.length?kpiAccents[4]:kpiAccents[1])+'"></div><div class="dk-icon">'+(alertas.length?'⚠️':'✅')+'</div><div class="dk-val" style="color:'+(alertas.length?'#f87171':'#10b981')+'">'+alertas.length+'</div><div class="dk-label">Alertas deuda</div><div class="dk-sub '+(alertas.length?'neg':'pos')+'">'+(alertas.length?'Requieren atención':'Sin deudas')+'</div><div style="font-size:9px;color:#374151;margin-top:4px">click p/ver</div></div>';
@@ -3737,23 +3765,23 @@ async function renderDashboard() {
     html += '</div>';
 
     html += '<div class="dg-main">';
-    html += '<div class="d-card"><div class="d-card-t">Progreso semanal por cuadrilla</div>';
-    cRows.forEach(function(c, ri){
-      html += '<div class="d-row" style="cursor:pointer" onclick="dashVerCuad(\''+c.cuad.id+'\',\''+lunes+'\',\''+hasta+'\')" title="Ver detalle">';
+    html += '<div class="d-card"><div class="d-card-t">Progreso semanal por técnico</div>';
+    tRows.forEach(function(t, ri){
+      html += '<div class="d-row" style="cursor:pointer" onclick="dashVerTec(\''+encodeURIComponent(t.tec)+'\',\''+lunes+'\',\''+hasta+'\')" title="Ver detalle">';
       html += '<div class="d-pos">'+(ri+1)+'</div>';
-      html += '<div style="width:175px;flex-shrink:0"><div class="d-nm">'+c.cuad.nombre+'</div>';
-      html += '<div class="d-nm2">'+(c.cuad.tec1||'')+((c.cuad.tec1&&c.cuad.tec2)?' · ':'')+( c.cuad.tec2||'')+'</div></div>';
-      html += '<div class="d-bar"><div class="d-fill '+c.bc+'" style="width:'+c.pct+'%"></div></div>';
-      html += '<div class="d-pct">'+c.pct+'%</div><div class="d-num '+c.bc+'">'+c.tot.toFixed(1)+'</div>';
-      html += '<span class="d-badge '+(c.libre?'lib':'trab')+'">'+(c.libre?'LIBRE':'SAB')+'</span>';
+      html += '<div style="width:175px;flex-shrink:0"><div class="d-nm">'+t.tec+'</div>';
+      html += '<div class="d-nm2">'+t.cuad+'</div></div>';
+      html += '<div class="d-bar"><div class="d-fill '+t.bc+'" style="width:'+t.pct+'%"></div></div>';
+      html += '<div class="d-pct">'+t.pct+'%</div><div class="d-num '+t.bc+'">'+t.tot.toFixed(1)+'</div>';
+      html += '<span class="d-badge '+(t.libre?'lib':'trab')+'">'+(t.libre?'LIBRE':'SAB')+'</span>';
       html += '<span style="font-size:12px;color:#475569;margin-left:4px">→</span></div>';
     });
     html += '</div>';
 
     html += '<div style="display:flex;flex-direction:column;gap:.875rem">';
-    html += '<div class="d-leader"><div class="d-leader-crown">🏆</div><div class="d-leader-t">Cuadrilla líder</div><div class="d-leader-n">'+lider.cuad.nombre+'</div><div class="d-leader-pct">'+lider.pct+'%</div><div class="d-leader-v">'+lider.tot.toFixed(2)+' equiv.</div></div>';
+    html += '<div class="d-leader"><div class="d-leader-crown">🏆</div><div class="d-leader-t">Técnico líder</div><div class="d-leader-n">'+lider.tec+'</div><div class="d-leader-pct">'+lider.pct+'%</div><div class="d-leader-v">'+lider.tot.toFixed(2)+' equiv.</div></div>';
     if(ultimo && ultimo.pct < 80){
-      html += '<div class="d-worst"><div class="d-worst-t">Más atrasada</div><div class="d-worst-n">'+ultimo.cuad.nombre+'</div><div class="d-worst-v">'+ultimo.tot.toFixed(1)+' equiv · '+ultimo.pct+'%</div></div>';
+      html += '<div class="d-worst"><div class="d-worst-t">Más atrasado</div><div class="d-worst-n">'+ultimo.tec+'</div><div class="d-worst-v">'+ultimo.tot.toFixed(1)+' equiv · '+ultimo.pct+'%</div></div>';
     }
     html += '</div>';
 
@@ -3981,6 +4009,58 @@ function dashKpiDetalle(tipo){
   }
 
   contentEl.innerHTML=html;
+}
+
+async function dashVerTec(tecEnc, desde, hasta){
+  var tec = decodeURIComponent(tecEnc);
+  var panel=document.getElementById('dash-side-panel');
+  var titleEl=document.getElementById('dsp-title');
+  var contentEl=document.getElementById('dsp-content');
+  if(!panel)return;
+  if(titleEl)titleEl.textContent=tec;
+  panel.style.display='block';
+  if(contentEl)contentEl.innerHTML='<div class="loading"><span class="spinner"></span>Cargando...</div>';
+  try{
+    var meta=parseInt(CONFIG.meta_semanal||30);
+    var cuadEn=cuadrillaDeTecEn(tec,desde)||cuadrillaDeTecEn(tec,hasta);
+    var res=await Promise.all([
+      cuadEn?sbGet('registros','?cuadrilla_id=eq.'+cuadEn+'&fecha=gte.'+desde+'&fecha=lte.'+hasta+'&select=*,registro_tareas(*)'):Promise.resolve([]),
+      sbGet('registros','?participantes=cs.'+encodeURIComponent(JSON.stringify([tec]))+'&fecha=gte.'+desde+'&fecha=lte.'+hasta+'&select=*,registro_tareas(*)'),
+      sbGet('dias_especiales','?fecha=gte.'+desde+'&fecha=lte.'+hasta+'&select=fecha,tipo,cuadrilla_id,tecnico_nombre')
+    ]);
+    var regsCuad=res[0]||[], regsPart=res[1]||[], diasEsp=res[2]||[];
+    var byId={}; regsCuad.concat(regsPart).forEach(function(r){ byId[r.id]=r; });
+    var regs=Object.keys(byId).map(function(k){ return byId[k]; });
+    var dias={};
+    regs.forEach(function(r){
+      var eq=0;(r.registro_tareas||[]).forEach(function(rt){ eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad); });
+      if(r.solo){ if(r.tecnico_nombre!==tec) return; if(!dias[r.fecha])dias[r.fecha]={eq:0}; dias[r.fecha].eq+=eq*2; dias[r.fecha].solo=true; }
+      else { var parts=Array.isArray(r.participantes)&&r.participantes.length?r.participantes:null; var cuenta=parts?parts.indexOf(tec)>=0:(cuadrillaDeTecEn(tec,r.fecha)===r.cuadrilla_id); if(!cuenta) return; if(!dias[r.fecha])dias[r.fecha]={eq:0}; dias[r.fecha].eq+=eq; }
+    });
+    diasEsp.forEach(function(d){
+      if(d.tipo==='vacaciones'&&d.tecnico_nombre===tec){ if(!dias[d.fecha])dias[d.fecha]={eq:meta}; dias[d.fecha].esp='🏖 Vacaciones'; }
+      else if(d.tipo==='certificado'&&d.tecnico_nombre===tec){ if(!dias[d.fecha])dias[d.fecha]={eq:5}; dias[d.fecha].esp='🏥 Certificado'; }
+      else if(d.tipo==='feriado'){ if(!dias[d.fecha])dias[d.fecha]={eq:5}; dias[d.fecha].esp='📅 Feriado'; }
+    });
+    var tot=Object.keys(dias).reduce(function(s,f){ return s+(dias[f].eq||0); },0);
+    var pct=Math.min(100,Math.round(tot/meta*100));
+    var col=pct>=100?'#22c55e':pct>=60?'#f59e0b':'#ef4444';
+    var html='';
+    html+='<div style="background:rgba(255,255,255,.05);border-radius:12px;padding:1rem;text-align:center;margin-bottom:1rem">';
+    html+='<div style="font-size:34px;font-weight:900;color:#fff">'+tot.toFixed(1)+'</div>';
+    html+='<div style="font-size:12px;font-weight:800;color:'+col+';margin-top:4px">'+pct+'% de '+meta+'</div>';
+    html+='<div style="height:6px;border-radius:99px;background:rgba(255,255,255,.08);margin-top:8px;overflow:hidden"><div style="height:100%;border-radius:99px;background:'+col+';width:'+pct+'%"></div></div></div>';
+    html+='<div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Detalle por día</div>';
+    var fechasOrd=Object.keys(dias).sort();
+    if(!fechasOrd.length){ html+='<div style="color:#6b7280;font-size:12px;padding:1rem 0;text-align:center">Sin trabajo cargado esta semana.</div>'; }
+    fechasOrd.forEach(function(f){
+      var d=dias[f];
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
+      html+='<div style="font-size:13px;color:#e2e8f0">'+fmtFull(f)+(d.solo?' <span style="font-size:10px;color:#a78bfa;font-weight:700">SOLO ×2</span>':'')+(d.esp?' <span style="font-size:10px;color:#7dd3fc">'+d.esp+'</span>':'')+'</div>';
+      html+='<div style="font-size:14px;font-weight:800;color:#fff">'+(d.eq||0).toFixed(2)+'</div></div>';
+    });
+    if(contentEl)contentEl.innerHTML=html;
+  }catch(e){ if(contentEl)contentEl.innerHTML='<div style="color:#f87171;font-size:12px">Error: '+e.message+'</div>'; }
 }
 
 async function dashVerCuad(cuadId, desde, hasta){
