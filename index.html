@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v107</title>
+<title>FG Conexiones v108</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v107</div>
+    <div class="login-ver">FG Conexiones · v108</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v107</div>
+    <div class="sb-ver">v108</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v107</div>
+    <div id="mobile-ver">v108</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -648,22 +648,26 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div id="at-dias" style="display:none"><div class="ph"><div class="ph-icon blue">📅</div><div><div class="ph-title">Días especiales</div><div class="ph-sub">Feriados, vacaciones y certificados médicos</div></div></div>
     <div class="card">
       <div class="card-title">Marcar día especial</div>
-      <div class="fg"><label>Fecha</label><input type="date" id="d-fecha"/></div>
       <div class="fg"><label>Tipo</label>
         <select id="d-tipo" onchange="onDTipoChange()">
           <option value="feriado">Feriado (cuenta 5 equiv. para todos)</option>
           <option value="lluvia">Día de lluvia</option>
           <option value="vacaciones">Vacaciones (semana = 30 equiv.)</option>
+          <option value="licencia">Licencia (semana = 30 · no baja el ranking)</option>
           <option value="certificado">Certificado médico (día = 5 equiv.)</option>
         </select>
       </div>
-      <div id="d-tec-wrap" style="display:none" class="fg">
-        <label>Técnico</label>
-        <select id="d-tec"></select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
+        <div class="fg"><label>Desde</label><input type="date" id="d-desde"/></div>
+        <div class="fg"><label>Hasta</label><input type="date" id="d-hasta"/></div>
       </div>
-      <div class="fg"><label>Descripción (opcional)</label><input type="text" id="d-desc" placeholder="Ej: 25 de Mayo, lluvia fuerte..."/></div>
-      <div class="fg"><label>¿Para qué cuadrilla?</label><select id="d-cuad" onchange="onDTipoChange()"></select></div>
-      <button class="btn btn-dark btn-full" onclick="guardarDiaEspecial()">Marcar día</button>
+      <div id="d-tecs-wrap" style="display:none" class="fg">
+        <label>¿Quiénes? (marcá uno o varios)</label>
+        <div id="d-tecs-list" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px"></div>
+      </div>
+      <div id="d-cuad-wrap" class="fg"><label>¿Para qué cuadrilla?</label><select id="d-cuad"></select></div>
+      <div class="fg"><label>Descripción (opcional)</label><input type="text" id="d-desc" placeholder="Ej: 25 de Mayo, vacaciones de verano..."/></div>
+      <button class="btn btn-dark btn-full" onclick="guardarDiaEspecial()">Marcar</button>
       <p class="ok-msg" id="d-ok"></p><p class="err-msg" id="d-err"></p>
     </div>
     <div class="card"><div class="card-title">Días especiales recientes</div><div id="d-lista"><div class="loading"><span class="spinner"></span></div></div></div>
@@ -1321,7 +1325,7 @@ async function renderTecSemana(){
     sbGet('registros',`?cuadrilla_id=in.(${cuadsSem.join(',')})&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=*,registro_tareas(*)`),
     // Parejas cruzadas: registros de OTRA cuadrilla donde el técnico figura en participantes (armaron pareja distinta)
     esInd?sbGet('registros',`?participantes=cs.${encodeURIComponent(JSON.stringify([CU.tecnico_ref]))}&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=*,registro_tareas(*)`):Promise.resolve([]),
-    esInd?sbGet('dias_especiales',`?tecnico_nombre=eq.${encodeURIComponent(CU.tecnico_ref)}&tipo=in.(vacaciones,certificado)&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=fecha,tipo`):Promise.resolve([]),
+    esInd?sbGet('dias_especiales',`?tecnico_nombre=eq.${encodeURIComponent(CU.tecnico_ref)}&tipo=in.(vacaciones,certificado,licencia)&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=fecha,tipo`):Promise.resolve([]),
     sbGet('dias_especiales',`?tipo=eq.feriado&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=fecha,cuadrilla_id`)
   ]);
   // Unir cuadrilla + participantes (pareja cruzada), sin duplicar por id
@@ -1356,7 +1360,7 @@ async function renderTecSemana(){
 
   // Días especiales (vacaciones/certificado)
   if(esInd){
-    const vacData=diasEspData.filter(d=>d.tipo==='vacaciones');
+    const vacData=diasEspData.filter(d=>d.tipo==='vacaciones'||d.tipo==='licencia');
     if(vacData.length>0){totalSemana=meta;dias.forEach(d=>totPorDia[d.fecha]=0);totPorDia[vacData[0].fecha]=meta;}
     diasEspData.filter(d=>d.tipo==='certificado').forEach(d=>{totPorDia[d.fecha]=(totPorDia[d.fecha]||0)+5;totalSemana+=5;});
   }
@@ -1488,7 +1492,7 @@ async function renderTecSemana(){
     const de=esDiaEsp(d.fecha);let cls='cal-day';
     if(d.fecha===selCalDay)cls+=' active';
     else if(de&&de.tipo==='lluvia')cls+=' rain';
-    else if(de&&(de.tipo==='feriado'||de.tipo==='vacaciones'||de.tipo==='certificado'))cls+=' holiday';
+    else if(de&&(de.tipo==='feriado'||de.tipo==='vacaciones'||de.tipo==='licencia'||de.tipo==='certificado'))cls+=' holiday';
     const tot=totPorDia[d.fecha]||0;
     return`<div class="${cls}" data-fecha="${d.fecha}" onclick="selCalDay2('${d.fecha}')"><div class="cal-day-name">${d.short}</div><div class="cal-day-num">${d.fecha.slice(8)}</div><div class="cal-day-total">${tot>0?tot.toFixed(1):'·'}</div></div>`;
   }).join('');
@@ -1508,8 +1512,8 @@ function selCalDay2(fecha){
 function renderCalDet(fecha,regs){
   const el=document.getElementById('t-dia-det');const de=esDiaEsp(fecha);let html='';
   if(de){
-    const _icons={lluvia:'🌧 Lluvia',feriado:'📅 Feriado',vacaciones:'🏖 Vacaciones',certificado:'🏥 Certificado médico'};
-    const _cls={lluvia:'b-rain',feriado:'b-holiday',vacaciones:'b-info',certificado:'b-gray'};
+    const _icons={lluvia:'🌧 Lluvia',feriado:'📅 Feriado',vacaciones:'🏖 Vacaciones',licencia:'🩺 Licencia',certificado:'🏥 Certificado médico'};
+    const _cls={lluvia:'b-rain',feriado:'b-holiday',vacaciones:'b-info',licencia:'b-info',certificado:'b-gray'};
     html+=`<div style="margin-bottom:8px"><span class="badge ${_cls[de.tipo]||'b-holiday'}">${_icons[de.tipo]||de.tipo}${de.descripcion?': '+de.descripcion:''}</span></div>`;
   }
   // Si es un técnico individual, NO mostrar el "solo" del compañero (solo cuenta para él, no para mí)
@@ -1702,7 +1706,7 @@ async function calcSaldosTodos(){
     esp.forEach(d=>{
       const ce=cuadrillaDeTecEn(tec,d.fecha);if(!ce)return;
       const s=getLunesDesd(d.fecha);if(d.fecha<MARZO||s>=lunesHoy)return;
-      if(d.tipo==='vacaciones'&&d.tecnico_nombre===tec){if(!porSemana[s])porSemana[s]={pareja:0,solo:0};porSemana[s].pareja=meta;}
+      if((d.tipo==='vacaciones'||d.tipo==='licencia')&&d.tecnico_nombre===tec){if(!porSemana[s])porSemana[s]={pareja:0,solo:0};porSemana[s].pareja=meta;}
       else if(d.tipo==='certificado'&&d.tecnico_nombre===tec)add(d.fecha,'pareja',5);
       else if(d.tipo==='feriado'&&(!d.cuadrilla_id||d.cuadrilla_id===ce))add(d.fecha,'pareja',5);
     });
@@ -1820,11 +1824,13 @@ async function renderAdmRanking(){
 
 async function buildRankings(desde, hasta, usarHistorico){
   desde = desde||'2026-01-01'; hasta = hasta||fmtD(new Date());
+  const metaRk=parseInt(CONFIG.meta_semanal||30);
   const queries = [
-    sbGet('registros','?fecha=gte.'+desde+'&fecha=lte.'+hasta+'&select=cuadrilla_id,fecha,tecnico_nombre,solo,participantes,registro_tareas(tipo_tarea_id,cantidad)')
+    sbGet('registros','?fecha=gte.'+desde+'&fecha=lte.'+hasta+'&select=cuadrilla_id,fecha,tecnico_nombre,solo,participantes,registro_tareas(tipo_tarea_id,cantidad)'),
+    sbGet('dias_especiales','?tipo=eq.licencia&fecha=gte.'+desde+'&fecha=lte.'+hasta+'&select=fecha,tecnico_nombre')
   ];
   if(usarHistorico) queries.push(sbGet('historico_totales','?select=*'));
-  const [regs, hist=[]] = await Promise.all(queries);
+  const [regs, licencias=[], hist=[]] = await Promise.all(queries);
   const TECS=todosLosTecnicos();
   const totCuad={},totInd={};
   CUADRILLAS.forEach(c=>{ totCuad[c.id]={nombre:c.nombre,total:0}; });
@@ -1851,6 +1857,10 @@ async function buildRankings(desde, hasta, usarHistorico){
       else { TECS.forEach(t=>{ if(cuadrillaDeTecEn(t,reg.fecha)===reg.cuadrilla_id) totInd[t].total+=eq; }); }
     }
   });
+  // Licencia: suma la meta por cada semana de licencia (no perjudica el ranking del que faltó por causa ajena)
+  const licSem={};
+  licencias.forEach(l=>{ (licSem[l.tecnico_nombre]=licSem[l.tecnico_nombre]||new Set()).add(getLunesDesd(l.fecha)); });
+  Object.keys(licSem).forEach(tec=>{ if(totInd[tec]) totInd[tec].total += licSem[tec].size*metaRk; });
   return{rankCuad:Object.values(totCuad).sort((a,b)=>b.total-a.total),rankInd:Object.values(totInd).sort((a,b)=>b.total-a.total)};
 }
 
@@ -1990,8 +2000,8 @@ async function onFechaChange(){
   // Buscar día especial filtrando por cuadrilla: mostrar solo si es de esta cuadrilla o general
   const de=Object.values(diasEsp).find(d=>d.fecha===fecha&&(!d.cuadrilla_id||d.cuadrilla_id===cuadId))
     ||(feriadosAR[fecha]?{tipo:'feriado',descripcion:feriadosAR[fecha],auto:true}:null);
-  const _tipoIcon={'lluvia':'🌧 Lluvia','feriado':'📅 Feriado','vacaciones':'🏖 Vacaciones','certificado':'🏥 Certificado médico'};
-  const _tipoCls={'lluvia':'msg-info','feriado':'msg-warn','vacaciones':'msg-info','certificado':'msg-warn'};
+  const _tipoIcon={'lluvia':'🌧 Lluvia','feriado':'📅 Feriado','vacaciones':'🏖 Vacaciones','licencia':'🩺 Licencia','certificado':'🏥 Certificado médico'};
+  const _tipoCls={'lluvia':'msg-info','feriado':'msg-warn','vacaciones':'msg-info','licencia':'msg-info','certificado':'msg-warn'};
   info.innerHTML=de?`<div class="msg ${_tipoCls[de.tipo]||'msg-warn'}" style="margin-bottom:.7rem">${_tipoIcon[de.tipo]||'📋 '+de.tipo}${de.descripcion?': '+de.descripcion:''}</div>`:'';
   await renderAdmHoy();
   await cargarFormExistente();
@@ -2169,7 +2179,7 @@ async function _cerrarUnaCuadrilla(lunes, cuadId){
   let totalCuad=0;
   regs.forEach(r=>{(r.registro_tareas||[]).forEach(rt=>totalCuad+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));});
   // Vacaciones de esta cuadrilla
-  diasEspSem.filter(d=>(d.cuadrilla_id===cuadId||!d.cuadrilla_id)&&d.tipo==='vacaciones').forEach(()=>totalCuad=Math.max(totalCuad,meta));
+  diasEspSem.filter(d=>(d.cuadrilla_id===cuadId||!d.cuadrilla_id)&&(d.tipo==='vacaciones'||d.tipo==='licencia')).forEach(()=>totalCuad=Math.max(totalCuad,meta));
   // Feriados (aplican a todos)
   diasEspSem.filter(d=>(!d.cuadrilla_id||d.cuadrilla_id===cuadId)&&d.tipo==='feriado').forEach(()=>totalCuad+=5);
   const extras=(totalCuad-meta)*precioUnit;
@@ -2303,7 +2313,7 @@ async function renderAdmResumen(){
       const cargados=new Set(regsCuad.map(r=>r.fecha));
       getDias(desde,!libraS).forEach(dd=>{
         const de=diasEsp[dd.fecha]||(feriadosAR[dd.fecha]?{tipo:'feriado'}:null);
-        const noLaborable=de&&(de.tipo==='lluvia'||de.tipo==='feriado'||de.tipo==='vacaciones');
+        const noLaborable=de&&(de.tipo==='lluvia'||de.tipo==='feriado'||de.tipo==='vacaciones'||de.tipo==='licencia');
         if(!noLaborable&&!cargados.has(dd.fecha))diasFaltantes.push(dd.short);
       });
     }
@@ -2425,9 +2435,9 @@ async function abrirDetalleCuad(cuadId,desde,hasta){
       if(reg.solo){ if(reg.tecnico_nombre===tec) porSemana[sem].diasSolo[reg.fecha]=(porSemana[sem].diasSolo[reg.fecha]||0)+eq; }
       else { const parts=Array.isArray(reg.participantes)&&reg.participantes.length?reg.participantes:null; if(parts?parts.indexOf(tec)>=0:true) porSemana[sem].diasPar[reg.fecha]=(porSemana[sem].diasPar[reg.fecha]||0)+eq; }
     });
-    diasEspCuad.filter(d=>d.tecnico_nombre===tec&&(d.tipo==='vacaciones'||d.tipo==='certificado')).forEach(d=>{
+    diasEspCuad.filter(d=>d.tecnico_nombre===tec&&(d.tipo==='vacaciones'||d.tipo==='licencia'||d.tipo==='certificado')).forEach(d=>{
       const sem=getLunesDesd(d.fecha);if(!porSemana[sem])porSemana[sem]={diasPar:{},diasSolo:{}};
-      porSemana[sem].diasPar[d.fecha]=(porSemana[sem].diasPar[d.fecha]||0)+(d.tipo==='vacaciones'?meta:5);
+      porSemana[sem].diasPar[d.fecha]=(porSemana[sem].diasPar[d.fecha]||0)+(d.tipo==='certificado'?5:meta);
     });
     feriadosAplicables.forEach(d=>{
       const sem=getLunesDesd(d.fecha);if(!porSemana[sem])porSemana[sem]={diasPar:{},diasSolo:{}};
@@ -2475,7 +2485,7 @@ async function abrirDetalleCuad(cuadId,desde,hasta){
       if(Object.keys(diasPar).length){
         html+=`<div style="font-size:10px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">En pareja</div>`;
         Object.entries(diasPar).sort().forEach(([fecha,eq])=>{
-          const de=esDiaEsp(fecha);const icons={lluvia:'🌧 ',feriado:'📅 ',vacaciones:'🏖 ',certificado:'🏥 '};
+          const de=esDiaEsp(fecha);const icons={lluvia:'🌧 ',feriado:'📅 ',vacaciones:'🏖 ',licencia:'🩺 ',certificado:'🏥 '};
           const dayId=`dday-${t.tec.replace(/\s/g,'_')}-${fecha}`;
           html+=`<div class="det-day-row" style="cursor:pointer;flex-direction:column;align-items:stretch" onclick="toggleDetDay('${dayId}','${fecha}',false,'${t.tec}')">
             <div style="display:flex;justify-content:space-between;align-items:center">
@@ -3015,56 +3025,67 @@ async function renderHistLista(){
 // DÍAS ESPECIALES
 function onDTipoChange(){
   const tipo=document.getElementById('d-tipo').value;
-  const wrap=document.getElementById('d-tec-wrap');
-  const cuadSel=document.getElementById('d-cuad').value;
-  if((tipo==='vacaciones'||tipo==='certificado')&&cuadSel){
-    const c=CUADRILLAS.find(x=>x.id===cuadSel);
-    if(c){
-      const tecs=getTecs(c.id);
-      // Para vacaciones: opción "Ambos" + cada técnico individual
-      const opts=tipo==='vacaciones'
-        ?`<option value="__ambos__">Ambos técnicos</option>`+tecs.map(t=>`<option>${t}</option>`).join('')
-        :tecs.map(t=>`<option>${t}</option>`).join('');
-      document.getElementById('d-tec').innerHTML=opts;
+  const tecsWrap=document.getElementById('d-tecs-wrap');
+  const cuadWrap=document.getElementById('d-cuad-wrap');
+  const porTec=(tipo==='vacaciones'||tipo==='licencia'||tipo==='certificado');
+  if(tecsWrap)tecsWrap.style.display=porTec?'block':'none';
+  if(cuadWrap)cuadWrap.style.display=porTec?'none':'block';
+  if(porTec){
+    const list=document.getElementById('d-tecs-list');
+    if(list&&!list.dataset.pobl){
+      list.innerHTML=todosLosTecnicos().sort().map(t=>'<label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;cursor:pointer"><input type="checkbox" class="d-tec-chk" value="'+t+'"/> '+t+'</label>').join('');
+      list.dataset.pobl='1';
     }
-    wrap.style.display='block';
-  }else{wrap.style.display='none';}
+  }
 }
 
 async function guardarDiaEspecial(){
-  const fecha=document.getElementById('d-fecha').value,tipo=document.getElementById('d-tipo').value;
-  const desc=document.getElementById('d-desc').value.trim(),cuadId=document.getElementById('d-cuad').value||null;
-  const tecSelect=document.getElementById('d-tec');
-  const tecNombre=(tipo==='vacaciones'||tipo==='certificado')&&tecSelect?tecSelect.value:null;
-  if(!fecha){document.getElementById('d-err').textContent='Ingresá una fecha.';return;}
-  if((tipo==='vacaciones'||tipo==='certificado')&&!tecNombre){document.getElementById('d-err').textContent='Seleccioná el técnico.';return;}
+  const tipo=document.getElementById('d-tipo').value;
+  const desde=document.getElementById('d-desde').value;
+  const hasta=document.getElementById('d-hasta').value||desde;
+  const desc=document.getElementById('d-desc').value.trim();
+  const cuadId=document.getElementById('d-cuad').value||null;
+  const err=document.getElementById('d-err'),ok=document.getElementById('d-ok');
+  err.textContent='';ok.textContent='';
+  if(!desde){err.textContent='Ingresá la fecha (Desde).';return;}
+  if(hasta<desde){err.textContent='"Hasta" no puede ser anterior a "Desde".';return;}
+  const porTec=(tipo==='vacaciones'||tipo==='licencia'||tipo==='certificado');
+  // Fechas del rango (día por día, inclusive)
+  const fechas=[];let dd=new Date(desde+'T12:00:00');const fin=new Date(hasta+'T12:00:00');
+  while(dd<=fin){fechas.push(fmtD(dd));dd.setDate(dd.getDate()+1);}
   try{
-    // Si es vacaciones o certificado, guardar para ese técnico
-    // Si hay cuadrilla seleccionada y es vacaciones, también ofrecer guardar para ambos
-    if(tecNombre==='__ambos__'&&cuadId){
-      // Guardar para todos los técnicos de la cuadrilla
-      const tecs=getTecs(cuadId);
-      for(const t of tecs){
-        await sbPost('dias_especiales',{fecha,tipo,descripcion:desc||null,cuadrilla_id:cuadId,tecnico_nombre:t,created_by:CU.username});
-      }
+    let filas=[];
+    if(porTec){
+      const tecs=[...document.querySelectorAll('.d-tec-chk:checked')].map(c=>c.value);
+      if(!tecs.length){err.textContent='Marcá al menos un técnico.';return;}
+      fechas.forEach(f=>tecs.forEach(t=>filas.push({fecha:f,tipo,descripcion:desc||null,cuadrilla_id:cuadrillaDeTecEn(t,f)||null,tecnico_nombre:t,created_by:CU.username})));
     }else{
-      await sbPost('dias_especiales',{fecha,tipo,descripcion:desc||null,cuadrilla_id:cuadId,tecnico_nombre:tecNombre||null,created_by:CU.username});
+      fechas.forEach(f=>filas.push({fecha:f,tipo,descripcion:desc||null,cuadrilla_id:cuadId,tecnico_nombre:null,created_by:CU.username}));
     }
-    await cargarDiasEsp();document.getElementById('d-ok').textContent='Día marcado ✓';
-    document.getElementById('d-fecha').value='';document.getElementById('d-desc').value='';
+    // Evitar duplicados: traer lo que ya existe en el rango y filtrar
+    const exist=await sbGet('dias_especiales','?fecha=gte.'+desde+'&fecha=lte.'+hasta+'&select=fecha,tipo,tecnico_nombre,cuadrilla_id')||[];
+    const key=x=>x.fecha+'|'+x.tipo+'|'+(x.tecnico_nombre||'')+'|'+(x.cuadrilla_id||'');
+    const ya=new Set(exist.map(key));
+    filas=filas.filter(f=>!ya.has(key(f)));
+    if(!filas.length){ok.textContent='Ya estaban marcados esos días ✓';await cargarDiasEsp();renderDiasEsp();return;}
+    await sbPost('dias_especiales',filas);
+    await cargarDiasEsp();
+    ok.textContent='Marcado ✓ ('+filas.length+' registro'+(filas.length!==1?'s':'')+')';
+    document.getElementById('d-desde').value='';document.getElementById('d-hasta').value='';document.getElementById('d-desc').value='';
+    document.querySelectorAll('.d-tec-chk:checked').forEach(c=>{c.checked=false;});
     renderDiasEsp();
-  }catch(e){document.getElementById('d-err').textContent='Error: '+(e.message.includes('duplicate')?'Ese día ya está marcado':e.message);}
+  }catch(e){err.textContent='Error: '+(e.message.includes('duplicate')?'Algunos ya estaban marcados':e.message);}
 }
 async function renderDiasEsp(){
   const el=document.getElementById('d-lista');el.innerHTML='<div class="loading"><span class="spinner"></span></div>';
   const hace30=new Date();hace30.setDate(hace30.getDate()-30);
   const data=await sbGet('dias_especiales',`?fecha=gte.${fmtD(hace30)}&order=fecha.desc`);
   if(!data.length){el.innerHTML='<p style="font-size:13px;color:#6b7280">Sin días especiales.</p>';return;}
-  const tipoBadge={feriado:'b-holiday',lluvia:'b-rain',vacaciones:'b-info',certificado:'b-gray'};
+  const tipoBadge={feriado:'b-holiday',lluvia:'b-rain',vacaciones:'b-info',licencia:'b-info',certificado:'b-gray'};
   el.innerHTML=data.map(d=>{
     const c=d.cuadrilla_id?CUADRILLAS.find(x=>x.id===d.cuadrilla_id):null;
     const tecTag=d.tecnico_nombre?` · <strong>${d.tecnico_nombre}</strong>`:'';
-    const icon={feriado:'📅',lluvia:'🌧',vacaciones:'🏖',certificado:'🏥'}[d.tipo]||'📋';
+    const icon={feriado:'📅',lluvia:'🌧',vacaciones:'🏖',licencia:'🩺',certificado:'🏥'}[d.tipo]||'📋';
     return`<div class="row"><div><div style="font-size:14px">${icon} ${fmtFull(d.fecha)} <span class="badge ${tipoBadge[d.tipo]||'b-gray'}">${d.tipo}</span></div><div style="font-size:12px;color:#5a7a9a">${c?'· '+c.nombre:'· Todas'}${tecTag} ${d.descripcion?'· '+d.descripcion:''}</div></div><button class="btn btn-sm btn-red" onclick="elimDiaEsp('${d.id}')">✕</button></div>`;
   }).join('');
 }
@@ -3590,7 +3611,7 @@ async function renderDashboard() {
       });
       diasEspSem.forEach(function(d){
         var ce=cuadrillaDeTecEn(tec,d.fecha); if(!ce) return;
-        if(d.tipo==='vacaciones' && d.tecnico_nombre===tec) tot += meta;
+        if((d.tipo==='vacaciones'||d.tipo==='licencia') && d.tecnico_nombre===tec) tot += meta;
         else if(d.tipo==='certificado' && d.tecnico_nombre===tec) tot += 5;
         else if(d.tipo==='feriado' && (!d.cuadrilla_id||d.cuadrilla_id===ce)) tot += 5;
       });
@@ -3640,7 +3661,7 @@ async function renderDashboard() {
           var cuadEn = cuadrillaDeTecEn(tec, d.fecha);
           if(!cuadEn) return;
           if(!porSemana[sem]) porSemana[sem] = {par:0, sol:0};
-          if(d.tipo==='vacaciones' && d.tecnico_nombre===tec)
+          if((d.tipo==='vacaciones'||d.tipo==='licencia') && d.tecnico_nombre===tec)
             porSemana[sem].par = meta;
           else if(d.tipo==='certificado' && d.tecnico_nombre===tec)
             porSemana[sem].par += 5;
@@ -4039,6 +4060,7 @@ async function dashVerTec(tecEnc, desde, hasta){
     });
     diasEsp.forEach(function(d){
       if(d.tipo==='vacaciones'&&d.tecnico_nombre===tec){ if(!dias[d.fecha])dias[d.fecha]={eq:meta}; dias[d.fecha].esp='🏖 Vacaciones'; }
+      else if(d.tipo==='licencia'&&d.tecnico_nombre===tec){ if(!dias[d.fecha])dias[d.fecha]={eq:meta}; dias[d.fecha].esp='🩺 Licencia'; }
       else if(d.tipo==='certificado'&&d.tecnico_nombre===tec){ if(!dias[d.fecha])dias[d.fecha]={eq:5}; dias[d.fecha].esp='🏥 Certificado'; }
       else if(d.tipo==='feriado'){ if(!dias[d.fecha])dias[d.fecha]={eq:5}; dias[d.fecha].esp='📅 Feriado'; }
     });
@@ -4094,7 +4116,7 @@ async function dashVerCuad(cuadId, desde, hasta){
         var parts=Array.isArray(reg.participantes)&&reg.participantes.length?reg.participantes:null;
         if(parts?parts.indexOf(tec)>=0:true) eqPar+=eq;
       });
-      diasEsp.filter(function(d){return d.tecnico_nombre===tec&&(d.tipo==='vacaciones'||d.tipo==='certificado');}).forEach(function(d){ eqPar+=(d.tipo==='vacaciones'?meta:5); });
+      diasEsp.filter(function(d){return d.tecnico_nombre===tec&&(d.tipo==='vacaciones'||d.tipo==='licencia'||d.tipo==='certificado');}).forEach(function(d){ eqPar+=(d.tipo==='certificado'?5:meta); });
       ferAplic.forEach(function(){ eqPar+=5; });
       var eqTotal=eqPar+eqSolo*2;
       var ganTotal=(eqTotal-meta)*precioUnit;
@@ -4199,7 +4221,7 @@ async function dashPagoRapido(tecNombre, cuadNombre, montoDeuda){
       var cuadEn=cuadrillaDeTecEn(tecNombre,d.fecha);
       if(!cuadEn)return;
       if(!porSemana[sem])porSemana[sem]={par:0,sol:0};
-      if(d.tipo==='vacaciones'&&d.tecnico_nombre===tecNombre) porSemana[sem].par=meta;
+      if((d.tipo==='vacaciones'||d.tipo==='licencia')&&d.tecnico_nombre===tecNombre) porSemana[sem].par=meta;
       else if(d.tipo==='certificado'&&d.tecnico_nombre===tecNombre) porSemana[sem].par+=5;
       else if(d.tipo==='feriado'&&(!d.cuadrilla_id||d.cuadrilla_id===cuadEn)) porSemana[sem].par+=5;
     });
