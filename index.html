@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v105</title>
+<title>FG Conexiones v106</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -380,7 +380,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v105</div>
+    <div class="login-ver">FG Conexiones · v106</div>
   </div>
 </div>
 
@@ -398,7 +398,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v105</div>
+    <div class="sb-ver">v106</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -412,7 +412,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v105</div>
+    <div id="mobile-ver">v106</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1316,20 +1316,26 @@ async function renderTecSemana(){
   if(esInd){cuadsSem=[...new Set(_7.map(f=>cuadrillaDeTecEn(CU.tecnico_ref,f)).filter(Boolean))];if(!cuadsSem.length)cuadsSem=[cuadId];}
 
   // Batch: todas las queries en paralelo
-  const [semConf, regsRaw, diasEspData, ferData, saldoData] = await Promise.all([
+  const [semConf, regsCuad, regsPart, diasEspData, ferData] = await Promise.all([
     getSemConf(lunes),
     sbGet('registros',`?cuadrilla_id=in.(${cuadsSem.join(',')})&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=*,registro_tareas(*)`),
+    // Parejas cruzadas: registros de OTRA cuadrilla donde el técnico figura en participantes (armaron pareja distinta)
+    esInd?sbGet('registros',`?participantes=cs.${encodeURIComponent(JSON.stringify([CU.tecnico_ref]))}&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=*,registro_tareas(*)`):Promise.resolve([]),
     esInd?sbGet('dias_especiales',`?tecnico_nombre=eq.${encodeURIComponent(CU.tecnico_ref)}&tipo=in.(vacaciones,certificado)&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=fecha,tipo`):Promise.resolve([]),
-    sbGet('dias_especiales',`?tipo=eq.feriado&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=fecha,cuadrilla_id`),
-    Promise.resolve([]) /* saldos eliminado: ya no se cierra la semana */
+    sbGet('dias_especiales',`?tipo=eq.feriado&fecha=gte.${lunes}&fecha=lte.${fmtD(dom)}&select=fecha,cuadrilla_id`)
   ]);
+  // Unir cuadrilla + participantes (pareja cruzada), sin duplicar por id
+  const _regById={};[...(regsCuad||[]),...(regsPart||[])].forEach(r=>{_regById[r.id]=r;});
+  const regsRaw=Object.values(_regById);
 
   // Para un técnico: quedarse SOLO con lo suyo — su cuadrilla ese día, su trabajo solo, y las parejas donde realmente salió (participantes)
   const regs = esInd ? regsRaw.filter(r=>{
-    if(cuadrillaDeTecEn(CU.tecnico_ref,r.fecha)!==r.cuadrilla_id) return false;
     if(r.solo) return r.tecnico_nombre===CU.tecnico_ref;
     const parts=Array.isArray(r.participantes)&&r.participantes.length?r.participantes:null;
-    return parts? parts.indexOf(CU.tecnico_ref)>=0 : true;
+    // Con participantes: cuenta si el técnico salió, sin importar bajo qué cuadrilla se cargó (parejas cruzadas)
+    if(parts) return parts.indexOf(CU.tecnico_ref)>=0;
+    // Sin participantes (histórico): cuenta si es la cuadrilla donde el técnico estaba ese día
+    return cuadrillaDeTecEn(CU.tecnico_ref,r.fecha)===r.cuadrilla_id;
   }) : regsRaw;
   const libraS=semConf?cuad.grupo===semConf.grupo_libra:false;
   // Mostrar SIEMPRE de Lunes a Sábado (aunque el sábado sea libre, igual pueden venir a trabajar)
@@ -1360,8 +1366,7 @@ async function renderTecSemana(){
     totPorDia[d.fecha]=(totPorDia[d.fecha]||0)+5;totalSemana+=5;
   });
 
-  let saldoTotal=0;
-  saldoData.forEach(s=>saldoTotal+=parseFloat(s.valor));
+  const saldoTotal=0; // saldos por semana eliminados: ya no se cierra la semana
 
   const totalConS=totalSemana+saldoTotal,extras=Math.max(0,totalConS-meta),falta=Math.max(0,meta-totalConS),pct=Math.min(100,Math.round((totalConS/meta)*100));
   document.getElementById('t-total').textContent=totalConS.toFixed(2);
