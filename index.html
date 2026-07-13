@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v112</title>
+<title>FG Conexiones v113</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -381,7 +381,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v112</div>
+    <div class="login-ver">FG Conexiones · v113</div>
   </div>
 </div>
 
@@ -399,7 +399,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v112</div>
+    <div class="sb-ver">v113</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -413,7 +413,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v112</div>
+    <div id="mobile-ver">v113</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -2438,16 +2438,17 @@ async function abrirDetalleCuad(cuadId,desde,hasta){
     });
     diasEspCuad.filter(d=>d.tecnico_nombre===tec&&(d.tipo==='vacaciones'||d.tipo==='licencia'||d.tipo==='certificado')).forEach(d=>{
       const sem=getLunesDesd(d.fecha);if(!porSemana[sem])porSemana[sem]={diasPar:{},diasSolo:{}};
-      porSemana[sem].diasPar[d.fecha]=(porSemana[sem].diasPar[d.fecha]||0)+(d.tipo==='certificado'?5:meta);
+      if(d.tipo==='certificado') porSemana[sem].diasPar[d.fecha]=(porSemana[sem].diasPar[d.fecha]||0)+5;
+      else porSemana[sem].vacLic=true; // vacaciones/licencia: la semana entera cuenta 30 (no por día)
     });
     feriadosAplicables.forEach(d=>{
       const sem=getLunesDesd(d.fecha);if(!porSemana[sem])porSemana[sem]={diasPar:{},diasSolo:{}};
       porSemana[sem].diasPar[d.fecha]=(porSemana[sem].diasPar[d.fecha]||0)+5;
     });
     let eqPar=0,eqSolo=0,ganTotal=0;
-    Object.values(porSemana).forEach(({diasPar,diasSolo})=>{
-      const par=Object.values(diasPar).reduce((s,v)=>s+v,0);
-      const sol=Object.values(diasSolo).reduce((s,v)=>s+v,0);
+    Object.values(porSemana).forEach(({diasPar,diasSolo,vacLic})=>{
+      const par=vacLic?meta:Object.values(diasPar).reduce((s,v)=>s+v,0);
+      const sol=vacLic?0:Object.values(diasSolo).reduce((s,v)=>s+v,0);
       eqPar+=par;eqSolo+=sol;ganTotal+=(par+sol*2-meta)*precioUnit;
     });
     return{tec,porSemana,eqPar,eqSolo,eqTotal:eqPar+eqSolo*2,ganTotal};
@@ -3610,12 +3611,14 @@ async function renderDashboard() {
         var cuenta = parts ? parts.indexOf(tec)>=0 : (cuadrillaDeTecEn(tec,r.fecha)===r.cuadrilla_id);
         if(cuenta) tot += eq;
       });
+      var vacLicSem=false;
       diasEspSem.forEach(function(d){
         var ce=cuadrillaDeTecEn(tec,d.fecha); if(!ce) return;
-        if((d.tipo==='vacaciones'||d.tipo==='licencia') && d.tecnico_nombre===tec) tot += meta;
+        if((d.tipo==='vacaciones'||d.tipo==='licencia') && d.tecnico_nombre===tec) vacLicSem=true;
         else if(d.tipo==='certificado' && d.tecnico_nombre===tec) tot += 5;
         else if(d.tipo==='feriado' && (!d.cuadrilla_id||d.cuadrilla_id===ce)) tot += 5;
       });
+      if(vacLicSem) tot = meta; // vacaciones/licencia: la semana cuenta 30 UNA vez, no por día
       var cuadEn = cuadrillaDeTecEn(tec, lunes);
       var cuadObj = CUADRILLAS.find(function(c){ return c.id===cuadEn; });
       var libre = gl && cuadObj ? cuadObj.grupo===gl : false;
@@ -4059,13 +4062,15 @@ async function dashVerTec(tecEnc, desde, hasta){
       if(r.solo){ if(r.tecnico_nombre!==tec) return; if(!dias[r.fecha])dias[r.fecha]={eq:0}; dias[r.fecha].eq+=eq*2; dias[r.fecha].solo=true; }
       else { var parts=Array.isArray(r.participantes)&&r.participantes.length?r.participantes:null; var cuenta=parts?parts.indexOf(tec)>=0:(cuadrillaDeTecEn(tec,r.fecha)===r.cuadrilla_id); if(!cuenta) return; if(!dias[r.fecha])dias[r.fecha]={eq:0}; dias[r.fecha].eq+=eq; }
     });
+    var vacLicSem=false;
     diasEsp.forEach(function(d){
-      if(d.tipo==='vacaciones'&&d.tecnico_nombre===tec){ if(!dias[d.fecha])dias[d.fecha]={eq:meta}; dias[d.fecha].esp='🏖 Vacaciones'; }
-      else if(d.tipo==='licencia'&&d.tecnico_nombre===tec){ if(!dias[d.fecha])dias[d.fecha]={eq:meta}; dias[d.fecha].esp='🩺 Licencia'; }
+      if(d.tipo==='vacaciones'&&d.tecnico_nombre===tec){ if(!dias[d.fecha])dias[d.fecha]={eq:0}; dias[d.fecha].esp='🏖 Vacaciones'; dias[d.fecha].noNum=true; vacLicSem=true; }
+      else if(d.tipo==='licencia'&&d.tecnico_nombre===tec){ if(!dias[d.fecha])dias[d.fecha]={eq:0}; dias[d.fecha].esp='🩺 Licencia'; dias[d.fecha].noNum=true; vacLicSem=true; }
       else if(d.tipo==='certificado'&&d.tecnico_nombre===tec){ if(!dias[d.fecha])dias[d.fecha]={eq:5}; dias[d.fecha].esp='🏥 Certificado'; }
       else if(d.tipo==='feriado'){ if(!dias[d.fecha])dias[d.fecha]={eq:5}; dias[d.fecha].esp='📅 Feriado'; }
     });
-    var tot=Object.keys(dias).reduce(function(s,f){ return s+(dias[f].eq||0); },0);
+    // vacaciones/licencia: la semana cuenta 30 una vez, no por día
+    var tot=vacLicSem ? meta : Object.keys(dias).reduce(function(s,f){ return s+(dias[f].eq||0); },0);
     var pct=Math.min(100,Math.round(tot/meta*100));
     var col=pct>=100?'#22c55e':pct>=60?'#f59e0b':'#ef4444';
     var html='';
@@ -4080,7 +4085,7 @@ async function dashVerTec(tecEnc, desde, hasta){
       var d=dias[f];
       html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
       html+='<div style="font-size:13px;color:#e2e8f0">'+fmtFull(f)+(d.solo?' <span style="font-size:10px;color:#a78bfa;font-weight:700">SOLO ×2</span>':'')+(d.esp?' <span style="font-size:10px;color:#7dd3fc">'+d.esp+'</span>':'')+'</div>';
-      html+='<div style="font-size:14px;font-weight:800;color:#fff">'+(d.eq||0).toFixed(2)+'</div></div>';
+      html+='<div style="font-size:14px;font-weight:800;color:#fff">'+(d.noNum?'—':(d.eq||0).toFixed(2))+'</div></div>';
     });
     if(contentEl)contentEl.innerHTML=html;
   }catch(e){ if(contentEl)contentEl.innerHTML='<div style="color:#f87171;font-size:12px">Error: '+e.message+'</div>'; }
@@ -4117,8 +4122,10 @@ async function dashVerCuad(cuadId, desde, hasta){
         var parts=Array.isArray(reg.participantes)&&reg.participantes.length?reg.participantes:null;
         if(parts?parts.indexOf(tec)>=0:true) eqPar+=eq;
       });
-      diasEsp.filter(function(d){return d.tecnico_nombre===tec&&(d.tipo==='vacaciones'||d.tipo==='licencia'||d.tipo==='certificado');}).forEach(function(d){ eqPar+=(d.tipo==='certificado'?5:meta); });
+      var vacLicSem=false;
+      diasEsp.filter(function(d){return d.tecnico_nombre===tec&&(d.tipo==='vacaciones'||d.tipo==='licencia'||d.tipo==='certificado');}).forEach(function(d){ if(d.tipo==='certificado') eqPar+=5; else vacLicSem=true; });
       ferAplic.forEach(function(){ eqPar+=5; });
+      if(vacLicSem){ eqPar=meta; eqSolo=0; } // vacaciones/licencia: la semana cuenta 30 una vez, no por día
       var eqTotal=eqPar+eqSolo*2;
       var ganTotal=(eqTotal-meta)*precioUnit;
       return{tec,eqPar,eqSolo,eqTotal,ganTotal,clr:clrs[ti]};
