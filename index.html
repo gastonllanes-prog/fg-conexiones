@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v113</title>
+<title>FG Conexiones v114</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -381,7 +381,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v113</div>
+    <div class="login-ver">FG Conexiones · v114</div>
   </div>
 </div>
 
@@ -399,7 +399,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v113</div>
+    <div class="sb-ver">v114</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -413,7 +413,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v113</div>
+    <div id="mobile-ver">v114</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -2422,7 +2422,7 @@ async function abrirDetalleCuad(cuadId,desde,hasta){
   const precioUnit=precio/2;
   const [regs, diasEspCuad, feriadosPer] = await Promise.all([
     sbGet('registros',`?cuadrilla_id=eq.${cuadId}&fecha=gte.${desde}&fecha=lte.${hasta}&select=*,registro_tareas(*)`),
-    sbGet('dias_especiales',`?cuadrilla_id=eq.${cuadId}&select=*`),
+    sbGet('dias_especiales',`?cuadrilla_id=eq.${cuadId}&fecha=gte.${desde}&fecha=lte.${hasta}&select=*`),
     sbGet('dias_especiales',`?tipo=eq.feriado&fecha=gte.${desde}&fecha=lte.${hasta}&select=fecha,cuadrilla_id`)
   ]);
   _detRegs=regs;
@@ -2478,16 +2478,18 @@ async function abrirDetalleCuad(cuadId,desde,hasta){
           <div style="font-size:12px;font-weight:700;color:${t.ganTotal>=0?'#059669':'#ef4444'}">${t.ganTotal>=0?'+':''}${fmtPesos(t.ganTotal)}</div>
         </div>
       </div>`;
-    Object.entries(t.porSemana).sort().forEach(([sem,{diasPar,diasSolo}])=>{
+    Object.entries(t.porSemana).sort().forEach(([sem,{diasPar,diasSolo,vacLic}])=>{
       const parTot=Object.values(diasPar).reduce((s,v)=>s+v,0),solTot=Object.values(diasSolo).reduce((s,v)=>s+v,0);
-      if(parTot===0&&solTot===0)return;
+      if(parTot===0&&solTot===0&&!vacLic)return;
       const domSem=new Date(sem+'T12:00:00');domSem.setDate(domSem.getDate()+6);
       html+=`<div style="background:rgba(30,80,160,.04);border-radius:10px;padding:.75rem 1rem;margin-bottom:.5rem;border:1px solid rgba(30,80,160,.10)">
         <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Semana ${fmtL(sem)} – ${fmtL(fmtD(domSem))}</div>`;
+      if(vacLic){ html+=`<div style="font-size:12px;font-weight:700;color:#0369a1">🏖 Vacaciones/Licencia · cuenta ${meta} (semana cumplida)</div>`; }
       if(Object.keys(diasPar).length){
         html+=`<div style="font-size:10px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">En pareja</div>`;
         Object.entries(diasPar).sort().forEach(([fecha,eq])=>{
-          const de=esDiaEsp(fecha);const icons={lluvia:'🌧 ',feriado:'📅 ',vacaciones:'🏖 ',licencia:'🩺 ',certificado:'🏥 '};
+          // Día especial de ESTE técnico (o un feriado/lluvia global) — NO la vacación de otro técnico
+          const de=diasEsp[fecha+'_'+t.tec]||((diasEsp[fecha]&&!diasEsp[fecha].tecnico_nombre)?diasEsp[fecha]:null)||(feriadosAR[fecha]?{tipo:'feriado'}:null);const icons={lluvia:'🌧 ',feriado:'📅 ',vacaciones:'🏖 ',licencia:'🩺 ',certificado:'🏥 '};
           const dayId=`dday-${t.tec.replace(/\s/g,'_')}-${fecha}`;
           html+=`<div class="det-day-row" style="cursor:pointer;flex-direction:column;align-items:stretch" onclick="toggleDetDay('${dayId}','${fecha}',false,'${t.tec}')">
             <div style="display:flex;justify-content:space-between;align-items:center">
