@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v114</title>
+<title>FG Conexiones v115</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -381,7 +381,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v114</div>
+    <div class="login-ver">FG Conexiones · v115</div>
   </div>
 </div>
 
@@ -399,7 +399,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v114</div>
+    <div class="sb-ver">v115</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -413,7 +413,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v114</div>
+    <div id="mobile-ver">v115</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -2412,9 +2412,7 @@ async function abrirDetalleCuad(cuadId,desde,hasta){
   document.getElementById('at-cuad-detalle').style.display='block';
   const cuad=CUADRILLAS.find(c=>c.id===cuadId);
   document.getElementById('cuad-det-nombre').textContent=cuad?cuad.nombre:'';
-  const tecs=getTecs(cuadId);
   const detTecsEl=document.getElementById('cuad-det-tecs');
-  if(detTecsEl)detTecsEl.textContent=tecs.join(' · ');
   const el=document.getElementById('cuad-det-content');
   el.innerHTML='<div class="loading"><span class="spinner"></span>Cargando...</div>';
   const meta=parseInt(CONFIG.meta_semanal||30);
@@ -2426,6 +2424,11 @@ async function abrirDetalleCuad(cuadId,desde,hasta){
     sbGet('dias_especiales',`?tipo=eq.feriado&fecha=gte.${desde}&fecha=lte.${hasta}&select=fecha,cuadrilla_id`)
   ]);
   _detRegs=regs;
+  // Técnicos a mostrar = miembros oficiales + quienes realmente trabajaron acá (reemplazos vía participantes)
+  const tecsSet=new Set(getTecs(cuadId));
+  regs.forEach(r=>{ if(Array.isArray(r.participantes)) r.participantes.forEach(p=>tecsSet.add(p)); if(r.solo&&r.tecnico_nombre) tecsSet.add(r.tecnico_nombre); });
+  const tecs=[...tecsSet];
+  if(detTecsEl)detTecsEl.textContent=tecs.join(' · ');
   const feriadosAplicables=feriadosPer.filter(f=>!f.cuadrilla_id||f.cuadrilla_id===cuadId);
   const tecData=tecs.map(tec=>{
     const porSemana={};
