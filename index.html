@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v115</title>
+<title>FG Conexiones v116</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -381,7 +381,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v115</div>
+    <div class="login-ver">FG Conexiones · v116</div>
   </div>
 </div>
 
@@ -399,7 +399,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v115</div>
+    <div class="sb-ver">v116</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -413,7 +413,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v115</div>
+    <div id="mobile-ver">v116</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1441,6 +1441,17 @@ async function renderTecSemana(){
         const brd=esNeg?'rgba(220,38,38,.2)':'rgba(22,163,74,.2)';
         const labelCard=esNeg?'Instalaciones pendientes':'A cobrar';
         cardDeuda.style.background=bg;
+        // Proyección: cómo queda la deuda cuando cierre la semana en curso (solo si debe y es la semana actual)
+        let proyHtml='';
+        if(esNeg&&wkOff===0){
+          const prog=totalSemana-meta; // + si va arriba de la meta esta semana
+          const proy=Math.abs(equivAcum)-prog; // deuda estimada al cerrar el lunes
+          if(prog>0.05){
+            proyHtml='<div style="font-size:12px;color:#0369a1;background:rgba(3,105,161,.07);border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.35">📉 Esta semana vas <b style="color:#16a34a">+'+prog.toFixed(1)+'</b> → si cerrás así, el lunes la deuda baja a <b>'+Math.max(0,proy).toFixed(1)+'</b>'+(proy<=0.05?' ✅ (saldada)':' instalaciones')+'.</div>';
+          }else if(prog<-0.05){
+            proyHtml='<div style="font-size:12px;color:#b45309;background:rgba(180,83,9,.07);border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.35">⏳ Esta semana vas <b style="color:#dc2626">'+prog.toFixed(1)+'</b> → si cerrás así, el lunes la deuda sube a <b>'+proy.toFixed(1)+'</b> instalaciones.</div>';
+          }
+        }
         cardDeuda.innerHTML=`
           <div style="font-size:12px;font-weight:700;color:#5a7a9a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Saldo pendiente</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
@@ -1455,6 +1466,7 @@ async function renderTecSemana(){
               <div style="font-size:11px;color:#94a3b8;margin-top:3px">${fmtPesos(precioUnit)}/equiv</div>
             </div>
           </div>
+          ${proyHtml}
           <div style="cursor:pointer;display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:8px;background:rgba(30,80,160,.05);border:1px solid rgba(30,80,160,.1)" onclick="toggleSaldoDet()">
             <span style="font-size:12px;font-weight:700;color:#334155">¿DE DÓNDE SALE ESTE NÚMERO?</span>
             <span id="saldo-det-chevron" style="font-size:11px;color:#5a7a9a;margin-left:auto;transition:transform .2s">▼</span>
