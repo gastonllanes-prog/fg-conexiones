@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v122</title>
+<title>FG Conexiones v123</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -381,7 +381,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v122</div>
+    <div class="login-ver">FG Conexiones · v123</div>
   </div>
 </div>
 
@@ -399,7 +399,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v122</div>
+    <div class="sb-ver">v123</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -413,7 +413,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v122</div>
+    <div id="mobile-ver">v123</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -447,6 +447,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
         <div style="font-size:22px;font-weight:800" id="t-acum-val">—</div>
       </div>
     </div>
+    <div id="t-proy-card" style="margin-bottom:.7rem;display:none"></div>
     <div id="t-deuda-card" class="card" style="margin-bottom:.7rem;padding:.8rem 1rem;display:none"></div>
     <div class="card">
       <div class="card-title">Progreso</div>
@@ -1426,6 +1427,7 @@ async function renderTecSemana(){
       }
       _deudaEquivTec=equivAcum<-0.1?-equivAcum:0; // guardar deuda para el cartel del sábado (más abajo)
       cardDeuda.style.display='block';
+      var _proyCard=document.getElementById('t-proy-card'); if(_proyCard)_proyCard.style.display='none';
       const meta2=parseInt(CONFIG.meta_semanal||30);
       // ── Helper: construir el desglose completo ──
       if(Math.abs(saldoNeto)<1){
@@ -1441,15 +1443,24 @@ async function renderTecSemana(){
         const brd=esNeg?'rgba(220,38,38,.2)':'rgba(22,163,74,.2)';
         const labelCard=esNeg?'Instalaciones pendientes':'A cobrar';
         cardDeuda.style.background=bg;
-        // Proyección: cómo queda la deuda cuando cierre la semana en curso (solo si debe y es la semana actual)
+        // Proyección de la semana en curso → tarjeta propia GRANDE (t-proy-card), solo si debe y es la semana actual
         let proyHtml='';
-        if(esNeg&&wkOff===0){
-          const prog=totalSemana-meta; // + si va arriba de la meta esta semana
-          const proy=Math.abs(equivAcum)-prog; // deuda estimada al cerrar el lunes
+        if(esNeg&&wkOff===0&&_proyCard){
+          const prog=totalSemana-meta;                 // + si va arriba de la meta esta semana
+          const proy=Math.abs(equivAcum)-prog;          // deuda estimada al cerrar el lunes
           if(prog>0.05){
-            proyHtml='<div style="font-size:12px;color:#0369a1;background:rgba(3,105,161,.07);border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.35">📉 Esta semana vas <b style="color:#16a34a">+'+prog.toFixed(1)+'</b> → si cerrás así, el lunes la deuda baja a <b>'+Math.max(0,proy).toFixed(1)+'</b>'+(proy<=0.05?' ✅ (saldada)':' instalaciones')+'.</div>';
+            const destino=Math.max(0,proy);
+            _proyCard.style.display='block';
+            _proyCard.innerHTML='<div style="background:#eaf4ff;border:1px solid #bcdcff;border-radius:16px;padding:16px 18px">'
+              +'<div style="font-size:11px;font-weight:800;color:#0369a1;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">📉 Vas bajando tu deuda</div>'
+              +'<div style="font-size:16px;font-weight:700;color:#12324f;line-height:1.4">Esta semana vas <b style="color:#16a34a">+'+prog.toFixed(1)+'</b>. Si cerrás así, el <b>lunes</b> tu deuda baja a</div>'
+              +'<div style="display:flex;align-items:baseline;gap:8px;margin-top:6px"><span style="font-size:38px;font-weight:900;color:#0369a1;line-height:1">'+destino.toFixed(1)+'</span><span style="font-size:14px;color:#5a7a9a;font-weight:600">'+(proy<=0.05?'¡saldada! ✅':'instalaciones')+'</span></div></div>';
           }else if(prog<-0.05){
-            proyHtml='<div style="font-size:12px;color:#b45309;background:rgba(180,83,9,.07);border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.35">⏳ Esta semana vas <b style="color:#dc2626">'+prog.toFixed(1)+'</b> → si cerrás así, el lunes la deuda sube a <b>'+proy.toFixed(1)+'</b> instalaciones.</div>';
+            _proyCard.style.display='block';
+            _proyCard.innerHTML='<div style="background:#fff5e9;border:1px solid #f6d9a6;border-radius:16px;padding:16px 18px">'
+              +'<div style="font-size:11px;font-weight:800;color:#b45309;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">⏳ Ojo esta semana</div>'
+              +'<div style="font-size:16px;font-weight:700;color:#3d2a0a;line-height:1.4">Vas <b style="color:#dc2626">'+prog.toFixed(1)+'</b>. Si cerrás así, el <b>lunes</b> tu deuda sube a</div>'
+              +'<div style="display:flex;align-items:baseline;gap:8px;margin-top:6px"><span style="font-size:38px;font-weight:900;color:#dc2626;line-height:1">'+proy.toFixed(1)+'</span><span style="font-size:14px;color:#7c5a2a;font-weight:600">instalaciones · ¡estás a tiempo!</span></div></div>';
           }
         }
         cardDeuda.innerHTML=`
