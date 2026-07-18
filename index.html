@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v119</title>
+<title>FG Conexiones v120</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -381,7 +381,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v119</div>
+    <div class="login-ver">FG Conexiones · v120</div>
   </div>
 </div>
 
@@ -399,7 +399,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v119</div>
+    <div class="sb-ver">v120</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -413,7 +413,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v119</div>
+    <div id="mobile-ver">v120</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -3797,6 +3797,7 @@ async function renderDashboard() {
     window._dashTRows = tRows;
     window._dashMeta = meta;
     window._dashPrecioUnit = precioUnit;
+    window._dashEsActual = esActual;
 
     var tecsPend = sRows.filter(function(s){return s.sal>0;}).length;
     var _sk='font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9aa1b4';
@@ -3860,26 +3861,63 @@ async function renderDashboard() {
     }
     html += '</div></div>';
 
-    // Gráfico: líneas de progreso semanal (reemplaza barras apiladas)
-    var lineDsets = CUADRILLAS.map(function(cuad, ci){
-      var vals = sems.map(function(sem){
-        var domS = new Date(sem+'T12:00:00'); domS.setDate(domS.getDate()+6);
-        var hastaS = fmtD(domS);
-        var tv = 0;
-        regsChart.filter(function(r){ return r.cuadrilla_id===cuad.id && r.fecha>=sem && r.fecha<=hastaS; })
-          .forEach(function(r){ (r.registro_tareas||[]).forEach(function(rt){ tv+=calcEquiv(rt.tipo_tarea_id,rt.cantidad); }); });
-        return parseFloat(tv.toFixed(2));
+    // ═══ MAPA DE CALOR: cumplimiento semanal por técnico (últimas 8 semanas cerradas) ═══
+    var hmSems=[]; for(var _k=8;_k>=1;_k--){ hmSems.push(getLunes(_dashWkOff-_k)); }
+    var hmSet={}; hmSems.forEach(function(s){ hmSet[s]=1; });
+    var HMTECS=todosLosTecnicos();
+    var hmData={}; HMTECS.forEach(function(t){ hmData[t]={}; });
+    regsAll.forEach(function(reg){
+      var sem=getLunesDesd(reg.fecha); if(!hmSet[sem]) return;
+      var eq=0;(reg.registro_tareas||[]).forEach(function(rt){ eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad); });
+      if(reg.solo){ if(hmData[reg.tecnico_nombre]){ var cs=hmData[reg.tecnico_nombre][sem]||(hmData[reg.tecnico_nombre][sem]={efe:0}); cs.efe+=eq*2; } return; }
+      var parts=Array.isArray(reg.participantes)&&reg.participantes.length?reg.participantes:null;
+      HMTECS.forEach(function(t){
+        var cuenta = parts ? parts.indexOf(t)>=0 : (cuadrillaDeTecEn(t,reg.fecha)===reg.cuadrilla_id);
+        if(cuenta){ var cp=hmData[t][sem]||(hmData[t][sem]={efe:0}); cp.efe+=eq; }
       });
-      return { label:cuad.nombre, data:vals, borderColor:clrs[ci], backgroundColor:'transparent',
-               borderWidth:2, pointBackgroundColor:clrs[ci], pointRadius:4, tension:0.3 };
     });
-    // Línea de meta
-    lineDsets.push({ label:'Meta', data:sems.map(function(){ return meta; }),
-      borderColor:'rgba(255,255,255,.2)', backgroundColor:'transparent',
-      borderWidth:1, borderDash:[6,4], pointRadius:0, tension:0 });
+    allDiasEsp.forEach(function(d){
+      var sem=getLunesDesd(d.fecha); if(!hmSet[sem]) return;
+      if((d.tipo==='vacaciones'||d.tipo==='licencia')&&d.tecnico_nombre&&hmData[d.tecnico_nombre]){ var cv=hmData[d.tecnico_nombre][sem]||(hmData[d.tecnico_nombre][sem]={efe:0}); cv.vac=true; }
+    });
+    var hmDebt={}; sRows.forEach(function(s){ hmDebt[s.nm]=s.sal; });
+    var hmOrder=HMTECS.slice().sort(function(a,b){ return (hmDebt[a]||0)-(hmDebt[b]||0); });
+    function hmCell(cell){
+      if(!cell) return {bg:'#eef1f6',fg:'#b0b7c4',t:'·'};
+      if(cell.vac) return {bg:'#dbeafe',fg:'#1d4ed8',t:'🏖'};
+      var diff=cell.efe-meta;
+      if(diff>=8) return {bg:'#15803d',fg:'#fff',t:cell.efe.toFixed(0)};
+      if(diff>=3) return {bg:'#22c55e',fg:'#fff',t:cell.efe.toFixed(0)};
+      if(diff>=-0.5) return {bg:'#a7e8bd',fg:'#14532d',t:cell.efe.toFixed(0)};
+      if(diff>=-6) return {bg:'#f7b0b0',fg:'#7f1d1d',t:cell.efe.toFixed(0)};
+      if(diff>=-12) return {bg:'#ef6a6a',fg:'#fff',t:cell.efe.toFixed(0)};
+      return {bg:'#dc2626',fg:'#fff',t:cell.efe.toFixed(0)};
+    }
+    var hmHtml='<div class="d-card" style="margin-bottom:20px"><div class="d-card-t">¿Quién llega a la meta? · últimas 8 semanas</div>';
+    hmHtml+='<div style="font-size:11.5px;color:#64748b;margin:-4px 0 12px">Cada celda es una semana. <b style="color:#15803d">Verde</b> = llegó o pasó los '+meta+'; <b style="color:#dc2626">rojo</b> = quedó abajo. Ordenados por deuda.</div>';
+    hmHtml+='<div style="overflow-x:auto"><div style="min-width:640px">';
+    hmHtml+='<div style="display:grid;grid-template-columns:132px repeat(8,1fr);gap:4px;align-items:center">';
+    hmHtml+='<div></div>';
+    hmSems.forEach(function(s){ hmHtml+='<div style="font-size:10px;color:#94a3b8;text-align:center;font-weight:700">'+fmtL(s)+'</div>'; });
+    hmOrder.forEach(function(nm){
+      hmHtml+='<div style="font-size:12px;font-weight:600;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:6px">'+nm+'</div>';
+      hmSems.forEach(function(s){
+        var cell=hmData[nm]?hmData[nm][s]:null; var c=hmCell(cell);
+        var ttl=nm+' · sem '+fmtL(s)+' · '+(cell?(cell.vac?'Vacaciones/Licencia':cell.efe.toFixed(1)+' inst.'):'no trabajó');
+        hmHtml+='<div title="'+ttl+'" style="height:34px;border-radius:6px;background:'+c.bg+';color:'+c.fg+';display:grid;place-items:center;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums">'+c.t+'</div>';
+      });
+    });
+    hmHtml+='</div></div></div>';
+    hmHtml+='<div style="display:flex;align-items:center;gap:16px;margin-top:14px;flex-wrap:wrap;font-size:11px;color:#64748b">';
+    hmHtml+='<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:13px;height:13px;border-radius:3px;background:#15803d"></span>pasó la meta</span>';
+    hmHtml+='<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:13px;height:13px;border-radius:3px;background:#a7e8bd"></span>llegó justo</span>';
+    hmHtml+='<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:13px;height:13px;border-radius:3px;background:#ef6a6a"></span>quedó abajo</span>';
+    hmHtml+='<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:13px;height:13px;border-radius:3px;background:#dbeafe"></span>🏖 vacaciones</span>';
+    hmHtml+='<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:13px;height:13px;border-radius:3px;background:#eef1f6"></span>· no trabajó</span>';
+    hmHtml+='</div></div>';
+    html += hmHtml;
 
     html += '<div class="dg-bot">';
-    html += '<div class="d-card"><div class="d-card-t">Progreso últimas 4 semanas · equiv. por cuadrilla</div><canvas id="d-chart" height="180"></canvas></div>';
 
     html += '<div class="d-card"><div class="d-card-t">Saldos por técnico</div>';
     if(!sRows.length){ html += '<p style="font-size:12px;color:#64748b;text-align:center;padding:1rem">Sin saldos</p>'; }
@@ -3924,28 +3962,6 @@ async function renderDashboard() {
     html += '<p id="dpm-err" style="font-size:12px;color:#f87171;margin-top:8px;min-height:16px"></p></div></div>';
 
     el.innerHTML = html;
-
-    // Render línea chart
-    setTimeout(function(){
-      var ctx = document.getElementById('d-chart');
-      if (!ctx) return;
-      if (_dChart) _dChart.destroy();
-      _dChart = new Chart(ctx, {
-        type: 'line',
-        data: { labels: clabels, datasets: lineDsets },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { labels: { color:'#8b9cb3', font:{ size:10 }, boxWidth:10, padding:8 } },
-            tooltip: { backgroundColor:'#0d1117', titleColor:'#f1f5f9', bodyColor:'#9ca3af', borderColor:'rgba(255,255,255,.1)', borderWidth:1 }
-          },
-          scales: {
-            x: { grid:{ color:'rgba(255,255,255,.05)' }, ticks:{ color:'#6b7280', font:{ size:10 } } },
-            y: { grid:{ color:'rgba(255,255,255,.05)' }, ticks:{ color:'#6b7280', font:{ size:10 } }, min:0, suggestedMax:meta+5 }
-          }
-        }
-      });
-    }, 100);
 
   } catch(e) {
     el.innerHTML = '<div style="padding:3rem;color:#f87171;text-align:center">Error: ' + e.message + '</div>';
@@ -4014,13 +4030,24 @@ function dashKpiDetalle(tipo){
     if(!alertas.length){html='<div style="text-align:center;padding:2rem;color:#22c55e">✅ Nadie debe instalaciones</div>';}
     else{
       html+='<div style="font-size:11px;color:#6b7280;margin-bottom:.75rem">Técnicos por debajo de la meta acumulada. Deben <strong style="color:#fff">instalaciones</strong> (trabajo, no plata).</div>';
+      var trMap={};(window._dashTRows||[]).forEach(function(t){trMap[t.tec]=t.tot;});
+      var metaK=window._dashMeta||30, esAct=window._dashEsActual;
       alertas.forEach(function(a){
         var debeInst=Math.abs(a.sal)/pu;
-        html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 12px;margin-bottom:6px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px">';
-        html+='<div><div style="font-size:13px;font-weight:700;color:#fca5a5">'+a.nm+'</div>';
+        var proyTxt='';
+        if(esAct && trMap[a.nm]!==undefined){
+          var prog=trMap[a.nm]-metaK, proy=debeInst-prog;
+          if(prog>0.05) proyTxt='<div style="font-size:11.5px;color:#7dd3fc;margin-top:6px">📉 esta semana <b>+'+prog.toFixed(1)+'</b> → el lunes queda en <b>'+Math.max(0,proy).toFixed(1)+'</b>'+(proy<=0.05?' ✅':'')+'</div>';
+          else if(prog<-0.05) proyTxt='<div style="font-size:11.5px;color:#fbbf24;margin-top:6px">⏳ esta semana <b>'+prog.toFixed(1)+'</b> → el lunes sube a <b>'+proy.toFixed(1)+'</b></div>';
+          else proyTxt='<div style="font-size:11.5px;color:#94a3b8;margin-top:6px">esta semana va justo en la meta</div>';
+        }
+        html+='<div style="padding:11px 13px;margin-bottom:7px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:11px">';
+        html+='<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">';
+        html+='<div style="min-width:0"><div style="font-size:13.5px;font-weight:700;color:#fca5a5">'+a.nm+'</div>';
         html+='<div style="font-size:11px;color:#6b7280">'+a.cuad+'</div></div>';
-        html+='<div style="text-align:right"><div style="font-size:18px;font-weight:900;color:#f87171">'+debeInst.toFixed(1)+'</div>';
+        html+='<div style="text-align:right;flex-shrink:0"><div style="font-size:20px;font-weight:900;color:#f87171;line-height:1">'+debeInst.toFixed(1)+'</div>';
         html+='<div style="font-size:10px;color:#6b7280">instalaciones</div></div></div>';
+        html+=proyTxt+'</div>';
       });
     }
   }
