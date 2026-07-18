@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v121</title>
+<title>FG Conexiones v122</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -381,7 +381,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v121</div>
+    <div class="login-ver">FG Conexiones · v122</div>
   </div>
 </div>
 
@@ -399,7 +399,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v121</div>
+    <div class="sb-ver">v122</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -413,7 +413,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v121</div>
+    <div id="mobile-ver">v122</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -3939,8 +3939,10 @@ function renderHeatmap(){
     TECS.forEach(function(t){ var cuenta=parts?parts.indexOf(t)>=0:(cuadrillaDeTecEn(t,reg.fecha)===reg.cuadrilla_id); if(cuenta){ var cp=data[t][sem]||(data[t][sem]={efe:0}); cp.efe+=eq; } });
   });
   src.esp.forEach(function(dd){ var sem=getLunesDesd(dd.fecha); if(!monSet[sem]) return; if((dd.tipo==='vacaciones'||dd.tipo==='licencia')&&dd.tecnico_nombre&&data[dd.tecnico_nombre]){ var cv=data[dd.tecnico_nombre][sem]||(data[dd.tecnico_nombre][sem]={efe:0}); cv.vac=true; } });
-  var debt={}; (src.sRows||[]).forEach(function(s){ debt[s.nm]=s.sal; });
-  var order=TECS.slice().sort(function(a,b){ return (debt[a]||0)-(debt[b]||0); });
+  var totBy={};
+  TECS.forEach(function(nm){ var t=0, algo=false; mons.forEach(function(s){ var cell=data[nm]?data[nm][s]:null; if(cell){ algo=true; t+=cell.vac?meta:cell.efe; } }); totBy[nm]={tot:t,algo:algo}; });
+  var order=TECS.slice().sort(function(a,b){ return totBy[b].tot-totBy[a].tot; });
+  function rangoSem(s){ var l=new Date(s+'T12:00:00'), dom=new Date(l); dom.setDate(l.getDate()+6); if(l.getMonth()===dom.getMonth()) return l.getDate()+' al '+dom.getDate(); return l.getDate()+'/'+(l.getMonth()+1)+' al '+dom.getDate()+'/'+(dom.getMonth()+1); }
   function cellC(cell){
     if(!cell) return {bg:'#eef1f6',fg:'#b0b7c4',t:'·'};
     if(cell.vac) return {bg:'#dbeafe',fg:'#1d4ed8',t:'🏖'};
@@ -3964,17 +3966,16 @@ function renderHeatmap(){
   h+='<div style="overflow-x:auto"><div style="min-width:'+(200+nSem*56+70)+'px">';
   h+='<div style="display:grid;grid-template-columns:132px repeat('+nSem+',1fr) 66px;gap:4px;align-items:center">';
   h+='<div></div>';
-  mons.forEach(function(s){ h+='<div style="font-size:10px;color:#94a3b8;text-align:center;font-weight:700">'+fmtL(s)+'</div>'; });
+  mons.forEach(function(s){ h+='<div title="Semana del '+rangoSem(s)+'" style="font-size:9.5px;line-height:1.25;color:#94a3b8;text-align:center;font-weight:700">semana del<br>'+rangoSem(s)+'</div>'; });
   h+='<div style="font-size:10px;color:#64748b;text-align:center;font-weight:800;text-transform:uppercase;letter-spacing:.04em">Mes</div>';
   order.forEach(function(nm){
     h+='<div style="font-size:12px;font-weight:600;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:6px">'+nm+'</div>';
-    var totMes=0, algo=false;
     mons.forEach(function(s){
       var cell=data[nm]?data[nm][s]:null; var c=cellC(cell);
-      if(cell){ algo=true; totMes += cell.vac?meta:cell.efe; }
-      var ttl=nm+' · sem '+fmtL(s)+' · '+(cell?(cell.vac?'Vacaciones/Licencia':cell.efe.toFixed(1)+' inst.'):'no trabajó');
+      var ttl=nm+' · semana del '+rangoSem(s)+' · '+(cell?(cell.vac?'Vacaciones/Licencia':cell.efe.toFixed(1)+' inst.'):'no trabajó');
       h+='<div title="'+ttl+'" style="height:34px;border-radius:6px;background:'+c.bg+';color:'+c.fg+';display:grid;place-items:center;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums">'+c.t+'</div>';
     });
+    var totMes=totBy[nm].tot, algo=totBy[nm].algo;
     var tc=algo?cellC({efe:totMes/nSem}):{bg:'#eef1f6',fg:'#b0b7c4'};
     h+='<div title="'+nm+' · total '+mesLbl+': '+totMes.toFixed(1)+' inst. (meta '+(meta*nSem)+')" style="height:34px;border-radius:7px;background:'+tc.bg+';color:'+tc.fg+';display:grid;place-items:center;font-size:13px;font-weight:900;font-variant-numeric:tabular-nums;border:2px solid rgba(0,0,0,.07)">'+(algo?totMes.toFixed(0):'·')+'</div>';
   });
