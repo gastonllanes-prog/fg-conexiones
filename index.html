@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v116</title>
+<title>FG Conexiones v117</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -381,7 +381,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v116</div>
+    <div class="login-ver">FG Conexiones · v117</div>
   </div>
 </div>
 
@@ -399,7 +399,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v116</div>
+    <div class="sb-ver">v117</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -413,7 +413,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v116</div>
+    <div id="mobile-ver">v117</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -3827,17 +3827,23 @@ async function renderDashboard() {
     }
     html += '</div>';
 
-    html += '<div class="d-card"><div class="d-card-t">⚠ Deudas activas</div>';
+    var progSemByTec={}; tRows.forEach(function(t){ progSemByTec[t.tec]=t.tot; });
+    html += '<div class="d-card"><div class="d-card-t">Deudas de instalaciones</div>';
     if(!alertas.length){
-      html += '<div style="text-align:center;padding:2rem 0"><div style="font-size:32px">✅</div><div style="font-size:11px;color:#6b7280;letter-spacing:1px;margin-top:8px">SIN DEUDAS</div></div>';
+      html += '<div style="text-align:center;padding:2rem 0"><div style="font-size:32px">✅</div><div style="font-size:11px;color:#6b7280;letter-spacing:1px;margin-top:8px">NADIE DEBE</div></div>';
     } else {
       alertas.slice(0,6).forEach(function(a){
-        html += '<div class="d-alert" style="cursor:pointer" onclick="dashPagoRapido(\''+a.nm+'\',\''+a.cuad+'\','+Math.abs(a.sal)+')" title="Click para registrar pago">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:flex-start">';
-        html += '<div><div class="d-alert-nm">'+a.nm+'</div><div class="d-alert-cuad">'+a.cuad+'</div></div>';
-        html += '<div style="text-align:right"><div class="d-alert-val">Debe '+(Math.abs(a.sal)/precioUnit).toFixed(1)+' inst.</div>';
-        html += '<div style="font-size:11px;color:#94a3b8;margin-top:1px">'+fmtPesos(Math.abs(a.sal))+'</div>';
-        html += '<div style="font-size:9px;color:#6b7280;margin-top:2px">click p/pagar</div></div></div></div>';
+        var debeInst=Math.abs(a.sal)/precioUnit;
+        var progSem=(progSemByTec[a.nm]||0)-meta;
+        var proy=debeInst-progSem;
+        var proyTxt='';
+        if(esActual&&progSem>0.05) proyTxt='<div style="font-size:11px;color:#0369a1;margin-top:4px">esta semana <b>+'+progSem.toFixed(1)+'</b> → el lunes queda en <b>'+Math.max(0,proy).toFixed(1)+'</b>'+(proy<=0.05?' ✅':'')+'</div>';
+        else if(esActual&&progSem<-0.05) proyTxt='<div style="font-size:11px;color:#b45309;margin-top:4px">esta semana <b>'+progSem.toFixed(1)+'</b> → el lunes sube a <b>'+proy.toFixed(1)+'</b></div>';
+        html += '<div class="d-alert" style="cursor:pointer" onclick="dashVerTec(\''+encodeURIComponent(a.nm)+'\',\''+lunes+'\',\''+hasta+'\')" title="Ver detalle del técnico">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">';
+        html += '<div style="min-width:0"><div class="d-alert-nm">'+a.nm+'</div><div class="d-alert-cuad">'+a.cuad+'</div></div>';
+        html += '<div style="text-align:right;flex-shrink:0"><div style="font-size:20px;font-weight:800;color:#dc2626;line-height:1">'+debeInst.toFixed(1)+'</div><div style="font-size:10px;color:#94a3b8;margin-top:1px">instalaciones</div></div>';
+        html += '</div>'+proyTxt+'</div>';
       });
     }
     html += '</div></div>';
