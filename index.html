@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v118</title>
+<title>FG Conexiones v119</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -381,7 +381,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v118</div>
+    <div class="login-ver">FG Conexiones · v119</div>
   </div>
 </div>
 
@@ -399,7 +399,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v118</div>
+    <div class="sb-ver">v119</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -413,7 +413,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v118</div>
+    <div id="mobile-ver">v119</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -3794,7 +3794,9 @@ async function renderDashboard() {
     };
     window._dashKpiData = kpiData;
     window._dashCRows = cRows;
+    window._dashTRows = tRows;
     window._dashMeta = meta;
+    window._dashPrecioUnit = precioUnit;
 
     var tecsPend = sRows.filter(function(s){return s.sal>0;}).length;
     var _sk='font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9aa1b4';
@@ -3803,7 +3805,7 @@ async function renderDashboard() {
     var _st='flex:1;min-width:0;padding:15px 18px;cursor:pointer;border-right:1px solid #eef0f7';
     html += '<style>.dsum-stat:hover{background:#f6f8fc}</style>';
     html += '<div style="display:flex;align-items:stretch;flex-wrap:wrap;background:#fff;border:1px solid #e6e9f2;border-radius:14px;box-shadow:0 1px 2px rgba(24,32,58,.05),0 4px 16px rgba(24,32,58,.05);overflow:hidden;margin-bottom:20px">';
-    html += '<div class="dsum-stat" onclick="dashKpiDetalle(\'equiv\')" style="'+_st+'"><div style="'+_sk+'">Instalaciones · equipo</div><div style="'+_sv+'">'+totGen.toFixed(1)+'</div><div style="'+_sb+'"><b style="color:'+(tecsOk===tRows.length?'#158a48':'#b5720c')+'">'+tecsOk+'/'+tRows.length+'</b> en meta</div></div>';
+    html += '<div class="dsum-stat" onclick="dashKpiDetalle(\'equiv\')" style="'+_st+'"><div style="'+_sk+'">Instalaciones · equipo</div><div style="'+_sv+'">'+totGen.toFixed(1)+'</div><div style="'+_sb+'"><b style="color:'+(tecsOk===tRows.length?'#158a48':'#b5720c')+'">'+tecsOk+' de '+tRows.length+'</b> técnicos llegaron a '+meta+'</div></div>';
     html += '<div class="dsum-stat" onclick="dashKpiDetalle(\'promedio\')" style="'+_st+'"><div style="'+_sk+'">Promedio / técnico</div><div style="'+_sv+'">'+promTec.toFixed(1)+'</div><div style="'+_sb+'">meta '+meta+' instalaciones</div></div>';
     html += '<div class="dsum-stat" onclick="dashKpiDetalle(\'pagos\')" style="'+_st+'"><div style="'+_sk+'">A pagar · extras</div><div style="'+_sv+';color:#158a48">'+fmtPesos(totPend)+'</div><div style="'+_sb+'">'+tecsPend+' técnico'+(tecsPend!==1?'s':'')+' a favor</div></div>';
     html += '<div class="dsum-stat" onclick="dashKpiDetalle(\'alertas\')" style="'+_st+'"><div style="'+_sk+'">Deben instalaciones</div><div style="'+_sv+';color:'+(alertas.length?'#d23c4e':'#158a48')+'">'+alertas.length+'</div><div style="'+_sb+'">'+(alertas.length?(alertas.length+' con deuda'):'nadie debe')+'</div></div>';
@@ -3968,21 +3970,22 @@ function dashKpiDetalle(tipo){
   var html='';
 
   if(tipo==='equiv'||tipo==='promedio'){
-    if(titleEl)titleEl.textContent='📊 Equiv. por cuadrilla esta semana';
-    var total=cRows.reduce(function(s,c){return s+c.tot;},0);
-    html+='<div style="font-size:11px;color:#6b7280;margin-bottom:.75rem">Meta por cuadrilla: <strong style="color:#fff">'+meta+' equiv.</strong> · Total: <strong style="color:#fff">'+total.toFixed(1)+'</strong></div>';
-    cRows.forEach(function(c,i){
-      var pct=c.pct, clr=pct>=100?'#22c55e':pct>=70?'#f59e0b':'#ef4444';
+    var tRows=window._dashTRows||[];
+    if(titleEl)titleEl.textContent='📊 Instalaciones por técnico';
+    var enMeta=tRows.filter(function(t){return t.pct>=100;}).length;
+    html+='<div style="font-size:11px;color:#6b7280;margin-bottom:.75rem">Meta: <strong style="color:#fff">'+meta+' instalaciones</strong> · <strong style="color:#fff">'+enMeta+' de '+tRows.length+'</strong> llegaron</div>';
+    tRows.forEach(function(t,i){
+      var pct=t.pct, clr=pct>=100?'#22c55e':pct>=70?'#f59e0b':'#ef4444';
       html+='<div style="margin-bottom:1rem">';
       html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
-      html+='<div><span style="font-size:13px;font-weight:700;color:#fff">'+(i+1)+'. '+c.cuad.nombre+'</span>';
-      html+='<div style="font-size:11px;color:#6b7280;margin-top:1px">'+(c.cuad.tec1||'')+(c.cuad.tec2?' · '+c.cuad.tec2:'')+'</div></div>';
-      html+='<div style="text-align:right"><span style="font-size:16px;font-weight:900;color:'+clr+'">'+c.tot.toFixed(1)+'</span>';
+      html+='<div><span style="font-size:13px;font-weight:700;color:#fff">'+(i+1)+'. '+t.tec+'</span>';
+      html+='<div style="font-size:11px;color:#6b7280;margin-top:1px">'+t.cuad+'</div></div>';
+      html+='<div style="text-align:right"><span style="font-size:16px;font-weight:900;color:'+clr+'">'+t.tot.toFixed(1)+'</span>';
       html+='<div style="font-size:10px;color:#6b7280">'+pct+'% de meta</div></div></div>';
       html+='<div style="background:rgba(30,80,160,.06);border-radius:99px;height:6px;overflow:hidden">';
       html+='<div style="height:100%;border-radius:99px;background:'+clr+';width:'+Math.min(100,pct)+'%;transition:width .7s ease"></div></div>';
       html+='<div style="font-size:11px;color:#6b7280;margin-top:3px">';
-      html+=pct>=100?'✅ Meta cumplida':'Faltan '+(meta-c.tot).toFixed(1)+' equiv.';
+      html+=pct>=100?'✅ Meta cumplida':'Faltan '+(meta-t.tot).toFixed(1)+' instalaciones';
       html+='</div></div>';
     });
   }
@@ -4005,17 +4008,19 @@ function dashKpiDetalle(tipo){
     }
   }
   else if(tipo==='alertas'){
-    if(titleEl)titleEl.textContent='⚠️ Deudas activas';
+    if(titleEl)titleEl.textContent='⚠️ Deudas de instalaciones';
     var alertas=data.alertas||[];
-    if(!alertas.length){html='<div style="text-align:center;padding:2rem;color:#22c55e">✅ Sin deudas activas</div>';}
+    var pu=window._dashPrecioUnit||3500;
+    if(!alertas.length){html='<div style="text-align:center;padding:2rem;color:#22c55e">✅ Nadie debe instalaciones</div>';}
     else{
-      html+='<div style="font-size:11px;color:#6b7280;margin-bottom:.75rem">Técnicos con saldo negativo (deben plata). Click en una deuda para registrar el pago.</div>';
+      html+='<div style="font-size:11px;color:#6b7280;margin-bottom:.75rem">Técnicos por debajo de la meta acumulada. Deben <strong style="color:#fff">instalaciones</strong> (trabajo, no plata).</div>';
       alertas.forEach(function(a){
-        html+='<div onclick="dashPagoRapido(\''+a.nm+'\',\''+a.cuad+'\','+Math.abs(a.sal)+')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:10px 12px;margin-bottom:6px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;transition:background .15s" onmouseover="this.style.background=\'rgba(239,68,68,.14)\'" onmouseout="this.style.background=\'rgba(239,68,68,.08)\'">';
+        var debeInst=Math.abs(a.sal)/pu;
+        html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 12px;margin-bottom:6px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px">';
         html+='<div><div style="font-size:13px;font-weight:700;color:#fca5a5">'+a.nm+'</div>';
         html+='<div style="font-size:11px;color:#6b7280">'+a.cuad+'</div></div>';
-        html+='<div style="text-align:right"><div style="font-size:14px;font-weight:900;color:#f87171">Debe '+fmtPesos(Math.abs(a.sal))+'</div>';
-        html+='<div style="font-size:10px;color:#6b7280">click p/pagar</div></div></div>';
+        html+='<div style="text-align:right"><div style="font-size:18px;font-weight:900;color:#f87171">'+debeInst.toFixed(1)+'</div>';
+        html+='<div style="font-size:10px;color:#6b7280">instalaciones</div></div></div>';
       });
     }
   }
