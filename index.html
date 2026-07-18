@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v117</title>
+<title>FG Conexiones v118</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -381,7 +381,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v117</div>
+    <div class="login-ver">FG Conexiones · v118</div>
   </div>
 </div>
 
@@ -399,7 +399,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v117</div>
+    <div class="sb-ver">v118</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -413,7 +413,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v117</div>
+    <div id="mobile-ver">v118</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -3796,14 +3796,19 @@ async function renderDashboard() {
     window._dashCRows = cRows;
     window._dashMeta = meta;
 
-    html += '<div class="dk">';
-    html += '<div class="dk-card" style="cursor:pointer" onclick="dashKpiDetalle(\'equiv\')" title="Ver detalle por cuadrilla"><div class="dk-accent" style="background:'+kpiAccents[0]+'"></div><div class="dk-icon">📊</div><div class="dk-val">'+totGen.toFixed(1)+'</div><div class="dk-label">Equiv. totales</div><div class="dk-sub '+(tecsOk===tRows.length?'pos':tecsOk>0?'warn':'neg')+'">'+tecsOk+' / '+tRows.length+' en meta</div><div style="font-size:9px;color:#374151;margin-top:4px">click p/ver</div></div>';
-    html += '<div class="dk-card" style="cursor:pointer" onclick="dashKpiDetalle(\'promedio\')" title="Ver desglose"><div class="dk-accent" style="background:'+kpiAccents[1]+'"></div><div class="dk-icon">📈</div><div class="dk-val">'+promTec.toFixed(1)+'</div><div class="dk-label">Promedio / técnico</div><div class="dk-sub">Meta: '+meta+' equiv.</div><div style="font-size:9px;color:#374151;margin-top:4px">click p/ver</div></div>';
     var tecsPend = sRows.filter(function(s){return s.sal>0;}).length;
-    html += '<div class="dk-card" style="cursor:pointer" onclick="dashKpiDetalle(\'pagos\')" title="Ver quién tiene saldo pendiente"><div class="dk-accent" style="background:'+kpiAccents[2]+'"></div><div class="dk-icon">💰</div><div class="dk-val" style="font-size:22px;letter-spacing:-.5px">'+fmtPesos(totPend)+'</div><div class="dk-label">Pagos pendientes</div><div class="dk-sub '+(tecsPend>0?'warn':'pos')+'">'+tecsPend+' técnico'+(tecsPend!==1?'s':'')+' por cobrar</div><div style="font-size:9px;color:#374151;margin-top:4px">click p/ver</div></div>';
-    html += '<div class="dk-card" style="cursor:pointer" onclick="dashKpiDetalle(\'alertas\')" title="Ver deudas activas"><div class="dk-accent" style="background:'+(alertas.length?kpiAccents[4]:kpiAccents[1])+'"></div><div class="dk-icon">'+(alertas.length?'⚠️':'✅')+'</div><div class="dk-val" style="color:'+(alertas.length?'#f87171':'#10b981')+'">'+alertas.length+'</div><div class="dk-label">Alertas deuda</div><div class="dk-sub '+(alertas.length?'neg':'pos')+'">'+(alertas.length?'Requieren atención':'Sin deudas')+'</div><div style="font-size:9px;color:#374151;margin-top:4px">click p/ver</div></div>';
-    html += '<div class="dk-card" style="cursor:pointer" onclick="dashKpiDetalle(\'combustible\')" title="Ver cargas del mes"><div class="dk-accent" style="background:'+kpiAccents[5]+'"></div><div class="dk-icon">⛽</div><div class="dk-val" style="font-size:22px;letter-spacing:-.5px;color:#38bdf8">'+fmtPesos(totComb)+'</div><div class="dk-label">Combustible este mes</div><div class="dk-sub">'+combustMes.length+' cargas registradas</div><div style="font-size:9px;color:#374151;margin-top:4px">click p/ver</div></div>';
-    html += '<div class="dk-card" style="cursor:pointer" onclick="dashKpiDetalle(\'adelantos\')" title="Ver adelantos sin descontar"><div class="dk-accent" style="background:'+kpiAccents[3]+'"></div><div class="dk-icon">💵</div><div class="dk-val" style="font-size:22px;letter-spacing:-.5px;color:#a78bfa">'+fmtPesos(totAdel)+'</div><div class="dk-label">Adelantos pendientes</div><div class="dk-sub">'+adelPend.length+' sin descontar</div><div style="font-size:9px;color:#374151;margin-top:4px">click p/ver</div></div>';
+    var _sk='font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9aa1b4';
+    var _sv='font-size:23px;font-weight:800;line-height:1.05;margin-top:4px;font-variant-numeric:tabular-nums;letter-spacing:-.01em;color:#1e2330';
+    var _sb='font-size:11.5px;color:#697085;margin-top:3px';
+    var _st='flex:1;min-width:0;padding:15px 18px;cursor:pointer;border-right:1px solid #eef0f7';
+    html += '<style>.dsum-stat:hover{background:#f6f8fc}</style>';
+    html += '<div style="display:flex;align-items:stretch;flex-wrap:wrap;background:#fff;border:1px solid #e6e9f2;border-radius:14px;box-shadow:0 1px 2px rgba(24,32,58,.05),0 4px 16px rgba(24,32,58,.05);overflow:hidden;margin-bottom:20px">';
+    html += '<div class="dsum-stat" onclick="dashKpiDetalle(\'equiv\')" style="'+_st+'"><div style="'+_sk+'">Instalaciones · equipo</div><div style="'+_sv+'">'+totGen.toFixed(1)+'</div><div style="'+_sb+'"><b style="color:'+(tecsOk===tRows.length?'#158a48':'#b5720c')+'">'+tecsOk+'/'+tRows.length+'</b> en meta</div></div>';
+    html += '<div class="dsum-stat" onclick="dashKpiDetalle(\'promedio\')" style="'+_st+'"><div style="'+_sk+'">Promedio / técnico</div><div style="'+_sv+'">'+promTec.toFixed(1)+'</div><div style="'+_sb+'">meta '+meta+' instalaciones</div></div>';
+    html += '<div class="dsum-stat" onclick="dashKpiDetalle(\'pagos\')" style="'+_st+'"><div style="'+_sk+'">A pagar · extras</div><div style="'+_sv+';color:#158a48">'+fmtPesos(totPend)+'</div><div style="'+_sb+'">'+tecsPend+' técnico'+(tecsPend!==1?'s':'')+' a favor</div></div>';
+    html += '<div class="dsum-stat" onclick="dashKpiDetalle(\'alertas\')" style="'+_st+'"><div style="'+_sk+'">Deben instalaciones</div><div style="'+_sv+';color:'+(alertas.length?'#d23c4e':'#158a48')+'">'+alertas.length+'</div><div style="'+_sb+'">'+(alertas.length?(alertas.length+' con deuda'):'nadie debe')+'</div></div>';
+    html += '<div class="dsum-stat" onclick="dashKpiDetalle(\'combustible\')" style="'+_st+'"><div style="'+_sk+'">Combustible · mes</div><div style="'+_sv+';color:#2f6bd6">'+fmtPesos(totComb)+'</div><div style="'+_sb+'">'+combustMes.length+' cargas</div></div>';
+    html += '<div class="dsum-stat" onclick="dashKpiDetalle(\'adelantos\')" style="'+_st+';border-right:none"><div style="'+_sk+'">Adelantos</div><div style="'+_sv+';color:#8b5cf6">'+fmtPesos(totAdel)+'</div><div style="'+_sb+'">'+adelPend.length+' sin descontar</div></div>';
     html += '</div>';
 
     html += '<div class="dg-main">';
@@ -3821,7 +3826,12 @@ async function renderDashboard() {
     html += '</div>';
 
     html += '<div style="display:flex;flex-direction:column;gap:.875rem">';
-    html += '<div class="d-leader"><div class="d-leader-crown">🏆</div><div class="d-leader-t">Técnico líder</div><div class="d-leader-n">'+lider.tec+'</div><div class="d-leader-pct">'+lider.pct+'%</div><div class="d-leader-v">'+lider.tot.toFixed(2)+' equiv.</div></div>';
+    // Líder(es): todos los que empatan en el máximo
+    var maxTot = tRows.length ? tRows[0].tot : 0;
+    var lideres = tRows.filter(function(t){ return Math.abs(t.tot-maxTot)<0.01; });
+    var ldTitulo = lideres.length>1 ? 'Técnicos líderes ('+lideres.length+')' : 'Técnico líder';
+    var ldNombres = lideres.map(function(l){ return '<div class="d-leader-n">'+l.tec+'</div>'; }).join('');
+    html += '<div class="d-leader"><div class="d-leader-crown">🏆</div><div class="d-leader-t">'+ldTitulo+'</div>'+ldNombres+'<div class="d-leader-pct">'+lider.pct+'%</div><div class="d-leader-v">'+lider.tot.toFixed(2)+' equiv.</div></div>';
     if(ultimo && ultimo.pct < 80){
       html += '<div class="d-worst"><div class="d-worst-t">Más atrasado</div><div class="d-worst-n">'+ultimo.tec+'</div><div class="d-worst-v">'+ultimo.tot.toFixed(1)+' equiv · '+ultimo.pct+'%</div></div>';
     }
