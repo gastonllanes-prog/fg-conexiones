@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v120</title>
+<title>FG Conexiones v121</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -381,7 +381,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v120</div>
+    <div class="login-ver">FG Conexiones · v121</div>
   </div>
 </div>
 
@@ -399,7 +399,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v120</div>
+    <div class="sb-ver">v121</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -413,7 +413,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v120</div>
+    <div id="mobile-ver">v121</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -3861,61 +3861,9 @@ async function renderDashboard() {
     }
     html += '</div></div>';
 
-    // ═══ MAPA DE CALOR: cumplimiento semanal por técnico (últimas 8 semanas cerradas) ═══
-    var hmSems=[]; for(var _k=8;_k>=1;_k--){ hmSems.push(getLunes(_dashWkOff-_k)); }
-    var hmSet={}; hmSems.forEach(function(s){ hmSet[s]=1; });
-    var HMTECS=todosLosTecnicos();
-    var hmData={}; HMTECS.forEach(function(t){ hmData[t]={}; });
-    regsAll.forEach(function(reg){
-      var sem=getLunesDesd(reg.fecha); if(!hmSet[sem]) return;
-      var eq=0;(reg.registro_tareas||[]).forEach(function(rt){ eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad); });
-      if(reg.solo){ if(hmData[reg.tecnico_nombre]){ var cs=hmData[reg.tecnico_nombre][sem]||(hmData[reg.tecnico_nombre][sem]={efe:0}); cs.efe+=eq*2; } return; }
-      var parts=Array.isArray(reg.participantes)&&reg.participantes.length?reg.participantes:null;
-      HMTECS.forEach(function(t){
-        var cuenta = parts ? parts.indexOf(t)>=0 : (cuadrillaDeTecEn(t,reg.fecha)===reg.cuadrilla_id);
-        if(cuenta){ var cp=hmData[t][sem]||(hmData[t][sem]={efe:0}); cp.efe+=eq; }
-      });
-    });
-    allDiasEsp.forEach(function(d){
-      var sem=getLunesDesd(d.fecha); if(!hmSet[sem]) return;
-      if((d.tipo==='vacaciones'||d.tipo==='licencia')&&d.tecnico_nombre&&hmData[d.tecnico_nombre]){ var cv=hmData[d.tecnico_nombre][sem]||(hmData[d.tecnico_nombre][sem]={efe:0}); cv.vac=true; }
-    });
-    var hmDebt={}; sRows.forEach(function(s){ hmDebt[s.nm]=s.sal; });
-    var hmOrder=HMTECS.slice().sort(function(a,b){ return (hmDebt[a]||0)-(hmDebt[b]||0); });
-    function hmCell(cell){
-      if(!cell) return {bg:'#eef1f6',fg:'#b0b7c4',t:'·'};
-      if(cell.vac) return {bg:'#dbeafe',fg:'#1d4ed8',t:'🏖'};
-      var diff=cell.efe-meta;
-      if(diff>=8) return {bg:'#15803d',fg:'#fff',t:cell.efe.toFixed(0)};
-      if(diff>=3) return {bg:'#22c55e',fg:'#fff',t:cell.efe.toFixed(0)};
-      if(diff>=-0.5) return {bg:'#a7e8bd',fg:'#14532d',t:cell.efe.toFixed(0)};
-      if(diff>=-6) return {bg:'#f7b0b0',fg:'#7f1d1d',t:cell.efe.toFixed(0)};
-      if(diff>=-12) return {bg:'#ef6a6a',fg:'#fff',t:cell.efe.toFixed(0)};
-      return {bg:'#dc2626',fg:'#fff',t:cell.efe.toFixed(0)};
-    }
-    var hmHtml='<div class="d-card" style="margin-bottom:20px"><div class="d-card-t">¿Quién llega a la meta? · últimas 8 semanas</div>';
-    hmHtml+='<div style="font-size:11.5px;color:#64748b;margin:-4px 0 12px">Cada celda es una semana. <b style="color:#15803d">Verde</b> = llegó o pasó los '+meta+'; <b style="color:#dc2626">rojo</b> = quedó abajo. Ordenados por deuda.</div>';
-    hmHtml+='<div style="overflow-x:auto"><div style="min-width:640px">';
-    hmHtml+='<div style="display:grid;grid-template-columns:132px repeat(8,1fr);gap:4px;align-items:center">';
-    hmHtml+='<div></div>';
-    hmSems.forEach(function(s){ hmHtml+='<div style="font-size:10px;color:#94a3b8;text-align:center;font-weight:700">'+fmtL(s)+'</div>'; });
-    hmOrder.forEach(function(nm){
-      hmHtml+='<div style="font-size:12px;font-weight:600;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:6px">'+nm+'</div>';
-      hmSems.forEach(function(s){
-        var cell=hmData[nm]?hmData[nm][s]:null; var c=hmCell(cell);
-        var ttl=nm+' · sem '+fmtL(s)+' · '+(cell?(cell.vac?'Vacaciones/Licencia':cell.efe.toFixed(1)+' inst.'):'no trabajó');
-        hmHtml+='<div title="'+ttl+'" style="height:34px;border-radius:6px;background:'+c.bg+';color:'+c.fg+';display:grid;place-items:center;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums">'+c.t+'</div>';
-      });
-    });
-    hmHtml+='</div></div></div>';
-    hmHtml+='<div style="display:flex;align-items:center;gap:16px;margin-top:14px;flex-wrap:wrap;font-size:11px;color:#64748b">';
-    hmHtml+='<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:13px;height:13px;border-radius:3px;background:#15803d"></span>pasó la meta</span>';
-    hmHtml+='<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:13px;height:13px;border-radius:3px;background:#a7e8bd"></span>llegó justo</span>';
-    hmHtml+='<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:13px;height:13px;border-radius:3px;background:#ef6a6a"></span>quedó abajo</span>';
-    hmHtml+='<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:13px;height:13px;border-radius:3px;background:#dbeafe"></span>🏖 vacaciones</span>';
-    hmHtml+='<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:13px;height:13px;border-radius:3px;background:#eef1f6"></span>· no trabajó</span>';
-    hmHtml+='</div></div>';
-    html += hmHtml;
+    // ═══ MAPA DE CALOR MENSUAL: se dibuja aparte (renderHeatmap) con navegación de mes ═══
+    window._hmSrc = { regs: regsAll, esp: allDiasEsp, sRows: sRows, meta: meta };
+    html += '<div id="d-heatmap"></div>';
 
     html += '<div class="dg-bot">';
 
@@ -3962,10 +3910,82 @@ async function renderDashboard() {
     html += '<p id="dpm-err" style="font-size:12px;color:#f87171;margin-top:8px;min-height:16px"></p></div></div>';
 
     el.innerHTML = html;
+    try{ renderHeatmap(); }catch(_e){}
 
   } catch(e) {
     el.innerHTML = '<div style="padding:3rem;color:#f87171;text-align:center">Error: ' + e.message + '</div>';
   }
+}
+
+var _hmMesOff = 0;
+function hmMes(delta){ _hmMesOff += delta; if(_hmMesOff>0)_hmMesOff=0; renderHeatmap(); }
+function renderHeatmap(){
+  var host=document.getElementById('d-heatmap'); if(!host||!window._hmSrc) return;
+  var src=window._hmSrc, meta=src.meta||30;
+  var base=new Date(); base.setDate(1); base.setHours(12,0,0,0); base.setMonth(base.getMonth()+_hmMesOff);
+  var year=base.getFullYear(), month=base.getMonth();
+  var mesLbl=base.toLocaleDateString('es-AR',{month:'long',year:'numeric'}); mesLbl=mesLbl.charAt(0).toUpperCase()+mesLbl.slice(1);
+  var d=new Date(year,month,1,12); while(d.getDay()!==1){ d.setDate(d.getDate()+1); }
+  var mons=[]; while(d.getMonth()===month){ mons.push(fmtD(d)); d.setDate(d.getDate()+7); }
+  if(!mons.length){ host.innerHTML=''; return; }
+  var monSet={}; mons.forEach(function(s){ monSet[s]=1; });
+  var TECS=todosLosTecnicos();
+  var data={}; TECS.forEach(function(t){ data[t]={}; });
+  src.regs.forEach(function(reg){
+    var sem=getLunesDesd(reg.fecha); if(!monSet[sem]) return;
+    var eq=0;(reg.registro_tareas||[]).forEach(function(rt){ eq+=calcEquiv(rt.tipo_tarea_id,rt.cantidad); });
+    if(reg.solo){ if(data[reg.tecnico_nombre]){ var cs=data[reg.tecnico_nombre][sem]||(data[reg.tecnico_nombre][sem]={efe:0}); cs.efe+=eq*2; } return; }
+    var parts=Array.isArray(reg.participantes)&&reg.participantes.length?reg.participantes:null;
+    TECS.forEach(function(t){ var cuenta=parts?parts.indexOf(t)>=0:(cuadrillaDeTecEn(t,reg.fecha)===reg.cuadrilla_id); if(cuenta){ var cp=data[t][sem]||(data[t][sem]={efe:0}); cp.efe+=eq; } });
+  });
+  src.esp.forEach(function(dd){ var sem=getLunesDesd(dd.fecha); if(!monSet[sem]) return; if((dd.tipo==='vacaciones'||dd.tipo==='licencia')&&dd.tecnico_nombre&&data[dd.tecnico_nombre]){ var cv=data[dd.tecnico_nombre][sem]||(data[dd.tecnico_nombre][sem]={efe:0}); cv.vac=true; } });
+  var debt={}; (src.sRows||[]).forEach(function(s){ debt[s.nm]=s.sal; });
+  var order=TECS.slice().sort(function(a,b){ return (debt[a]||0)-(debt[b]||0); });
+  function cellC(cell){
+    if(!cell) return {bg:'#eef1f6',fg:'#b0b7c4',t:'·'};
+    if(cell.vac) return {bg:'#dbeafe',fg:'#1d4ed8',t:'🏖'};
+    var diff=cell.efe-meta;
+    if(diff>=8) return {bg:'#15803d',fg:'#fff',t:cell.efe.toFixed(0)};
+    if(diff>=3) return {bg:'#22c55e',fg:'#fff',t:cell.efe.toFixed(0)};
+    if(diff>=-0.5) return {bg:'#a7e8bd',fg:'#14532d',t:cell.efe.toFixed(0)};
+    if(diff>=-6) return {bg:'#f7b0b0',fg:'#7f1d1d',t:cell.efe.toFixed(0)};
+    if(diff>=-12) return {bg:'#ef6a6a',fg:'#fff',t:cell.efe.toFixed(0)};
+    return {bg:'#dc2626',fg:'#fff',t:cell.efe.toFixed(0)};
+  }
+  var nSem=mons.length;
+  var h='<div class="d-card" style="margin-bottom:20px">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">';
+  h+='<div class="d-card-t" style="margin:0">¿Quién llega a la meta? · '+mesLbl+'</div>';
+  h+='<div style="display:flex;align-items:center;gap:6px">';
+  h+='<button onclick="hmMes(-1)" style="width:30px;height:30px;border:1px solid #e6e9f2;background:#fff;border-radius:8px;cursor:pointer;color:#334155;font-size:15px">‹</button>';
+  h+='<button onclick="hmMes(1)" '+(_hmMesOff>=0?'disabled style="opacity:.35;cursor:default;':'style="cursor:pointer;')+'width:30px;height:30px;border:1px solid #e6e9f2;background:#fff;border-radius:8px;color:#334155;font-size:15px">›</button>';
+  h+='</div></div>';
+  h+='<div style="font-size:11.5px;color:#64748b;margin-bottom:12px">Cada celda es una semana; la última columna es el <b>total del mes</b>. Verde = en meta, rojo = abajo. Ordenados por deuda.</div>';
+  h+='<div style="overflow-x:auto"><div style="min-width:'+(200+nSem*56+70)+'px">';
+  h+='<div style="display:grid;grid-template-columns:132px repeat('+nSem+',1fr) 66px;gap:4px;align-items:center">';
+  h+='<div></div>';
+  mons.forEach(function(s){ h+='<div style="font-size:10px;color:#94a3b8;text-align:center;font-weight:700">'+fmtL(s)+'</div>'; });
+  h+='<div style="font-size:10px;color:#64748b;text-align:center;font-weight:800;text-transform:uppercase;letter-spacing:.04em">Mes</div>';
+  order.forEach(function(nm){
+    h+='<div style="font-size:12px;font-weight:600;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:6px">'+nm+'</div>';
+    var totMes=0, algo=false;
+    mons.forEach(function(s){
+      var cell=data[nm]?data[nm][s]:null; var c=cellC(cell);
+      if(cell){ algo=true; totMes += cell.vac?meta:cell.efe; }
+      var ttl=nm+' · sem '+fmtL(s)+' · '+(cell?(cell.vac?'Vacaciones/Licencia':cell.efe.toFixed(1)+' inst.'):'no trabajó');
+      h+='<div title="'+ttl+'" style="height:34px;border-radius:6px;background:'+c.bg+';color:'+c.fg+';display:grid;place-items:center;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums">'+c.t+'</div>';
+    });
+    var tc=algo?cellC({efe:totMes/nSem}):{bg:'#eef1f6',fg:'#b0b7c4'};
+    h+='<div title="'+nm+' · total '+mesLbl+': '+totMes.toFixed(1)+' inst. (meta '+(meta*nSem)+')" style="height:34px;border-radius:7px;background:'+tc.bg+';color:'+tc.fg+';display:grid;place-items:center;font-size:13px;font-weight:900;font-variant-numeric:tabular-nums;border:2px solid rgba(0,0,0,.07)">'+(algo?totMes.toFixed(0):'·')+'</div>';
+  });
+  h+='</div></div></div>';
+  h+='<div style="display:flex;align-items:center;gap:16px;margin-top:14px;flex-wrap:wrap;font-size:11px;color:#64748b">';
+  h+='<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:13px;height:13px;border-radius:3px;background:#15803d"></span>pasó la meta</span>';
+  h+='<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:13px;height:13px;border-radius:3px;background:#a7e8bd"></span>llegó justo</span>';
+  h+='<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:13px;height:13px;border-radius:3px;background:#ef6a6a"></span>quedó abajo</span>';
+  h+='<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:13px;height:13px;border-radius:3px;background:#dbeafe"></span>🏖 vacaciones</span>';
+  h+='</div></div>';
+  host.innerHTML=h;
 }
 
 // RANKING ADMIN
