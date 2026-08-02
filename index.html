@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v126</title>
+<title>FG Conexiones v127</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -381,7 +381,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v126</div>
+    <div class="login-ver">FG Conexiones · v127</div>
   </div>
 </div>
 
@@ -399,7 +399,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v126</div>
+    <div class="sb-ver">v127</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -413,7 +413,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v126</div>
+    <div id="mobile-ver">v127</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1093,6 +1093,12 @@ function calcEquiv(tid,cant){
   return t.resta?-(cant/t.divisor)*t.unidades:(cant/t.divisor)*t.unidades;
 }
 function esDiaEsp(fecha){return diasEsp[fecha]||(feriadosAR[fecha]?{tipo:'feriado',descripcion:feriadosAR[fecha],auto:true}:null);}
+// v127 — REGLA DE GASTÓN (01-08): la LICENCIA cuenta 5 equiv por DÍA HÁBIL (lun-sáb; el domingo
+//   no, no es día de meta), SUMADA a lo realmente trabajado — mismo criterio que el certificado.
+//   La semana ENTERA de licencia (6 días hábiles) da 30, igual que antes. VACACIONES no cambia
+//   (semana completa = 30). Antes cualquier día de licencia pisaba la semana entera a 30 y
+//   borraba lo trabajado (caso Pablo Benitez 27-07: 17.66 reales + licencia vie → mostraba 30).
+function eqLicDia(fecha){return new Date(fecha+'T00:00:00').getDay()===0?0:5;}
 function esDiaEspTec(fecha,tecNombre){
   // Check individual tech days (vacaciones, certificado)
   const key=fecha+'_'+tecNombre;
@@ -1362,8 +1368,10 @@ async function renderTecSemana(){
 
   // Días especiales (vacaciones/certificado)
   if(esInd){
-    const vacData=diasEspData.filter(d=>d.tipo==='vacaciones'||d.tipo==='licencia');
+    const vacData=diasEspData.filter(d=>d.tipo==='vacaciones');
     if(vacData.length>0){totalSemana=meta;dias.forEach(d=>totPorDia[d.fecha]=0);totPorDia[vacData[0].fecha]=meta;}
+    // v127 — licencia PARCIAL: +5 por día hábil, sumado a lo trabajado (ver eqLicDia)
+    diasEspData.filter(d=>d.tipo==='licencia').forEach(d=>{const v=eqLicDia(d.fecha);if(v){totPorDia[d.fecha]=(totPorDia[d.fecha]||0)+v;totalSemana+=v;}});
     diasEspData.filter(d=>d.tipo==='certificado').forEach(d=>{totPorDia[d.fecha]=(totPorDia[d.fecha]||0)+5;totalSemana+=5;});
   }
   // Feriados
@@ -1748,7 +1756,8 @@ async function calcSaldosTodos(){
     esp.forEach(d=>{
       const ce=cuadrillaDeTecEn(tec,d.fecha);if(!ce)return;
       const s=getLunesDesd(d.fecha);if(d.fecha<MARZO||s>=lunesHoy)return;
-      if((d.tipo==='vacaciones'||d.tipo==='licencia')&&d.tecnico_nombre===tec){if(!porSemana[s])porSemana[s]={pareja:0,solo:0};porSemana[s].pareja=meta;}
+      if(d.tipo==='vacaciones'&&d.tecnico_nombre===tec){if(!porSemana[s])porSemana[s]={pareja:0,solo:0};porSemana[s].pareja=meta;}
+      else if(d.tipo==='licencia'&&d.tecnico_nombre===tec){const v=eqLicDia(d.fecha);if(v)add(d.fecha,'pareja',v);} // v127 — +5/día hábil, no pisa la semana
       else if(d.tipo==='certificado'&&d.tecnico_nombre===tec)add(d.fecha,'pareja',5);
       else if(d.tipo==='feriado'&&(!d.cuadrilla_id||d.cuadrilla_id===ce))add(d.fecha,'pareja',5);
     });
@@ -1899,10 +1908,9 @@ async function buildRankings(desde, hasta, usarHistorico){
       else { TECS.forEach(t=>{ if(cuadrillaDeTecEn(t,reg.fecha)===reg.cuadrilla_id) totInd[t].total+=eq; }); }
     }
   });
-  // Licencia: suma la meta por cada semana de licencia (no perjudica el ranking del que faltó por causa ajena)
-  const licSem={};
-  licencias.forEach(l=>{ (licSem[l.tecnico_nombre]=licSem[l.tecnico_nombre]||new Set()).add(getLunesDesd(l.fecha)); });
-  Object.keys(licSem).forEach(tec=>{ if(totInd[tec]) totInd[tec].total += licSem[tec].size*metaRk; });
+  // v127 — Licencia: +5 por DÍA HÁBIL (dom no), SUMADO a lo trabajado. Antes sumaba 30 por semana
+  //   ENCIMA de lo trabajado (acá duplicaba) mientras las otras vistas pisaban a 30 — inconsistente.
+  licencias.forEach(l=>{ const v=eqLicDia(l.fecha); if(v&&totInd[l.tecnico_nombre]) totInd[l.tecnico_nombre].total+=v; });
   return{rankCuad:Object.values(totCuad).sort((a,b)=>b.total-a.total),rankInd:Object.values(totInd).sort((a,b)=>b.total-a.total)};
 }
 
@@ -2221,7 +2229,10 @@ async function _cerrarUnaCuadrilla(lunes, cuadId){
   let totalCuad=0;
   regs.forEach(r=>{(r.registro_tareas||[]).forEach(rt=>totalCuad+=calcEquiv(rt.tipo_tarea_id,rt.cantidad));});
   // Vacaciones de esta cuadrilla
-  diasEspSem.filter(d=>(d.cuadrilla_id===cuadId||!d.cuadrilla_id)&&(d.tipo==='vacaciones'||d.tipo==='licencia')).forEach(()=>totalCuad=Math.max(totalCuad,meta));
+  // v127 — solo VACACIONES eleva el total de la CUADRILLA a la meta. La licencia es un crédito
+  //   PERSONAL del técnico (como el certificado, que acá tampoco cuenta): el compañero que siguió
+  //   trabajando solo ya cobra ×2, sumar la licencia al equipo la contaría dos veces.
+  diasEspSem.filter(d=>(d.cuadrilla_id===cuadId||!d.cuadrilla_id)&&d.tipo==='vacaciones').forEach(()=>totalCuad=Math.max(totalCuad,meta));
   // Feriados (aplican a todos)
   diasEspSem.filter(d=>(!d.cuadrilla_id||d.cuadrilla_id===cuadId)&&d.tipo==='feriado').forEach(()=>totalCuad+=5);
   const extras=(totalCuad-meta)*precioUnit;
@@ -2483,7 +2494,8 @@ async function abrirDetalleCuad(cuadId,desde,hasta){
     diasEspCuad.filter(d=>d.tecnico_nombre===tec&&(d.tipo==='vacaciones'||d.tipo==='licencia'||d.tipo==='certificado')).forEach(d=>{
       const sem=getLunesDesd(d.fecha);if(!porSemana[sem])porSemana[sem]={diasPar:{},diasSolo:{}};
       if(d.tipo==='certificado') porSemana[sem].diasPar[d.fecha]=(porSemana[sem].diasPar[d.fecha]||0)+5;
-      else porSemana[sem].vacLic=true; // vacaciones/licencia: la semana entera cuenta 30 (no por día)
+      else if(d.tipo==='licencia'){const v=eqLicDia(d.fecha);if(v)porSemana[sem].diasPar[d.fecha]=(porSemana[sem].diasPar[d.fecha]||0)+v;} // v127 — +5/día hábil
+      else porSemana[sem].vacLic=true; // vacaciones: la semana entera cuenta 30 (no por día)
     });
     feriadosAplicables.forEach(d=>{
       const sem=getLunesDesd(d.fecha);if(!porSemana[sem])porSemana[sem]={diasPar:{},diasSolo:{}};
@@ -2528,7 +2540,7 @@ async function abrirDetalleCuad(cuadId,desde,hasta){
       const domSem=new Date(sem+'T12:00:00');domSem.setDate(domSem.getDate()+6);
       html+=`<div style="background:rgba(30,80,160,.04);border-radius:10px;padding:.75rem 1rem;margin-bottom:.5rem;border:1px solid rgba(30,80,160,.10)">
         <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Semana ${fmtL(sem)} – ${fmtL(fmtD(domSem))}</div>`;
-      if(vacLic){ html+=`<div style="font-size:12px;font-weight:700;color:#0369a1">🏖 Vacaciones/Licencia · cuenta ${meta} (semana cumplida)</div>`; }
+      if(vacLic){ html+=`<div style="font-size:12px;font-weight:700;color:#0369a1">🏖 Vacaciones · cuenta ${meta} (semana cumplida)</div>`; }
       if(Object.keys(diasPar).length){
         html+=`<div style="font-size:10px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">En pareja</div>`;
         Object.entries(diasPar).sort().forEach(([fecha,eq])=>{
@@ -3722,11 +3734,12 @@ async function renderDashboard() {
       var vacLicSem=false;
       diasEspSem.forEach(function(d){
         var ce=cuadrillaDeTecEn(tec,d.fecha); if(!ce) return;
-        if((d.tipo==='vacaciones'||d.tipo==='licencia') && d.tecnico_nombre===tec) vacLicSem=true;
+        if(d.tipo==='vacaciones' && d.tecnico_nombre===tec) vacLicSem=true;
+        else if(d.tipo==='licencia' && d.tecnico_nombre===tec) tot += eqLicDia(d.fecha); // v127 — +5/día hábil
         else if(d.tipo==='certificado' && d.tecnico_nombre===tec) tot += 5;
         else if(d.tipo==='feriado' && (!d.cuadrilla_id||d.cuadrilla_id===ce)) tot += 5;
       });
-      if(vacLicSem) tot = meta; // vacaciones/licencia: la semana cuenta 30 UNA vez, no por día
+      if(vacLicSem) tot = meta; // vacaciones: la semana cuenta 30 UNA vez, no por día
       var cuadEn = cuadrillaDeTecEn(tec, lunes);
       var cuadObj = CUADRILLAS.find(function(c){ return c.id===cuadEn; });
       var libre = gl && cuadObj ? cuadObj.grupo===gl : false;
@@ -4029,7 +4042,12 @@ function renderHeatmap(){
     var parts=Array.isArray(reg.participantes)&&reg.participantes.length?reg.participantes:null;
     TECS.forEach(function(t){ var cuenta=parts?parts.indexOf(t)>=0:(cuadrillaDeTecEn(t,reg.fecha)===reg.cuadrilla_id); if(cuenta){ var cp=data[t][sem]||(data[t][sem]={efe:0}); cp.efe+=eq; } });
   });
-  src.esp.forEach(function(dd){ var sem=getLunesDesd(dd.fecha); if(!monSet[sem]) return; if((dd.tipo==='vacaciones'||dd.tipo==='licencia')&&dd.tecnico_nombre&&data[dd.tecnico_nombre]){ var cv=data[dd.tecnico_nombre][sem]||(data[dd.tecnico_nombre][sem]={efe:0}); cv.vac=true; } });
+  src.esp.forEach(function(dd){ var sem=getLunesDesd(dd.fecha); if(!monSet[sem]) return;
+    if(dd.tipo!=='vacaciones'&&dd.tipo!=='licencia') return;
+    if(!dd.tecnico_nombre||!data[dd.tecnico_nombre]) return;
+    var cv=data[dd.tecnico_nombre][sem]||(data[dd.tecnico_nombre][sem]={efe:0});
+    if(dd.tipo==='vacaciones') cv.vac=true;
+    else cv.efe+=eqLicDia(dd.fecha); }); // v127 — licencia: +5/día hábil, se suma a lo trabajado
   var totBy={};
   TECS.forEach(function(nm){ var t=0, algo=false; mons.forEach(function(s){ var cell=data[nm]?data[nm][s]:null; if(cell){ algo=true; t+=cell.vac?meta:cell.efe; } }); totBy[nm]={tot:t,algo:algo}; });
   var order=TECS.slice().sort(function(a,b){ return totBy[b].tot-totBy[a].tot; });
@@ -4242,7 +4260,7 @@ async function dashVerTec(tecEnc, desde, hasta){
     var vacLicSem=false;
     diasEsp.forEach(function(d){
       if(d.tipo==='vacaciones'&&d.tecnico_nombre===tec){ if(!dias[d.fecha])dias[d.fecha]={eq:0}; dias[d.fecha].esp='🏖 Vacaciones'; dias[d.fecha].noNum=true; vacLicSem=true; }
-      else if(d.tipo==='licencia'&&d.tecnico_nombre===tec){ if(!dias[d.fecha])dias[d.fecha]={eq:0}; dias[d.fecha].esp='🩺 Licencia'; dias[d.fecha].noNum=true; vacLicSem=true; }
+      else if(d.tipo==='licencia'&&d.tecnico_nombre===tec){ if(!dias[d.fecha])dias[d.fecha]={eq:0}; dias[d.fecha].esp='🩺 Licencia'; var _vL=eqLicDia(d.fecha); if(_vL){dias[d.fecha].eq+=_vL;}else{dias[d.fecha].noNum=true;} } // v127 — +5/día hábil visible en el detalle; domingo muestra —
       else if(d.tipo==='certificado'&&d.tecnico_nombre===tec){ if(!dias[d.fecha])dias[d.fecha]={eq:5}; dias[d.fecha].esp='🏥 Certificado'; }
       else if(d.tipo==='feriado'){ if(!dias[d.fecha])dias[d.fecha]={eq:5}; dias[d.fecha].esp='📅 Feriado'; }
     });
@@ -4300,7 +4318,7 @@ async function dashVerCuad(cuadId, desde, hasta){
         if(parts?parts.indexOf(tec)>=0:true) eqPar+=eq;
       });
       var vacLicSem=false;
-      diasEsp.filter(function(d){return d.tecnico_nombre===tec&&(d.tipo==='vacaciones'||d.tipo==='licencia'||d.tipo==='certificado');}).forEach(function(d){ if(d.tipo==='certificado') eqPar+=5; else vacLicSem=true; });
+      diasEsp.filter(function(d){return d.tecnico_nombre===tec&&(d.tipo==='vacaciones'||d.tipo==='licencia'||d.tipo==='certificado');}).forEach(function(d){ if(d.tipo==='certificado') eqPar+=5; else if(d.tipo==='licencia') eqPar+=eqLicDia(d.fecha); else vacLicSem=true; }); // v127
       ferAplic.forEach(function(){ eqPar+=5; });
       if(vacLicSem){ eqPar=meta; eqSolo=0; } // vacaciones/licencia: la semana cuenta 30 una vez, no por día
       var eqTotal=eqPar+eqSolo*2;
@@ -4406,7 +4424,8 @@ async function dashPagoRapido(tecNombre, cuadNombre, montoDeuda){
       var cuadEn=cuadrillaDeTecEn(tecNombre,d.fecha);
       if(!cuadEn)return;
       if(!porSemana[sem])porSemana[sem]={par:0,sol:0};
-      if((d.tipo==='vacaciones'||d.tipo==='licencia')&&d.tecnico_nombre===tecNombre) porSemana[sem].par=meta;
+      if(d.tipo==='vacaciones'&&d.tecnico_nombre===tecNombre) porSemana[sem].par=meta;
+      else if(d.tipo==='licencia'&&d.tecnico_nombre===tecNombre) porSemana[sem].par+=eqLicDia(d.fecha); // v127 — +5/día hábil
       else if(d.tipo==='certificado'&&d.tecnico_nombre===tecNombre) porSemana[sem].par+=5;
       else if(d.tipo==='feriado'&&(!d.cuadrilla_id||d.cuadrilla_id===cuadEn)) porSemana[sem].par+=5;
     });
