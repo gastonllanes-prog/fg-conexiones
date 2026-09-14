@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v127</title>
+<title>FG Conexiones v128</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -381,7 +381,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v127</div>
+    <div class="login-ver">FG Conexiones · v128</div>
   </div>
 </div>
 
@@ -399,7 +399,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v127</div>
+    <div class="sb-ver">v128</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -413,7 +413,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v127</div>
+    <div id="mobile-ver">v128</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1005,7 +1005,36 @@ async function sbFetch(table,method,body,params=''){
   const t=await r.text();if(!r.ok)throw new Error(t);
   return t?JSON.parse(t):null;
 }
-const sbGet=(t,p)=>sbFetch(t,'GET',null,p);
+// v128 — PAGINADO AUTOMÁTICO. Supabase devuelve como MÁXIMO 1000 filas por consulta aunque se pidan
+//   más. El 07-09-2026 la tabla registros pasó las 1000 filas y desde ahí los saldos, el ranking y el
+//   dashboard perdían los registros más nuevos en silencio (caso Daniel Pereira: la app mostraba -17.66
+//   y el real era -9.32 — le faltaban el solo del 10/09 y la carga del 12/09).
+//   Si la consulta no trae limit/offset propio y la primera página llega llena, se trae el resto
+//   con orden estable (id como desempate). Consultas chicas: una sola llamada, igual que antes.
+async function sbGet(t,p){
+  p=p||'';
+  if(/[?&](limit|offset)=/.test(p)) return sbFetch(t,'GET',null,p);
+  const PAGE=1000;
+  const sep=p.indexOf('?')>=0?'&':'?';
+  const first=await sbFetch(t,'GET',null,p+sep+'limit='+PAGE);
+  if(!Array.isArray(first)||first.length<PAGE) return first;
+  let q=p;
+  const m=q.match(/([?&])order=([^&]*)/);
+  if(m){ if(!/(^|,)id\./.test(m[2])) q=q.replace(m[0],m[1]+'order='+m[2]+',id.asc'); }
+  else q=q+sep+'order=id.asc';
+  const traer=async function(qq){
+    let out=[],off=0;
+    while(true){
+      const pg=await sbFetch(t,'GET',null,qq+(qq.indexOf('?')>=0?'&':'?')+'limit='+PAGE+'&offset='+off);
+      out=out.concat(pg||[]);
+      if(!pg||pg.length<PAGE||off>200000) break;
+      off+=PAGE;
+    }
+    return out;
+  };
+  try{ return await traer(q); }
+  catch(e){ return await traer(p); } // tabla sin columna id: paginar sin desempate
+}
 const sbPost=(t,b)=>sbFetch(t,'POST',b);
 const sbDel=(t,p)=>sbFetch(t,'DELETE',null,p);
 const sbPatch=(t,p,b)=>sbFetch(t,'PATCH',b,p);
