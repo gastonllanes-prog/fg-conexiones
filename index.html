@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#111111"/>
-<title>FG Conexiones v128</title>
+<title>FG Conexiones v129</title>
 <style>
 :root{
   --bg:#f0f6ff;
@@ -381,7 +381,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <p class="err-msg" id="l-err"></p>
       <button class="btn btn-dark btn-full" style="margin-top:.75rem" onclick="doLogin()"><span class="spinner" id="l-spin" style="display:none"></span>Ingresar</button>
     </div>
-    <div class="login-ver">FG Conexiones · v128</div>
+    <div class="login-ver">FG Conexiones · v129</div>
   </div>
 </div>
 
@@ -399,7 +399,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="sb-footer">
     <div class="sb-user" id="sb-nombre">—</div>
     <div class="sb-user-rol" id="sb-rol">—</div>
-    <div class="sb-ver">v128</div>
+    <div class="sb-ver">v129</div>
     <button class="sb-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 </aside>
@@ -413,7 +413,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <span></span><span></span><span></span>
     </button>
     <div id="mobile-title">FG Conexiones</div>
-    <div id="mobile-ver">v128</div>
+    <div id="mobile-ver">v129</div>
   </div>
 
   <!-- Page area - all content goes here -->
@@ -1074,11 +1074,29 @@ const HISTORIAL_CUADRILLA = {
   'Gaspar Encina':       [{cuad:'jorge_gaspar',    desde:'2026-01-01', hasta:'2026-04-13'},
                           {cuad:'maxi_pocho',      desde:'2026-04-14', hasta:'9999-12-31'}],
   'Maximiliano Benitez': [{cuad:'maxi_pocho',      desde:'2026-01-01', hasta:'2026-04-13'},
-                          {cuad:'jorge_gaspar',    desde:'2026-04-14', hasta:'9999-12-31'}]
+                          {cuad:'jorge_gaspar',    desde:'2026-04-14', hasta:'9999-12-31'}],
+  // v129 — Gerardo pasó a la cuadrilla de Pablo Garay, pero el cambio no quedó registrado en
+  //   ningún lado: el sistema creía que SIEMPRE había estado ahí y por eso no le contaba el
+  //   trabajo hecho en pablo_gerardo de marzo a junio (los registros viejos no guardan
+  //   participantes, se resuelven por cuadrilla). Su deuda llegó a 158,2 siendo 39,5 la real.
+  'Gerardo Gonzalez':    [{cuad:'pablo_gerardo',   desde:'2026-01-01', hasta:'2026-10-04'},
+                          {cuad:'daniel_pablo',    desde:'2026-10-05', hasta:'9999-12-31'}]
 };
+// v129 — HISTORIAL EN LA BASE: lo de arriba es el historial viejo (cargado a mano). De acá en
+//   adelante, cada cambio de integrantes que se hace en Config → Cuadrillas se registra solo
+//   (configuracion.historial_cuadrillas), así el sistema nunca más se olvida de dónde venía un
+//   técnico. Lo guardado en la base se suma a lo de arriba; si un técnico está en los dos, mandan
+//   los períodos de la base (son los más nuevos).
+let HIST_BD={};
+function cargarHistBD(){
+  HIST_BD={};
+  try{ const j=CONFIG.historial_cuadrillas; if(j) HIST_BD=JSON.parse(j)||{}; }catch(e){ HIST_BD={}; }
+}
 
 // Períodos (cuadrilla + rango) de un técnico. Si no se movió, su cuadrilla actual desde el inicio.
 function periodosTec(tecNombre){
+  const bd=HIST_BD[tecNombre];                      // v129 — historial registrado por la propia app
+  if(bd&&bd.length) return bd;
   if(HISTORIAL_CUADRILLA[tecNombre]) return HISTORIAL_CUADRILLA[tecNombre];
   const c=CUADRILLAS.find(x=>x.tec1===tecNombre||x.tec2===tecNombre);
   return c?[{cuad:c.id,desde:'2026-01-01',hasta:'9999-12-31'}]:[];
@@ -1146,7 +1164,7 @@ async function cargarDiasEsp(){diasEsp={};try{(await sbGet('dias_especiales','?s
   if(d.tecnico_nombre)diasEsp[d.fecha+'_'+d.tecnico_nombre]=d; // per-tech key
 });}catch(e){}}
 async function cargarTipos(){TIPOS=await sbGet('tipos_tarea','?activo=eq.true&order=orden');}
-async function cargarConfig(){const d=await sbGet('configuracion','?select=*');CONFIG={};d.forEach(x=>CONFIG[x.clave]=x.valor);}
+async function cargarConfig(){const d=await sbGet('configuracion','?select=*');CONFIG={};d.forEach(x=>CONFIG[x.clave]=x.valor);cargarHistBD();}
 async function cargarCuadrillas(){CUADRILLAS=await sbGet('cuadrillas','?activa=eq.true&order=grupo,id&select=*');}
 async function logAct(a,d,t=''){try{await sbPost('log_actividad',{usuario:CU?.username||'?',accion:a,detalle:d,tabla_afectada:t});}catch(e){}}
 
@@ -3662,6 +3680,19 @@ async function guardarCuadrilla(){
       }
     }
 
+    // v129 — REGISTRAR EL MOVIMIENTO. Antes el cambio de integrantes solo pisaba tec1/tec2 y no
+    //   quedaba rastro de dónde venía el técnico: el sistema lo daba por miembro de la cuadrilla
+    //   nueva DESDE SIEMPRE y perdía el trabajo que había hecho en la anterior (caso Gerardo
+    //   Gonzalez: deuda inflada a 158,2 contra 39,5 real). Ahora cada alta/baja queda guardada.
+    try{
+      const entran=[tec1,tec2].filter(Boolean).filter(n=>n!==c.tec1&&n!==c.tec2);
+      const salen=[c.tec1,c.tec2].filter(Boolean).filter(n=>n!==tec1&&n!==tec2);
+      let tocado=false;
+      entran.forEach(n=>{ if(moverTecEnHistorial(n,editCuadId)) tocado=true; });
+      salen.forEach(n=>{ if(moverTecEnHistorial(n,null)) tocado=true; });
+      if(tocado) await guardarHistBD();
+    }catch(eH){ console.warn('[historial cuadrillas]',eH.message); }
+
     await logAct('Config cuadrilla',`${nombre} G${nuevoGrupo} · ${tec1||'—'} · ${tec2||'—'}`,'cuadrillas');
 
     // Actualizar en memoria
@@ -3671,6 +3702,27 @@ async function guardarCuadrilla(){
     document.getElementById('cuad-modal-ok').textContent='Guardado ✓';
     setTimeout(()=>{cerrarCuadModal();renderConfig();poblarSelects();},900);
   }catch(e){errEl.textContent='Error: '+e.message;}
+}
+
+// v129 — Mueve a un técnico en el historial: cierra el período que tenía abierto (hasta ayer) y
+//   le abre uno nuevo desde hoy. cuadNueva=null = quedó sin cuadrilla. Devuelve true si cambió algo.
+function moverTecEnHistorial(tec,cuadNueva){
+  const hoy=fmtD(new Date());
+  const ayer=fmtD(new Date(Date.now()-86400000));
+  let per=JSON.parse(JSON.stringify(periodosTec(tec)||[]));
+  const actual=per.find(x=>hoy>=x.desde&&hoy<=x.hasta);
+  if((actual?actual.cuad:null)===cuadNueva) return false;      // ya estaba así: nada que registrar
+  per.forEach(x=>{ if(x.hasta>ayer) x.hasta=ayer; });
+  per=per.filter(x=>x.desde<=x.hasta);
+  if(cuadNueva) per.push({cuad:cuadNueva,desde:hoy,hasta:'9999-12-31'});
+  HIST_BD[tec]=per;
+  return true;
+}
+async function guardarHistBD(){
+  await sbUpsert('configuracion',{clave:'historial_cuadrillas',valor:JSON.stringify(HIST_BD),
+    descripcion:'Historial de cuadrillas por tecnico (lo escribe la app al cambiar integrantes)',
+    solo_jefe:true,updated_by:(CU&&CU.username)||'sistema'});
+  CONFIG.historial_cuadrillas=JSON.stringify(HIST_BD);
 }
 
 function cerrarCuadModal(){
